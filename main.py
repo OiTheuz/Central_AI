@@ -12,7 +12,9 @@ models.Base.metadata.create_all(bind=engine)
 app = FastAPI(title="API Central de Agendamento")
 
 # --- CONFIGURAÇÃO META ---
+
 VERIFY_TOKEN = "AgendAI_Meta_9f2a8b3c7e5d10a4f6b2"
+
 
 # Função para conectar ao banco
 def get_db():
