@@ -63,7 +63,7 @@ async def receive_messages(request: Request):
 @app.post("/lojistas/", response_model=schemas.MerchantResponse)
 def criar_lojista(merchant: schemas.MerchantCreate, db: Session = Depends(get_db)):
     db_merchant = db.query(models.Merchant).filter(
-        (models.Merchant.codigo_lo_ja == merchant.codigo_loja) | 
+        (models.Merchant.codigo_loja == merchant.codigo_loja) | 
         (models.Merchant.nome_do_schema == merchant.nome_do_schema)
     ).first()
     
