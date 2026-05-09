@@ -92,7 +92,6 @@ async def analisar_mensagem_com_ia(texto_cliente: str):
     prompt_sistema = """
     Você é um assistente inteligente de uma Central de Agendamentos.
     Sua única função é ler a mensagem do cliente e extrair os dados em formato JSON.
-    Seja preciso. Se um dado não for informado, retorne null.
     
     O formato JSON estrito DEVE ser:
     {
@@ -104,18 +103,24 @@ async def analisar_mensagem_com_ia(texto_cliente: str):
     }
     """
     
-    resposta = await client_ai.chat.completions.create(
+    # Chama a API
+    response = await client_ai.chat.completions.create(
         model="gpt-4o-mini",
-        response_format={ "type": "json_object" }, # Obriga a IA a devolver só JSON
         messages=[
             {"role": "system", "content": prompt_sistema},
             {"role": "user", "content": texto_cliente}
         ],
-        temperature=0.2 # Respostas mais lógicas e menos criativas
+        response_format={ "type": "json_object" },
+        temperature=0.1
     )
     
-    # Transforma o texto JSON que a IA devolveu em um Dicionário Python
-    dados_extraidos = json.loads(resposta.choices.message.content)
+    # A CORREÇÃO ESTÁ AQUI:
+    # Acessamos o conteúdo de texto da mensagem primeiro
+    conteudo_texto = response.choices.message.content
+    
+    # Agora convertemos esse texto para um dicionário Python
+    dados_extraidos = json.loads(conteudo_texto)
+    
     return dados_extraidos
 
 def enviar_mensagem_whatsapp(telefone_destino: str, texto_mensagem: str):
