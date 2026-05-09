@@ -81,53 +81,58 @@ async def verify_webhook(request: Request):
 
 # =========================================================
 # WEBHOOK META - RECEBER MENSAGENS (POST)
-# ---> AQUI FIZEMOS A MÁGICA DA LEITURA DE DADOS <---
 
 @app.post("/webhook")
-async def receive_messages(request: Request):
+async def receive_messages(
+    request: Request, 
+    db: Session = Depends(get_db) # <-- ADICIONAMOS A CONEXÃO COM O BANCO AQUI
+):
     try:
         body = await request.json()
 
-        # Verifica se a notificação vem realmente de uma conta do WhatsApp
         if body.get("object") == "whatsapp_business_account":
-            
-            # A Meta envia as mensagens dentro de "entry" e "changes"
             for entry in body.get("entry", []):
                 for change in entry.get("changes", []):
                     value = change.get("value", {})
                     
-                    # Verifica se o evento contém mensagens
                     if "messages" in value:
                         for message in value["messages"]:
-                            
-                            # Extrai o número do telefone do cliente
                             telefone_cliente = message.get("from")
                             
-                            # Filtramos para capturar apenas mensagens de texto (ignoramos áudio, foto, etc por enquanto)
                             if message.get("type") == "text":
                                 texto_mensagem = message["text"]["body"]
                                 
                                 print("======== NOVA MENSAGEM META ========")
                                 print(f"📱 Cliente: {telefone_cliente}")
                                 print(f"💬 Mensagem: {texto_mensagem}")
-                                print("====================================")
                                 
-                                # TODO: PRÓXIMO PASSO
-                                # Aqui vamos chamar a função para identificar o lojista e acionar a IA
+                                # === NOVA LÓGICA DE IDENTIFICAÇÃO (ROTEAMENTO) ===
+                                texto_minusculo = texto_mensagem.lower()
+                                lojista_encontrado = None
+
+                                # 1. Puxa todos os lojistas do banco de dados
+                                lojistas_cadastrados = db.query(models.Merchant).all()
+
+                                # 2. Procura se o nome de alguma loja está dentro do texto que o cliente mandou
+                                for loja in lojistas_cadastrados:
+                                    if loja.nome_loja.lower() in texto_minusculo:
+                                        lojista_encontrado = loja
+                                        break
+                                
+                                # 3. Verifica o resultado
+                                if lojista_encontrado:
+                                    print(f"🎯 Lojista Encontrado: {lojista_encontrado.nome_loja} | Schema: {lojista_encontrado.nome_do_schema}")
+                                    # TODO: Enviar essa mensagem para a IA analisar datas e serviços
+                                else:
+                                    print("🤷 Não conseguimos identificar de qual loja o cliente está falando.")
+                                print("====================================")
         
-        # Respondemos rapidamente para a Meta saber que recebemos
-        return JSONResponse(
-            content={"status": "recebido"},
-            status_code=200
-        )
+        return JSONResponse(content={"status": "recebido"}, status_code=200)
 
     except Exception as e:
         print(f"❌ ERRO WEBHOOK: {e}")
-        raise HTTPException(
-            status_code=400,
-            detail=str(e)
-        )
-
+        raise HTTPException(status_code=400, detail=str(e))
+    
 # =========================================================
 # LOJISTAS
 
