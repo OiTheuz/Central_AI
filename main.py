@@ -3,7 +3,9 @@ from fastapi import FastAPI, Depends, HTTPException, Request
 from fastapi.responses import PlainTextResponse, JSONResponse
 from sqlalchemy.orm import Session
 from dotenv import load_dotenv
+from openai import AsyncOpenAI
 
+import json
 import models
 import schemas
 import os
@@ -78,6 +80,50 @@ async def verify_webhook(request: Request):
         status_code=403,
         detail="Token de verificação inválido"
     )
+
+# =========================================================
+# CONFIGURAÇÃO OPENAI 
+
+# Inicializa o cliente da OpenAI pegando a chave do .env
+client_ai = AsyncOpenAI(api_key=os.getenv("OPENAI_API_KEY"))
+
+async def analisar_mensagem_com_ia(texto_cliente: str):
+    prompt_sistema = """
+    Você é um assistente inteligente de uma Central de Agendamentos.
+    Sua única função é ler a mensagem do cliente e extrair os dados em formato JSON.
+    Seja preciso. Se um dado não for informado, retorne null.
+    
+    O formato JSON estrito DEVE ser:
+    {
+        "intencao": "agendamento" ou "saudacao" ou "duvida",
+        "nome_cliente": "nome da pessoa, ou null",
+        "servico": "serviço desejado, ou null",
+        "data": "YYYY-MM-DD, ou null",
+        "hora": "HH:MM, ou null"
+    }
+    """
+    
+    resposta = await client_ai.chat.completions.create(
+        model="gpt-4o-mini",
+        response_format={ "type": "json_object" }, # Obriga a IA a devolver só JSON
+        messages=[
+            {"role": "system", "content": prompt_sistema},
+            {"role": "user", "content": texto_cliente}
+        ],
+        temperature=0.2 # Respostas mais lógicas e menos criativas
+    )
+    
+    # Transforma o texto JSON que a IA devolveu em um Dicionário Python
+    dados_extraidos = json.loads(resposta.choices.message.content)
+    return dados_extraidos
+
+
+
+
+
+
+
+
 
 # =========================================================
 # WEBHOOK META - RECEBER MENSAGENS (POST)
