@@ -2,33 +2,32 @@ from sqlalchemy import text
 from fastapi import FastAPI, Depends, HTTPException, Request
 from fastapi.responses import PlainTextResponse, JSONResponse
 from sqlalchemy.orm import Session
+from dotenv import load_dotenv
 
 import models
 import schemas
+import os
+load_dotenv()
 
 from database import engine, SessionLocal
 
 # =========================================================
 # CRIA TABELAS
-# =========================================================
 
 models.Base.metadata.create_all(bind=engine)
 
 # =========================================================
 # APP
-# =========================================================
 
 app = FastAPI(title="API Central de Agendamento")
 
 # =========================================================
 # CONFIG META
-# =========================================================
 
 VERIFY_TOKEN = "AgendAI_Meta_9f2a8b3c7e5d10a4f6b2"
 
 # =========================================================
 # DATABASE
-# =========================================================
 
 def get_db():
     db = SessionLocal()
@@ -39,7 +38,6 @@ def get_db():
 
 # =========================================================
 # HEALTH CHECK
-# =========================================================
 
 @app.get("/")
 def home():
@@ -49,8 +47,7 @@ def home():
     }
 
 # =========================================================
-# WEBHOOK META - VERIFICAÇÃO
-# =========================================================
+# WEBHOOK META - VERIFICAÇÃO (GET)
 
 @app.get("/webhook")
 async def verify_webhook(request: Request):
@@ -83,28 +80,49 @@ async def verify_webhook(request: Request):
     )
 
 # =========================================================
-# WEBHOOK META - RECEBER MENSAGENS
-# =========================================================
+# WEBHOOK META - RECEBER MENSAGENS (POST)
+# ---> AQUI FIZEMOS A MÁGICA DA LEITURA DE DADOS <---
 
 @app.post("/webhook")
 async def receive_messages(request: Request):
-
     try:
         body = await request.json()
 
-        print("======== NOVA MENSAGEM META ========")
-        print(body)
-        print("====================================")
-
+        # Verifica se a notificação vem realmente de uma conta do WhatsApp
+        if body.get("object") == "whatsapp_business_account":
+            
+            # A Meta envia as mensagens dentro de "entry" e "changes"
+            for entry in body.get("entry", []):
+                for change in entry.get("changes", []):
+                    value = change.get("value", {})
+                    
+                    # Verifica se o evento contém mensagens
+                    if "messages" in value:
+                        for message in value["messages"]:
+                            
+                            # Extrai o número do telefone do cliente
+                            telefone_cliente = message.get("from")
+                            
+                            # Filtramos para capturar apenas mensagens de texto (ignoramos áudio, foto, etc por enquanto)
+                            if message.get("type") == "text":
+                                texto_mensagem = message["text"]["body"]
+                                
+                                print("======== NOVA MENSAGEM META ========")
+                                print(f"📱 Cliente: {telefone_cliente}")
+                                print(f"💬 Mensagem: {texto_mensagem}")
+                                print("====================================")
+                                
+                                # TODO: PRÓXIMO PASSO
+                                # Aqui vamos chamar a função para identificar o lojista e acionar a IA
+        
+        # Respondemos rapidamente para a Meta saber que recebemos
         return JSONResponse(
             content={"status": "recebido"},
             status_code=200
         )
 
     except Exception as e:
-
         print(f"❌ ERRO WEBHOOK: {e}")
-
         raise HTTPException(
             status_code=400,
             detail=str(e)
@@ -112,7 +130,6 @@ async def receive_messages(request: Request):
 
 # =========================================================
 # LOJISTAS
-# =========================================================
 
 @app.post("/lojistas/", response_model=schemas.MerchantResponse)
 def criar_lojista(
@@ -169,7 +186,6 @@ def criar_lojista(
 
 # =========================================================
 # LISTAR LOJISTAS
-# =========================================================
 
 @app.get("/lojistas/", response_model=list[schemas.MerchantResponse])
 def listar_lojistas(
@@ -187,7 +203,6 @@ def listar_lojistas(
 
 # =========================================================
 # CRIAR AGENDAMENTO
-# =========================================================
 
 @app.post("/agendamentos/")
 def criar_agendamento(
@@ -252,7 +267,6 @@ def criar_agendamento(
 
 # =========================================================
 # LISTAR AGENDAMENTOS
-# =========================================================
 
 @app.get("/agendamentos/{codigo_loja}")
 def listar_agendamentos(
