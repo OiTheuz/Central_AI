@@ -5,6 +5,7 @@ from sqlalchemy.orm import Session
 from dotenv import load_dotenv
 from openai import AsyncOpenAI
 
+import requests
 import json
 import models
 import schemas
@@ -117,13 +118,36 @@ async def analisar_mensagem_com_ia(texto_cliente: str):
     dados_extraidos = json.loads(resposta.choices.message.content)
     return dados_extraidos
 
-
-
-
-
-
-
-
+def enviar_mensagem_whatsapp(telefone_destino: str, texto_mensagem: str):
+    token = os.getenv("META_ACCESS_TOKEN")
+    phone_id = os.getenv("META_PHONE_ID")
+    
+    url = f"https://graph.facebook.com/v18.0/{phone_id}/messages"
+    
+    headers = {
+        "Authorization": f"Bearer {token}",
+        "Content-Type": "application/json"
+    }
+    
+    payload = {
+        "messaging_product": "whatsapp",
+        "recipient_type": "individual",
+        "to": telefone_destino,
+        "type": "text",
+        "text": {
+            "preview_url": False,
+            "body": texto_mensagem
+        }
+    }
+    
+    response = requests.post(url, headers=headers, json=payload)
+    
+    if response.status_code == 200:
+        print("✅ Mensagem ENVIADA com sucesso pelo bot!")
+    else:
+        print(f"❌ Erro ao enviar mensagem: {response.text}")
+        
+    return response.json()
 
 # =========================================================
 # WEBHOOK META - RECEBER MENSAGENS (POST)
@@ -166,9 +190,51 @@ async def receive_messages(
                                         break
                                 
                                 # 3. Verifica o resultado
+                                telefone_cliente = message.get("from")
+                            
+                            if message.get("type") == "text":
+                                texto_mensagem = message["text"]["body"]
+                                
+                                print("======== NOVA MENSAGEM META ========")
+                                print(f"📱 Cliente: {telefone_cliente}")
+                                print(f"💬 Mensagem: {texto_mensagem}")
+                                
+                                # === LÓGICA DE IDENTIFICAÇÃO (ROTEAMENTO) ===
+                                texto_minusculo = texto_mensagem.lower()
+                                lojista_encontrado = None
+                                lojistas_cadastrados = db.query(models.Merchant).all()
+
+                                for loja in lojistas_cadastrados:
+                                    if loja.nome_loja.lower() in texto_minusculo:
+                                        lojista_encontrado = loja
+                                        break
+                                
+                                # === CONECTANDO A INTELIGÊNCIA ARTIFICIAL ===
                                 if lojista_encontrado:
-                                    print(f"🎯 Lojista Encontrado: {lojista_encontrado.nome_loja} | Schema: {lojista_encontrado.nome_do_schema}")
-                                    # TODO: Enviar essa mensagem para a IA analisar datas e serviços
+                                    print(f"🎯 Lojista Encontrado: {lojista_encontrado.nome_loja}")
+                                    print("🧠 Enviando mensagem para a IA analisar...")
+                                    
+                                    # Chama a nossa função da OpenAI
+                                    dados_extraidos = await analisar_mensagem_com_ia(texto_mensagem)
+                                    print(f"🤖 Retorno da IA: {dados_extraidos}")
+                                    
+                                    # === O BOT RESPONDE ===
+                                    intencao = dados_extraidos.get("intencao")
+                                    nome = dados_extraidos.get("nome_cliente")
+                                    servico = dados_extraidos.get("servico")
+                                    data = dados_extraidos.get("data")
+                                    hora = dados_extraidos.get("hora")
+                                    
+                                    if intencao == "agendamento" and nome and data and hora:
+                                        mensagem_resposta = f"Olá, {nome}! Entendi que você quer agendar um(a) {servico} para o dia {data} às {hora} na loja {lojista_encontrado.nome_loja}.\n\n(Aviso: Ainda vou consultar o banco de dados para ver se tem vaga!) 😉"
+                                    elif not nome:
+                                        mensagem_resposta = f"Claro! Em qual nome posso registrar o agendamento no(a) {lojista_encontrado.nome_loja}?"
+                                    else:
+                                        mensagem_resposta = f"Olá! Sou a assistente do(a) {lojista_encontrado.nome_loja}. Como posso te ajudar hoje?"
+                                        
+                                    # Dispara a mensagem de volta para o cliente!
+                                    enviar_mensagem_whatsapp(telefone_cliente, mensagem_resposta)
+                                    
                                 else:
                                     print("🤷 Não conseguimos identificar de qual loja o cliente está falando.")
                                 print("====================================")
