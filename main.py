@@ -1,3 +1,5 @@
+from sqlalchemy import text, Column, Integer, String, DateTime
+from sqlalchemy.sql import func
 from sqlalchemy import text
 from fastapi import FastAPI, Depends, HTTPException, Request
 from fastapi.responses import PlainTextResponse, JSONResponse
@@ -26,6 +28,17 @@ models.Base.metadata.create_all(bind=engine)
 app = FastAPI(title="API Central de Agendamento")
 
 # =========================================================
+
+class ActiveSession(models.Base):
+    __tablename__ = "active_sessions"
+    __table_args__ = {"schema": "public"}
+
+    id = Column(Integer, primary_key=True, index=True)
+    telefone_cliente = Column(String, unique=True, nullable=False)
+    loja_atual = Column(String, nullable=False)
+    ultima_interacao = Column(DateTime, server_default=func.now(), onupdate=func.now())
+
+# =========================================================
 # CONFIG META
 
 VERIFY_TOKEN = "AgendAI_Meta_9f2a8b3c7e5d10a4f6b2"
@@ -49,6 +62,24 @@ def home():
         "status": "online",
         "api": "API Central de Agendamento"
     }
+# =========================================================
+# FUNÇÕES DE MEMÓRIA DO BOT
+
+def get_sessao_cliente(db: Session, telefone: str):
+    return db.query(ActiveSession).filter(ActiveSession.telefone_cliente == telefone).first()
+
+def salvar_sessao_cliente(db: Session, telefone: str, schema_loja: str):
+    sessao = get_sessao_cliente(db, telefone)
+    if sessao:
+        sessao.loja_atual = schema_loja
+    else:
+        nova_sessao = ActiveSession(telefone_cliente=telefone, loja_atual=schema_loja)
+        db.add(nova_sessao)
+    db.commit()
+
+def deletar_sessao_cliente(db: Session, telefone: str):
+    db.query(ActiveSession).filter(ActiveSession.telefone_cliente == telefone).delete()
+    db.commit()
 
 # =========================================================
 # WEBHOOK META - VERIFICAÇÃO (GET)
@@ -90,7 +121,11 @@ async def verify_webhook(request: Request):
 client_ai = AsyncOpenAI(api_key=os.getenv("OPENAI_API_KEY"))
 
 async def analisar_mensagem_com_ia(texto_cliente: str):
-    prompt_sistema = """
+    # 1. Pega a data exata de hoje
+    data_atual = datetime.now().strftime("%d-%m-%Y")
+    
+    # 2. Somamos a regra da data com o seu prompt original
+    prompt_sistema = f"⚠️ INFORMAÇÃO CRUCIAL: Hoje é dia {data_atual}. Use essa data como referência exata para calcular dias como 'amanhã', 'próxima semana', 'quinta-feira', etc.\n\n" + """
     Você é um assistente inteligente de uma Central de Agendamentos.
     Sua única função é ler a mensagem do cliente e extrair os dados em formato JSON.
     
@@ -115,7 +150,7 @@ async def analisar_mensagem_com_ia(texto_cliente: str):
         temperature=0.1
     )
     
-    # A CORREÇÃO ESTÁ AQUI:
+    
     # Acessamos o conteúdo de texto da mensagem primeiro
     conteudo_texto = response.choices[0].message.content
     
@@ -159,119 +194,71 @@ def enviar_mensagem_whatsapp(telefone_destino: str, texto_mensagem: str):
 # WEBHOOK META - RECEBER MENSAGENS (POST)
 
 @app.post("/webhook")
-async def receive_messages(
-    request: Request, 
-    db: Session = Depends(get_db) # <-- ADICIONAMOS A CONEXÃO COM O BANCO AQUI
-):
+async def recebe_mensagem_webhook(request: Request, db: Session = Depends(get_db)):
     try:
         body = await request.json()
-
-        if body.get("object") == "whatsapp_business_account":
-            for entry in body.get("entry", []):
-                for change in entry.get("changes", []):
-                    value = change.get("value", {})
-                    
-                    if "messages" in value:
-                        for message in value["messages"]:
-                            telefone_cliente = message.get("from")
-                            
-                            if message.get("type") == "text":
-                                texto_mensagem = message["text"]["body"]
-                                
-                                print("======== NOVA MENSAGEM META ========")
-                                print(f"📱 Cliente: {telefone_cliente}")
-                                print(f"💬 Mensagem: {texto_mensagem}")
-                                
-                                # === NOVA LÓGICA DE IDENTIFICAÇÃO (ROTEAMENTO) ===
-                                texto_minusculo = texto_mensagem.lower()
-                                lojista_encontrado = None
-
-                                # 1. Puxa todos os lojistas do banco de dados
-                                lojistas_cadastrados = db.query(models.Merchant).all()
-
-                                # 2. Procura se o nome de alguma loja está dentro do texto que o cliente mandou
-                                for loja in lojistas_cadastrados:
-                                    if loja.nome_loja.lower() in texto_minusculo:
-                                        lojista_encontrado = loja
-                                        break
-                                
-                                # 3. Verifica o resultado
-                                telefone_cliente = message.get("from")
-                            
-                            if message.get("type") == "text":
-                                texto_mensagem = message["text"]["body"]
-                                
-                                print("======== NOVA MENSAGEM META ========")
-                                print(f"📱 Cliente: {telefone_cliente}")
-                                print(f"💬 Mensagem: {texto_mensagem}")
-                                
-                                # === LÓGICA DE IDENTIFICAÇÃO (ROTEAMENTO) ===
-                                texto_minusculo = texto_mensagem.lower()
-                                lojista_encontrado = None
-                                lojistas_cadastrados = db.query(models.Merchant).all()
-
-                                for loja in lojistas_cadastrados:
-                                    if loja.nome_loja.lower() in texto_minusculo:
-                                        lojista_encontrado = loja
-                                        break
-                                
-                                # === CONECTANDO A INTELIGÊNCIA ARTIFICIAL ===
-                                
-                                if lojista_encontrado:
-                                    print(f"🎯 Lojista Encontrado: {lojista_encontrado.nome_loja}")
-                                    print("🧠 Enviando mensagem para a IA analisar...")
-                                    
-                                    # Aqui chamamos a função que você corrigiu no topo do arquivo
-                                    dados_extraidos = await analisar_mensagem_com_ia(texto_mensagem)
-                                    
-                                    # O pulo do gato: A função já retorna o JSON pronto, 
-                                    # então agora é só usar os .get()
-                                    intencao = dados_extraidos.get("intencao")
-                                    nome = dados_extraidos.get("nome_cliente")
-                                    servico = dados_extraidos.get("servico")
-                                    data = dados_extraidos.get("data")
-                                    hora = dados_extraidos.get("hora")
-
-                                    # Defina data_br antes de usar
-                                    data_br = "25-12-2024"  # Exemplo de entrada no formato DD-MM-YYYY
-
-                                    # =============== BLOCO DE TRADUÇÃO ============================
-                                    data_sql = None
-                                    if data_br:
-                                        try:
-                                            data_obj = datetime.strptime(data_br, "%d-%m-%Y")
-                                            data_sql = data_obj.strftime("%Y-%m-%d")
-                                        except ValueError as e:  # Capture a exceção com 'as e'
-                                            print(f"Erro na conversão: {e}")
-                                            data_sql = None
-                                    # =============== BLOCO DE TRADUÇÃO ============================
-
-                                    # Monta a resposta
-                                    if intencao == "agendamento" and nome and data and hora:
-                                        mensagem_resposta = (
-                                            f"Olá, {nome}! Agendamento para {servico} no dia {data} às {hora} no {lojista_encontrado.nome_loja} anotado! Vou confirmar a vaga."
-                                        )
-                                    elif not nome:
-                                        mensagem_resposta = (
-                                            f"Olá! Notei que quer agendar no {lojista_encontrado.nome_loja}. Qual seu nome, por favor?"
-                                        )
-                                    else:
-                                        mensagem_resposta = (
-                                            f"Oi! Como posso ajudar você hoje no {lojista_encontrado.nome_loja}?"
-                                        )
-
-                                    # Envia pro WhatsApp
-                                    enviar_mensagem_whatsapp(telefone_cliente, mensagem_resposta)
-                                else:
-                                    print("🤷 Não conseguimos identificar de qual loja o cliente está falando.")
-                                    
-                                print("====================================")
         
-        return JSONResponse(content={"status": "recebido"}, status_code=200)
+        # 1. Extração básica dos dados da Meta
+        # Verifica se é uma mensagem válida antes de processar
+        if not body.get("entry") or not body["entry"].get("changes"):
+            return JSONResponse(content={"status": "ignorado"}, status_code=200)
+
+        change = body["entry"]["changes"]["value"]
+        
+        if "messages" not in change:
+            return JSONResponse(content={"status": "ignorado"}, status_code=200)
+
+        mensagem = change["messages"]
+        telefone_cliente = mensagem["from"]
+        mensagem_usuario = mensagem.get("text", {}).get("body", "")
+
+        print(f"\n📩 Mensagem de {telefone_cliente}: {mensagem_usuario}")
+
+        # 2. LÓGICA DE MEMÓRIA: Verificar se o cliente já tem sessão ativa
+        schema_alvo = None
+        sessao_ativa = get_sessao_cliente(db, telefone_cliente)
+
+        if sessao_ativa:
+            schema_alvo = sessao_ativa.loja_atual
+            print(f"🧠 Memória Ativa: Cliente já está falando com -> {schema_alvo}")
+        else:
+            # 3. IDENTIFICAR LOJISTA (Se não tiver sessão)
+            # Buscamos no banco se o nome da loja ou código aparece na mensagem
+            # Ex: "Quero marcar no Moura" -> Identifica o merchant 'Moura'
+            merchants = db.query(models.Merchant).all()
+            for m in merchants:
+                if m.nome_loja.lower() in mensagem_usuario.lower() or m.codigo_loja.lower() in mensagem_usuario.lower():
+                    schema_alvo = m.nome_do_schema
+                    salvar_sessao_cliente(db, telefone_cliente, schema_alvo)
+                    print(f"🆕 Nova sessão iniciada com -> {schema_alvo}")
+                    break
+
+        # 4. PROCESSAR COM IA E BANCO (Se identificarmos o schema)
+        if schema_alvo:
+            # Chama a sua função de IA para extrair dados (Serviço, Data, Hora)
+            dados_ia = await analisar_mensagem_com_ia(mensagem_usuario)
+            
+            # Se a IA conseguiu extrair informações para agendamento
+            if dados_ia.get("servico") and dados_ia.get("data"):
+                # Aqui você chama a lógica de INSERT que já criamos
+                # Vou simular a chamada de sucesso:
+                print(f"🎯 Agendamento detectado para {schema_alvo}: {dados_ia}")
+                
+                # [OPCIONAL] Se o agendamento foi CONCLUÍDO com sucesso no banco:
+                # deletar_sessao_cliente(db, telefone_cliente)
+                # print("🧹 Sessão limpa após agendamento finalizado.")
+            
+            else:
+                print("⏳ IA ainda coletando informações do cliente...")
+
+        else:
+            print("🤷 Não conseguimos identificar a loja. Aguardando o cliente mencionar o nome da loja.")
+
+        return JSONResponse(content={"status": "sucesso"}, status_code=200)
 
     except Exception as e:
-        print(f"❌ ERRO WEBHOOK: {e}")
-        raise HTTPException(status_code=400, detail=str(e))
+        print(f"❌ Erro no Webhook: {str(e)}")
+        return JSONResponse(content={"status": "erro", "detalhe": str(e)}, status_code=500)
     
 # =========================================================
 # LOJISTAS
