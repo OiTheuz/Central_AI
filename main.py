@@ -4,6 +4,7 @@ from fastapi.responses import PlainTextResponse, JSONResponse
 from sqlalchemy.orm import Session
 from dotenv import load_dotenv
 from openai import AsyncOpenAI
+from datetime import datetime
 
 import requests
 import json
@@ -98,7 +99,7 @@ async def analisar_mensagem_com_ia(texto_cliente: str):
         "intencao": "agendamento" ou "saudacao" ou "duvida",
         "nome_cliente": "nome da pessoa, ou null",
         "servico": "serviço desejado, ou null",
-        "data": "YYYY-MM-DD, ou null",
+        "data": "DD-MM-YYYY, ou null",
         "hora": "HH:MM, ou null"
     }
     """
@@ -116,7 +117,7 @@ async def analisar_mensagem_com_ia(texto_cliente: str):
     
     # A CORREÇÃO ESTÁ AQUI:
     # Acessamos o conteúdo de texto da mensagem primeiro
-    conteudo_texto = response.choices.message.content
+    conteudo_texto = response.choices[0].message.content
     
     # Agora convertemos esse texto para um dicionário Python
     dados_extraidos = json.loads(conteudo_texto)
@@ -215,33 +216,55 @@ async def receive_messages(
                                         break
                                 
                                 # === CONECTANDO A INTELIGÊNCIA ARTIFICIAL ===
+                                
                                 if lojista_encontrado:
                                     print(f"🎯 Lojista Encontrado: {lojista_encontrado.nome_loja}")
                                     print("🧠 Enviando mensagem para a IA analisar...")
                                     
-                                    # Chama a nossa função da OpenAI
+                                    # Aqui chamamos a função que você corrigiu no topo do arquivo
                                     dados_extraidos = await analisar_mensagem_com_ia(texto_mensagem)
-                                    print(f"🤖 Retorno da IA: {dados_extraidos}")
                                     
-                                    # === O BOT RESPONDE ===
+                                    # O pulo do gato: A função já retorna o JSON pronto, 
+                                    # então agora é só usar os .get()
                                     intencao = dados_extraidos.get("intencao")
                                     nome = dados_extraidos.get("nome_cliente")
                                     servico = dados_extraidos.get("servico")
                                     data = dados_extraidos.get("data")
                                     hora = dados_extraidos.get("hora")
-                                    
+
+                                    # Defina data_br antes de usar
+                                    data_br = "25-12-2024"  # Exemplo de entrada no formato DD-MM-YYYY
+
+                                    # =============== BLOCO DE TRADUÇÃO ============================
+                                    data_sql = None
+                                    if data_br:
+                                        try:
+                                            data_obj = datetime.strptime(data_br, "%d-%m-%Y")
+                                            data_sql = data_obj.strftime("%Y-%m-%d")
+                                        except ValueError as e:  # Capture a exceção com 'as e'
+                                            print(f"Erro na conversão: {e}")
+                                            data_sql = None
+                                    # =============== BLOCO DE TRADUÇÃO ============================
+
+                                    # Monta a resposta
                                     if intencao == "agendamento" and nome and data and hora:
-                                        mensagem_resposta = f"Olá, {nome}! Entendi que você quer agendar um(a) {servico} para o dia {data} às {hora} na loja {lojista_encontrado.nome_loja}.\n\n(Aviso: Ainda vou consultar o banco de dados para ver se tem vaga!) 😉"
+                                        mensagem_resposta = (
+                                            f"Olá, {nome}! Agendamento para {servico} no dia {data} às {hora} no {lojista_encontrado.nome_loja} anotado! Vou confirmar a vaga."
+                                        )
                                     elif not nome:
-                                        mensagem_resposta = f"Claro! Em qual nome posso registrar o agendamento no(a) {lojista_encontrado.nome_loja}?"
+                                        mensagem_resposta = (
+                                            f"Olá! Notei que quer agendar no {lojista_encontrado.nome_loja}. Qual seu nome, por favor?"
+                                        )
                                     else:
-                                        mensagem_resposta = f"Olá! Sou a assistente do(a) {lojista_encontrado.nome_loja}. Como posso te ajudar hoje?"
-                                        
-                                    # Dispara a mensagem de volta para o cliente!
+                                        mensagem_resposta = (
+                                            f"Oi! Como posso ajudar você hoje no {lojista_encontrado.nome_loja}?"
+                                        )
+
+                                    # Envia pro WhatsApp
                                     enviar_mensagem_whatsapp(telefone_cliente, mensagem_resposta)
-                                    
                                 else:
                                     print("🤷 Não conseguimos identificar de qual loja o cliente está falando.")
+                                    
                                 print("====================================")
         
         return JSONResponse(content={"status": "recebido"}, status_code=200)
