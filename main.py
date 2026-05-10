@@ -159,34 +159,35 @@ async def analisar_mensagem_com_ia(texto_cliente: str):
     
     return dados_extraidos
 
-def enviar_mensagem_whatsapp(telefone_destino: str, texto_mensagem: str):
-    token = os.getenv("META_ACCESS_TOKEN")
-    phone_id = os.getenv("META_PHONE_ID")
+def enviar_mensagem_whatsapp(numero_destino: str, texto: str):
+    # Vai buscar as credenciais de forma segura ao arquivo .env
+    TOKEN_META = os.getenv("TOKEN_META")
+    PHONE_NUMBER_ID = os.getenv("PHONE_NUMBER_ID")
     
-    url = f"https://graph.facebook.com/v18.0/{phone_id}/messages"
+    # Prevenção: Avisa no terminal se você esquecer de preencher o .env
+    if not TOKEN_META or not PHONE_NUMBER_ID:
+        print("❌ ERRO: TOKEN_META ou PHONE_NUMBER_ID não estão configurados no ficheiro .env!")
+        return
+
+    url = f"https://graph.facebook.com/v18.0/{PHONE_NUMBER_ID}/messages"
     
     headers = {
-        "Authorization": f"Bearer {token}",
+        "Authorization": f"Bearer {TOKEN_META}",
         "Content-Type": "application/json"
     }
     
-    payload = {
+    data = {
         "messaging_product": "whatsapp",
-        "recipient_type": "individual",
-        "to": telefone_destino,
+        "to": numero_destino,
         "type": "text",
-        "text": {
-            "preview_url": False,
-            "body": texto_mensagem
-        }
+        "text": {"body": texto}
     }
     
-    response = requests.post(url, headers=headers, json=payload)
-    
-    if response.status_code == 200:
-        print("✅ Mensagem ENVIADA com sucesso pelo bot!")
-    else:
-        print(f"❌ Erro ao enviar mensagem: {response.text}")
+    try:
+        response = requests.post(url, headers=headers, json=data)
+        print(f"↗️ Status do Envio: {response.status_code} - {response.text}")
+    except Exception as e:
+        print(f"❌ Erro ao enviar mensagem: {e}")
         
     return response.json()
 
@@ -198,67 +199,77 @@ async def recebe_mensagem_webhook(request: Request, db: Session = Depends(get_db
     try:
         body = await request.json()
         
-        # 1. Extração básica dos dados da Meta
-        # Verifica se é uma mensagem válida antes de processar
-        if not body.get("entry") or not body["entry"].get("changes"):
-            return JSONResponse(content={"status": "ignorado"}, status_code=200)
+        # 1. Padrão Oficial Meta: Usar loops para navegar com segurança no JSON
+        if body.get("object") == "whatsapp_business_account":
+            for entry in body.get("entry", []):
+                for change in entry.get("changes", []):
+                    value = change.get("value", {})
+                    
+                    # Verifica se realmente existe uma mensagem (e não um status de 'entregue')
+                    if "messages" in value:
+                        for mensagem in value["messages"]:
+                            
+                            # Ignora se não for mensagem de texto (ex: áudio, imagem)
+                            if mensagem.get("type") != "text":
+                                continue
 
-        change = body["entry"]["changes"]["value"]
-        
-        if "messages" not in change:
-            return JSONResponse(content={"status": "ignorado"}, status_code=200)
+                            telefone_cliente = mensagem.get("from")
+                            mensagem_usuario = mensagem.get("text", {}).get("body", "")
 
-        mensagem = change["messages"]
-        telefone_cliente = mensagem["from"]
-        mensagem_usuario = mensagem.get("text", {}).get("body", "")
+                            print(f"\n📩 Mensagem de {telefone_cliente}: {mensagem_usuario}")
 
-        print(f"\n📩 Mensagem de {telefone_cliente}: {mensagem_usuario}")
+                            # 2. LÓGICA DE MEMÓRIA
+                            schema_alvo = None
+                            sessao_ativa = get_sessao_cliente(db, telefone_cliente)
 
-        # 2. LÓGICA DE MEMÓRIA: Verificar se o cliente já tem sessão ativa
-        schema_alvo = None
-        sessao_ativa = get_sessao_cliente(db, telefone_cliente)
+                            if sessao_ativa:
+                                schema_alvo = sessao_ativa.loja_atual
+                                print(f"🧠 Memória Ativa: Cliente em atendimento com -> {schema_alvo}")
+                            else:
+                                merchants = db.query(models.Merchant).all()
+                                for m in merchants:
+                                    if m.nome_loja.lower() in mensagem_usuario.lower() or m.codigo_loja.lower() in mensagem_usuario.lower():
+                                        schema_alvo = m.nome_do_schema
+                                        salvar_sessao_cliente(db, telefone_cliente, schema_alvo)
+                                        print(f"🆕 Nova sessão iniciada com -> {schema_alvo}")
+                                        break
 
-        if sessao_ativa:
-            schema_alvo = sessao_ativa.loja_atual
-            print(f"🧠 Memória Ativa: Cliente já está falando com -> {schema_alvo}")
-        else:
-            # 3. IDENTIFICAR LOJISTA (Se não tiver sessão)
-            # Buscamos no banco se o nome da loja ou código aparece na mensagem
-            # Ex: "Quero marcar no Moura" -> Identifica o merchant 'Moura'
-            merchants = db.query(models.Merchant).all()
-            for m in merchants:
-                if m.nome_loja.lower() in mensagem_usuario.lower() or m.codigo_loja.lower() in mensagem_usuario.lower():
-                    schema_alvo = m.nome_do_schema
-                    salvar_sessao_cliente(db, telefone_cliente, schema_alvo)
-                    print(f"🆕 Nova sessão iniciada com -> {schema_alvo}")
-                    break
+                            # 3. PROCESSAR COM IA
+                            if schema_alvo:
+                                dados_ia = await analisar_mensagem_com_ia(mensagem_usuario)
+                                
+                                # AQUI ESTÁ A CORREÇÃO: Garante que a IA não devolveu uma lista
+                                if isinstance(dados_ia, dict):
+                                    if dados_ia.get("servico") and dados_ia.get("data"):
+                                        print(f"🎯 Agendamento detectado: {dados_ia}")
+                                        # (AQUI ENTRA O SEU INSERT NO BANCO QUE FIZEMOS ANTES)
+                                        
+                                        # 👉 ROBÔ RESPONDE (Com dados detectados)
+                                        texto_confirmacao = f"Perfeito! Entendi que você deseja um(a) {dados_ia.get('servico')} para a data {dados_ia.get('data')}. Vou verificar a disponibilidade na agenda!"
+                                        enviar_mensagem_whatsapp(numero_destino=telefone_cliente, texto=texto_confirmacao)
+                                        
+                                    else:
+                                        print("⏳ IA ainda coletando informações do cliente...")
+                                        
+                                        # 👉 A BOCA DO ROBÔ ESTÁ AQUI (IA fazendo perguntas)
+                                        # Pega a resposta gerada pela IA (se ela enviar a chave 'resposta'), senão envia um texto padrão
+                                        texto_ia = dados_ia.get("resposta", "Entendi! Para prosseguir com o agendamento no Moura, qual seria o serviço e a data desejada?")
+                                        
+                                        enviar_mensagem_whatsapp(numero_destino=telefone_cliente, texto=texto_ia)
+                                        
+                                else:
+                                    print("⚠️ A IA devolveu um formato inesperado. Ignorando...")
+                            else:
+                                print("🤷 Não conseguimos identificar a loja. Aguardando o cliente mencionar.")
 
-        # 4. PROCESSAR COM IA E BANCO (Se identificarmos o schema)
-        if schema_alvo:
-            # Chama a sua função de IA para extrair dados (Serviço, Data, Hora)
-            dados_ia = await analisar_mensagem_com_ia(mensagem_usuario)
-            
-            # Se a IA conseguiu extrair informações para agendamento
-            if dados_ia.get("servico") and dados_ia.get("data"):
-                # Aqui você chama a lógica de INSERT que já criamos
-                # Vou simular a chamada de sucesso:
-                print(f"🎯 Agendamento detectado para {schema_alvo}: {dados_ia}")
-                
-                # [OPCIONAL] Se o agendamento foi CONCLUÍDO com sucesso no banco:
-                # deletar_sessao_cliente(db, telefone_cliente)
-                # print("🧹 Sessão limpa após agendamento finalizado.")
-            
-            else:
-                print("⏳ IA ainda coletando informações do cliente...")
-
-        else:
-            print("🤷 Não conseguimos identificar a loja. Aguardando o cliente mencionar o nome da loja.")
-
-        return JSONResponse(content={"status": "sucesso"}, status_code=200)
+            # Retorna 200 OK para a Meta
+            return JSONResponse(content={"status": "sucesso"}, status_code=200)
 
     except Exception as e:
-        print(f"❌ Erro no Webhook: {str(e)}")
-        return JSONResponse(content={"status": "erro", "detalhe": str(e)}, status_code=500)
+        print(f"❌ Erro interno tratado: {str(e)}")
+        # A REGRÁ DE OURO DOS WEBHOOKS: Sempre retorne 200 no except!
+        # Assim a Meta entende que você recebeu e para de "flodar" o seu terminal.
+        return JSONResponse(content={"status": "erro_interno_tratado"}, status_code=200)
     
 # =========================================================
 # LOJISTAS
