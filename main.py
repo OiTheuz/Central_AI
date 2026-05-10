@@ -161,8 +161,8 @@ async def analisar_mensagem_com_ia(texto_cliente: str):
 
 def enviar_mensagem_whatsapp(numero_destino: str, texto: str):
     # Vai buscar as credenciais de forma segura ao arquivo .env
-    TOKEN_META = os.getenv("TOKEN_META")
-    PHONE_NUMBER_ID = os.getenv("PHONE_NUMBER_ID")
+    TOKEN_META = os.getenv("META_ACCESS_TOKEN")
+    PHONE_NUMBER_ID = os.getenv("META_PHONE_ID")
     
     # Prevenção: Avisa no terminal se você esquecer de preencher o .env
     if not TOKEN_META or not PHONE_NUMBER_ID:
