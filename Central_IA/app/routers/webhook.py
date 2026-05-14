@@ -82,7 +82,7 @@ async def recebe_mensagem_webhook(request: Request, db: Session = Depends(get_db
                                 merchants = db.query(Merchant).all()
                                 for m in merchants:
                                     if m.nome_loja.lower() in mensagem_usuario.lower() or m.codigo_loja.lower() in mensagem_usuario.lower():
-                                        schema_alvo = m.nome_do_schema
+                                        schema_alvo = str(m.nome_do_schema)
                                         salvar_sessao_cliente(db, telefone_cliente, schema_alvo)
                                         print(f"🆕 Nova sessão iniciada com -> {schema_alvo}")
                                         break
