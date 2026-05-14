@@ -26,6 +26,10 @@ def get_db():
 # UTILITÁRIO — verificar disponibilidade de horário
 
 def verificar_disponibilidade(schema_nome, data, hora, servico):
+    import re
+    if not re.match(r'^[a-zA-Z_][a-zA-Z0-9_]*$', schema_nome):
+        raise ValueError("Nome do schema contém caracteres inválidos.")
+
     db = SessionLocal()
     try:
         db.execute(text(f"SET search_path TO {schema_nome}"))

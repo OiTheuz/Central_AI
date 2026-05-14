@@ -38,6 +38,14 @@ def criar_lojista(
 
         schema_nome = merchant.nome_do_schema
 
+        # Sanitização contra SQL injection — permite apenas letras, números e underscore
+        import re
+        if not re.match(r'^[a-zA-Z_][a-zA-Z0-9_]*$', schema_nome):
+            raise HTTPException(
+                status_code=400,
+                detail="Nome do schema contém caracteres inválidos."
+            )
+
         db.execute(
             text(f"CREATE SCHEMA IF NOT EXISTS {schema_nome}")
         )
@@ -55,6 +63,9 @@ def criar_lojista(
         db.commit()
 
         print(f"✅ Schema {schema_nome} criado com sucesso")
+
+    except HTTPException:
+        raise
 
     except Exception as e:
 

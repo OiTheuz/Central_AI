@@ -106,7 +106,7 @@ async def recebe_mensagem_webhook(request: Request, db: Session = Depends(get_db
                                         
                                         # 👉 A BOCA DO ROBÔ ESTÁ AQUI (IA fazendo perguntas)
                                         # Pega a resposta gerada pela IA (se ela enviar a chave 'resposta'), senão envia um texto padrão
-                                        texto_ia = dados_ia.get("resposta", "Entendi! Para prosseguir com o agendamento no Moura, qual seria o serviço e a data desejada?")
+                                        texto_ia = dados_ia.get("mensagem_resposta", "Entendi! Para prosseguir com o agendamento, qual seria o serviço e a data desejada?")
                                         
                                         enviar_mensagem_whatsapp(numero_destino=telefone_cliente, texto=texto_ia)
                                         

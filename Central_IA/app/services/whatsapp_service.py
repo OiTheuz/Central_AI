@@ -31,7 +31,7 @@ def enviar_mensagem_whatsapp(numero_destino: str, texto: str):
     try:
         response = requests.post(url, headers=headers, json=data)
         print(f"↗️ Status do Envio: {response.status_code} - {response.text}")
+        return response.json()
     except Exception as e:
         print(f"❌ Erro ao enviar mensagem: {e}")
-
-    return response.json()
+        return None
