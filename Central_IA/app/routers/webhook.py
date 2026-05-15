@@ -7,7 +7,7 @@ from app.database import get_db
 from app.models import Merchant
 from app.services.openai_service import analisar_mensagem_com_ia
 from app.services.whatsapp_service import enviar_mensagem_whatsapp
-from app.services.session_service import get_sessao_cliente, salvar_sessao_cliente
+from app.services.session_service import get_sessao_cliente, salvar_sessao_cliente, encerrar_sessao_cliente
 
 router = APIRouter(tags=["Webhook"])
 
@@ -76,7 +76,7 @@ async def recebe_mensagem_webhook(request: Request, db: Session = Depends(get_db
                             sessao_ativa = get_sessao_cliente(db, telefone_cliente)
 
                             if sessao_ativa:
-                                schema_alvo = sessao_ativa.loja_atual
+                                schema_alvo = str(sessao_ativa.loja_atual)
                                 print(f"🧠 Memória Ativa: Cliente em atendimento com -> {schema_alvo}")
                             else:
                                 merchants = db.query(Merchant).all()
@@ -89,27 +89,38 @@ async def recebe_mensagem_webhook(request: Request, db: Session = Depends(get_db
 
                             # 3. PROCESSAR COM IA
                             if schema_alvo:
-                                dados_ia = await analisar_mensagem_com_ia(mensagem_usuario)
-                                
-                                # AQUI ESTÁ A CORREÇÃO: Garante que a IA não devolveu uma lista
+                                # 1. RECUPERANDO A MEMÓRIA DA SESSÃO 🧠
+                                sessao_atual = get_sessao_cliente(db, telefone_cliente)
+
+                                if not sessao_atual:
+                                    historico = []
+                                else:
+                                    # Pega o histórico existente ou cria uma lista vazia se não houver
+                                    historico = sessao_atual.dados_sessao.get("historico", []) if sessao_atual.dados_sessao else []
+
+                                # 2. ANOTANDO A MENSAGEM NOVA DO CLIENTE
+                                historico.append({"role": "user", "content": mensagem_usuario})
+
+                                # 3. ENVIANDO O HISTÓRICO COMPLETO PARA A IA LER
+                                dados_ia = await analisar_mensagem_com_ia(historico)
+
                                 if isinstance(dados_ia, dict):
-                                    if dados_ia.get("servico") and dados_ia.get("data"):
-                                        print(f"🎯 Agendamento detectado: {dados_ia}")
-                                        # (AQUI ENTRA O SEU INSERT NO BANCO QUE FIZEMOS ANTES)
-                                        
-                                        # 👉 ROBÔ RESPONDE (Com dados detectados)
-                                        texto_confirmacao = f"Perfeito! Entendi que você deseja um(a) {dados_ia.get('servico')} para a data {dados_ia.get('data')}. Vou verificar a disponibilidade na agenda!"
-                                        enviar_mensagem_whatsapp(numero_destino=telefone_cliente, texto=texto_confirmacao)
-                                        
+                                    # 4. EXTRAINDO A RESPOSTA GERADA
+                                    texto_ia = dados_ia.get("mensagem_resposta", "Entendi! Para prosseguir com o agendamento, qual seria o serviço e a data desejada?")
+                                    intencao = dados_ia.get("intencao", "")
+
+                                    # 5. ANOTANDO A RESPOSTA DA IA NO HISTÓRICO
+                                    historico.append({"role": "assistant", "content": texto_ia})
+
+                                    # 6. SALVANDO OU DELETANDO A MEMÓRIA NO BANCO 💾
+                                    if intencao == "encerramento":
+                                        print("🧹 Atendimento finalizado. Sessão inativada (histórico salvo no banco)...")
+                                        encerrar_sessao_cliente(db, telefone_cliente)
                                     else:
-                                        print("⏳ IA ainda coletando informações do cliente...")
-                                        
-                                        # 👉 A BOCA DO ROBÔ ESTÁ AQUI (IA fazendo perguntas)
-                                        # Pega a resposta gerada pela IA (se ela enviar a chave 'resposta'), senão envia um texto padrão
-                                        texto_ia = dados_ia.get("mensagem_resposta", "Entendi! Para prosseguir com o agendamento, qual seria o serviço e a data desejada?")
-                                        
-                                        enviar_mensagem_whatsapp(numero_destino=telefone_cliente, texto=texto_ia)
-                                        
+                                        salvar_sessao_cliente(db, telefone_cliente, schema_alvo, {"historico": historico})
+
+                                    # 7. 👉 A BOCA DO ROBÔ (Enviando a mensagem para o cliente)
+                                    enviar_mensagem_whatsapp(numero_destino=telefone_cliente, texto=texto_ia)
                                 else:
                                     print("⚠️ A IA devolveu um formato inesperado. Ignorando...")
                             else:

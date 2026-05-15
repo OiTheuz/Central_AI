@@ -13,7 +13,7 @@ client_ai = AsyncOpenAI(api_key=OPENAI_API_KEY)
 # =========================================================
 # ANÁLISE DE MENSAGEM COM IA
 
-async def analisar_mensagem_com_ia(texto_cliente: str):
+async def analisar_mensagem_com_ia(historico: list):
     # 1. Pega a data e a HORA exatas de agora (Adicionamos o %H:%M)
     data_hora_atual = datetime.now().strftime("%d-%m-%Y %H:%M")
     
@@ -26,10 +26,12 @@ async def analisar_mensagem_com_ia(texto_cliente: str):
     SUAS REGRAS DE OURO:
     1. Saudação Animada: Analise a hora atual. Comece SEMPRE a sua 'mensagem_resposta' com muita energia, dizendo "Bom dia! ☀️", "Boa tarde! 🌤️" ou "Boa noite! 🌙". Use emojis!
     2. Horário Obrigatório: O horário ('hora') é OBRIGATÓRIO para agendar. Se o cliente informar a data mas não a hora, avise na 'mensagem_resposta' que o horário é obrigatório para fecharmos a reserva e pergunte qual ele prefere.
+    3. Finalização de Atendimento: Após confirmar e finalizar um agendamento, SEMPRE pergunte ao cliente se deseja mais alguma coisa ou se o atendimento pode ser encerrado.
+    4. Encerramento: Se o cliente confirmar que pode encerrar ou se despedir indicando que não precisa de mais nada, defina a "intencao" como "encerramento". Na 'mensagem_resposta', agradeça, despeça-se e avise que, se ele quiser agendar com outra loja/profissional no futuro, basta enviar o nome da loja a qualquer momento.
     
     O formato JSON estrito DEVE ser:
     {{
-        "intencao": "agendamento" ou "saudacao" ou "duvida",
+        "intencao": "agendamento" ou "saudacao" ou "duvida" ou "encerramento",
         "nome_cliente": "nome da pessoa, ou null",
         "servico": "serviço desejado, ou null",
         "data": "DD-MM-YYYY, ou null",
@@ -38,13 +40,12 @@ async def analisar_mensagem_com_ia(texto_cliente: str):
     }}
     """
     
+    messages_payload = [{"role": "system", "content": prompt_sistema}] + historico
+
     # Chama a API
     response = await client_ai.chat.completions.create(
         model="gpt-4o-mini",
-        messages=[
-            {"role": "system", "content": prompt_sistema},
-            {"role": "user", "content": texto_cliente}
-        ],
+        messages=messages_payload,
         response_format={ "type": "json_object" },
         temperature=0.1
     )
