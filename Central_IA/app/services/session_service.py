@@ -15,9 +15,9 @@ def get_sessao_cliente(db: Session, telefone: str):
 def salvar_sessao_cliente(db: Session, telefone: str, schema_loja: str, dados_sessao: dict = None):
     sessao = get_sessao_cliente(db, telefone)
     if sessao:
-        sessao.loja_atual = schema_loja
+        sessao.loja_atual = schema_loja  # type: ignore[assignment]
         if dados_sessao is not None:
-            sessao.dados_sessao = dados_sessao
+            sessao.dados_sessao = dados_sessao  # type: ignore[assignment]
     else:
         nova_sessao = ActiveSession(
             telefone_cliente=telefone, 
@@ -32,5 +32,5 @@ def salvar_sessao_cliente(db: Session, telefone: str, schema_loja: str, dados_se
 def encerrar_sessao_cliente(db: Session, telefone: str):
     sessao = get_sessao_cliente(db, telefone)
     if sessao:
-        sessao.ativo = False
+        sessao.ativo = False  # type: ignore[assignment]
         db.commit()

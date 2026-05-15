@@ -1,7 +1,9 @@
 import json
 from datetime import datetime
+from typing import cast
 
 from openai import AsyncOpenAI
+from openai.types.chat import ChatCompletionMessageParam
 
 from app.config import OPENAI_API_KEY
 
@@ -13,7 +15,7 @@ client_ai = AsyncOpenAI(api_key=OPENAI_API_KEY)
 # =========================================================
 # ANÁLISE DE MENSAGEM COM IA
 
-async def analisar_mensagem_com_ia(historico: list):
+async def analisar_mensagem_com_ia(historico: list[dict[str, str]]):
     # 1. Pega a data e a HORA exatas de agora (Adicionamos o %H:%M)
     data_hora_atual = datetime.now().strftime("%d-%m-%Y %H:%M")
     
@@ -40,13 +42,16 @@ async def analisar_mensagem_com_ia(historico: list):
     }}
     """
     
-    messages_payload = [{"role": "system", "content": prompt_sistema}] + historico
+    messages_payload = cast(list[ChatCompletionMessageParam], [
+        {"role": "system", "content": prompt_sistema},
+        *historico
+    ])
 
     # Chama a API
     response = await client_ai.chat.completions.create(
         model="gpt-4o-mini",
         messages=messages_payload,
-        response_format={ "type": "json_object" },
+        response_format={"type": "json_object"},
         temperature=0.1
     )
     
@@ -54,6 +59,7 @@ async def analisar_mensagem_com_ia(historico: list):
     conteudo_texto = response.choices[0].message.content
     
     # Agora convertemos esse texto para um dicionário Python
+    # pyrefly: ignore [bad-argument-type]
     dados_extraidos = json.loads(conteudo_texto)
     
     return dados_extraidos

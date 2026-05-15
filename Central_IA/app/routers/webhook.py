@@ -115,6 +115,7 @@ async def recebe_mensagem_webhook(request: Request, db: Session = Depends(get_db
                                     # 6. SALVANDO OU DELETANDO A MEMÓRIA NO BANCO 💾
                                     if intencao == "encerramento":
                                         print("🧹 Atendimento finalizado. Sessão inativada (histórico salvo no banco)...")
+                                        salvar_sessao_cliente(db, telefone_cliente, schema_alvo, {"historico": historico})
                                         encerrar_sessao_cliente(db, telefone_cliente)
                                     else:
                                         salvar_sessao_cliente(db, telefone_cliente, schema_alvo, {"historico": historico})
