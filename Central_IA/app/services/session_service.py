@@ -12,7 +12,7 @@ def get_sessao_cliente(db: Session, telefone: str):
     ).first()
 
 
-def salvar_sessao_cliente(db: Session, telefone: str, schema_loja: str, dados_sessao: dict = None):
+def salvar_sessao_cliente(db: Session, telefone: str, schema_loja: str, dados_sessao: dict | None = None):
     sessao = get_sessao_cliente(db, telefone)
     if sessao:
         sessao.loja_atual = schema_loja  # type: ignore[assignment]
