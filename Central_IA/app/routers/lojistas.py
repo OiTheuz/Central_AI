@@ -60,27 +60,6 @@ def criar_lojista(
             )
         """))
 
-        db.execute(text(f"""
-            CREATE TABLE IF NOT EXISTS {schema_nome}.customers (
-                id SERIAL PRIMARY KEY,
-                nome VARCHAR(100),
-                telefone VARCHAR(20) UNIQUE NOT NULL,
-                ultima_interacao TIMESTAMP DEFAULT NOW()
-            )
-        """))
-
-        db.execute(text(f"""
-            CREATE TABLE IF NOT EXISTS {schema_nome}.appointments (
-                id SERIAL PRIMARY KEY,
-                customer_id INTEGER REFERENCES {schema_nome}.customers(id),
-                servico VARCHAR(100),
-                data_agendamento DATE,
-                hora_agendamento VARCHAR(10),
-                status VARCHAR(20) DEFAULT 'pendente',
-                criado_em TIMESTAMP DEFAULT NOW()
-            )
-        """))
-
         db.commit()
 
         print(f"✅ Schema {schema_nome} criado com sucesso")

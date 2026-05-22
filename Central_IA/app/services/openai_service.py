@@ -9,60 +9,50 @@ from app.config import OPENAI_API_KEY
 
 # =========================================================
 # CLIENTE OPENAI
-
+# =========================================================
 client_ai = AsyncOpenAI(api_key=OPENAI_API_KEY)
 
 # =========================================================
 # ANÁLISE DE MENSAGEM COM IA
-
-async def analisar_mensagem_com_ia(historico: list[dict[str, str]], contexto_cliente: str = "cliente_existente"):
+# =========================================================
+async def analisar_mensagem_com_ia(historico: list[dict[str, str]], contexto_cliente: str = "cliente_antigo"):
     """
-    Envia o histórico de conversa para a IA e extrai dados de agendamento.
-    
-    Args:
-        historico: Lista de mensagens no formato [{"role": "user/assistant", "content": "..."}]
-        contexto_cliente: "cliente_novo" ou "cliente_existente"
+    Analisa as mensagens e extrai os dados em formato JSON puro.
+    contexto_cliente pode ser: 'cliente_novo' ou 'cliente_antigo'
     """
-    # 1. Pega a data e a HORA exatas de agora
-    data_hora_atual = datetime.now().strftime("%Y-%m-%d %H:%M")
+    data_hora_atual = datetime.now().strftime("%d-%m-%Y %H:%M")
     
-    # 2. Prompt de extração pura — sem saudações
-    prompt_sistema = f"""⚠️ INFORMAÇÃO CRUCIAL: Agora é {data_hora_atual}. Use essa data e hora como referência para calcular datas relativas (ex: "amanhã", "segunda-feira").
+    prompt_sistema = f"""Você é a inteligência por trás da Lau, uma secretária virtual altamente objetiva, profissional e assertiva de uma Central de Agendamentos.
+    Agora é exatameente {data_hora_atual}. Use essa data e hora de referência para interpretar termos como "amanhã", "sábado que vem" ou "hoje".
 
-    Você é uma IA EXTRATORA DE DADOS de uma Central de Agendamentos.
-    Seu ÚNICO objetivo é extrair informações de agendamento da mensagem do cliente.
+    Sua única função é extrair dados essenciais da mensagem do cliente e estruturar o JSON de resposta.
+    PROIBIDO: Não gere nenhuma saudação amigável (como "Bom dia", "Olá", "Tudo bem?") por conta própria no campo 'mensagem_resposta'. 
 
-    ❌ REGRAS PROIBIDAS:
-    - NUNCA diga "Bom dia", "Boa tarde", "Boa noite" ou qualquer saudação.
-    - NUNCA crie cumprimentos por conta própria.
-    - NUNCA seja excessivamente simpática ou faça bate-papo.
+    CONTEXTO DO CLIENTE: O cliente atual está classificado como '{contexto_cliente}'.
 
-    ✅ SUAS REGRAS DE EXTRAÇÃO:
-    1. Extraia da mensagem: serviço desejado, data, hora e nome do cliente.
-    2. Se o cliente informar a data mas NÃO informar a hora, avise na 'mensagem_resposta' que o horário é obrigatório e pergunte qual horário ele prefere. Seja direta e breve.
-    3. Se o contexto for "cliente_novo" e você NÃO conseguir identificar o nome do cliente na mensagem, peça educadamente o nome na 'mensagem_resposta'. Exemplo: "Para prosseguir, poderia me informar o seu nome?"
-    4. Quando todos os dados (serviço, data, hora e nome) estiverem completos, defina a "intencao" como "agendamento".
-    5. Se o cliente se despedir ou confirmar encerramento, defina a "intencao" como "encerramento". Na 'mensagem_resposta', agradeça brevemente e avise que pode agendar com outra loja futuramente.
-    
-    CONTEXTO DO CLIENTE: {contexto_cliente}
+    REGRAS DE OURO DA LAU:
+    1. Se o cliente informar o serviço, data ou horário, extraia-os imediatamente.
+    2. Formato de Data: Devolva SEMPRE no padrão brasileiro DD-MM-YYYY (ex: 25-05-2026). Se não identificado, use null.
+    3. Formato de Hora: Devolva SEMPRE no padrão HH:MM (ex: 14:30). Se não identificado, use null.
+    4. Regra de Nome Obrigatório: Se o contexto do cliente for 'cliente_novo' e o nome da pessoa NÃO foi capturado no histórico nem na mensagem atual, você DEVE definir 'nome_cliente' como null e usar o campo 'mensagem_resposta' exclusivamente para pedir o nome de forma curta e simpática.
+    5. Respostas Curtas: Mantenha o campo 'mensagem_resposta' focado apenas no dado que está faltando no momento (ex: "Qual serviço você gostaria de agendar?" ou "Qual o melhor horário para você?").
 
-    O formato JSON estrito DEVE ser:
+    O formato JSON estrito DEVE ser retornado sem blocos markdown (```json):
     {{
-        "intencao": "agendamento" ou "coleta_dados" ou "duvida" ou "encerramento",
-        "nome_cliente": "nome da pessoa, ou null",
+        "intencao": "agendamento" ou "saudacao" ou "duvida" ou "encerramento",
+        "nome_cliente": "nome extraído da pessoa, ou null",
         "servico": "serviço desejado, ou null",
-        "data": "YYYY-MM-DD, ou null",
+        "data": "DD-MM-YYYY, ou null",
         "hora": "HH:MM, ou null",
-        "mensagem_resposta": "Texto breve e direto para o cliente (SEM saudações)"
-    }}
-    """
+        "mensagem_resposta": "Sua pergunta direta e curta sobre o dado faltante"
+    }}"""
     
     messages_payload = cast(list[ChatCompletionMessageParam], [
         {"role": "system", "content": prompt_sistema},
         *historico
     ])
 
-    # Chama a API
+    # Chamada da API com formato JSON garantido
     response = await client_ai.chat.completions.create(
         model="gpt-4o-mini",
         messages=messages_payload,
@@ -70,11 +60,5 @@ async def analisar_mensagem_com_ia(historico: list[dict[str, str]], contexto_cli
         temperature=0.1
     )
     
-    # Acessamos o conteúdo de texto da mensagem primeiro
-    conteudo_texto = response.choices[0].message.content
-    
-    # Agora convertemos esse texto para um dicionário Python
-    # pyrefly: ignore [bad-argument-type]
-    dados_extraidos = json.loads(conteudo_texto)
-    
-    return dados_extraidos
+    conteudo_texto = response.choices.message.content
+    return json.loads(conteudo_texto)
