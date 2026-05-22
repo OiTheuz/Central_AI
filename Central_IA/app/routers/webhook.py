@@ -71,19 +71,24 @@ async def receive_webhook(request: Request, background_tasks: BackgroundTasks, d
     try:
         body = await request.json()
         
-        # ESCUDO ANTI-QUEDA NULOS: Valida se o payload contém uma estrutura de mensagem válida
-        if (not body.get("entry") or 
-            not body["entry"].get("changes") or 
-            not body["entry"]["changes"].get("value") or 
-            not body["entry"]["changes"].get("value").get("messages")):
-            return JSONResponse(content={"status": "evento_ignorado_sem_mensagem"}, status_code=200)
+        # ESCUDO ANTI-QUEDA BLINDADO: Valida passo a passo
+        entry = body.get("entry", [])
+        if not entry or not isinstance(entry, list):
+            return JSONResponse(content={"status": "evento_ignorado"}, status_code=200)
             
-        message_data = body["entry"]["changes"]["value"]["messages"]
+        changes = entry.get("changes", [])
+        if not changes or not isinstance(changes, list):
+            return JSONResponse(content={"status": "evento_ignorado"}, status_code=200)
+            
+        value = changes.get("value", {})
+        if not value or not isinstance(value, dict) or not value.get("messages"):
+            return JSONResponse(content={"status": "evento_ignorado"}, status_code=200)
+            
+        message_data = value["messages"]
         telefone_cliente = message_data.get("from")
         
-        # Proteção extra para garantir que a mensagem recebida possui corpo de texto
         if not message_data.get("text") or not message_data["text"].get("body"):
-            return JSONResponse(content={"status": "mensagem_sem_texto_ignorado"}, status_code=200)
+            return JSONResponse(content={"status": "mensagem_sem_texto"}, status_code=200)
             
         mensagem_usuario = message_data["text"]["body"]
         print(f"📩 Mensagem recebida de {telefone_cliente}: '{mensagem_usuario}'")
@@ -94,8 +99,15 @@ async def receive_webhook(request: Request, background_tasks: BackgroundTasks, d
         schema_alvo = None
         nome_loja = ""
         
-        # Verifica se o cliente já possui um atendimento ativo em andamento
-        sessao_existente = get_sessao_cliente(db, telefone_cliente)
+        # Verifica se o cliente já possui um atendimento ativo
+        sessao_bruta = get_sessao_cliente(db, telefone_cliente)
+        
+        # NORMALIZADOR DE SESSÃO (Correção de Tipo)
+        sessao_existente = {}
+        if isinstance(sessao_bruta, list):
+            sessao_existente = {"historico": sessao_bruta, "schema_alvo": None}
+        elif isinstance(sessao_bruta, dict):
+            sessao_existente = sessao_bruta
         
         # Busca a lista de lojistas cadastrados no schema public
         lojistas = db.execute(text("SELECT codigo_loja, name FROM public.merchant")).fetchall()
