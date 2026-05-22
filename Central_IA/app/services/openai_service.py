@@ -60,5 +60,5 @@ async def analisar_mensagem_com_ia(historico: list[dict[str, str]], contexto_cli
         temperature=0.1
     )
     
-    conteudo_texto = response.choices.message.content
-    return json.loads(conteudo_texto)
+    conteudo_texto = response.choices[0].message.content
+    return json.loads(conteudo_texto)
