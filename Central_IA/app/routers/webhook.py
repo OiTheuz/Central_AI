@@ -15,6 +15,24 @@ from app.services.session_service import get_sessao_cliente, salvar_sessao_clien
 router = APIRouter(tags=["Webhook"])
 
 # =========================================================
+# DEDUPLICAÇÃO DE MENSAGENS (evita loop por retries da Meta)
+# =========================================================
+_mensagens_processadas: dict[str, float] = {}
+
+def _ja_processou(message_id: str) -> bool:
+    """Retorna True se a mensagem já foi processada. Limpa IDs antigos (>5min)."""
+    agora = datetime.now().timestamp()
+    # Limpar IDs com mais de 5 minutos
+    ids_antigos = [mid for mid, ts in _mensagens_processadas.items() if agora - ts > 300]
+    for mid in ids_antigos:
+        del _mensagens_processadas[mid]
+    
+    if message_id in _mensagens_processadas:
+        return True
+    _mensagens_processadas[message_id] = agora
+    return False
+
+# =========================================================
 # FUNÇÃO AUXILIAR: SAUDAÇÃO POR HORÁRIO
 # =========================================================
 def _saudacao_por_horario() -> str:
@@ -91,7 +109,20 @@ async def receive_message(request: Request, background_tasks: BackgroundTasks, d
 
         if "messages" in value:
             mensagem = value["messages"][0]  # messages também é uma lista
+            message_id = mensagem.get("id", "")
             telefone_cliente = mensagem["from"]
+            
+            # Proteção 1: Ignorar mensagens antigas (retries da Meta após restart)
+            msg_timestamp = int(mensagem.get("timestamp", 0))
+            agora_unix = int(datetime.now().timestamp())
+            if msg_timestamp > 0 and (agora_unix - msg_timestamp) > 30:
+                print(f"⏭️ Mensagem antiga ignorada ({agora_unix - msg_timestamp}s atrás): {message_id}")
+                return JSONResponse(content={"status": "antiga"}, status_code=200)
+            
+            # Proteção 2: Deduplicação por message_id
+            if _ja_processou(message_id):
+                print(f"⏭️ Mensagem duplicada ignorada: {message_id}")
+                return JSONResponse(content={"status": "duplicada"}, status_code=200)
             
             if mensagem["type"] == "text":
                 texto_cliente = mensagem["text"]["body"]
@@ -133,7 +164,8 @@ async def receive_message(request: Request, background_tasks: BackgroundTasks, d
                 lojista = db.query(Merchant).filter(Merchant.nome_do_schema == schema_alvo).first()
                 nome_loja = lojista.nome_loja if lojista else "Loja"
             else:
-                enviar_mensagem_whatsapp(numero_destino=telefone_cliente, texto="🤷 Olá! Para iniciarmos o agendamento, por favor me diga de qual loja você está falando (Ex: 'Quero agendar no Moura').")
+                saudacao = _saudacao_por_horario()
+                enviar_mensagem_whatsapp(numero_destino=telefone_cliente, texto=f"{saudacao}! 🌻 Eu sou a Lau, secretária virtual. Para começarmos, me diga qual estabelecimento você procura.")
                 return JSONResponse(content={"status": "recebido"}, status_code=200)
 
             # =========================================================
@@ -160,9 +192,15 @@ async def receive_message(request: Request, background_tasks: BackgroundTasks, d
             nome_para_saudar = f", {nome_cliente}" if nome_cliente else ""
 
             if not sessao_atual or trocou_de_loja:
-                # PRIMEIRA VEZ ou TROCA DE LOJA → Saudação completa com apresentação
-                tipo_saudacao = "primeira_vez"
-                saudacao_fixa = f"{saudacao}{nome_para_saudar}! 🌻 Eu sou a Lau, secretária virtual do(a) {nome_loja}. Como posso te ajudar hoje?\n\n"
+                if lojista_encontrado and not trocou_de_loja:
+                    # Loja mencionada na mensagem sem sessão prévia → usuário respondeu ao "qual estabelecimento?"
+                    # A Lau já se apresentou na mensagem anterior, não repetir saudação
+                    tipo_saudacao = "continuacao"
+                    saudacao_fixa = ""
+                else:
+                    # TROCA DE LOJA → Saudação com apresentação
+                    tipo_saudacao = "primeira_vez"
+                    saudacao_fixa = f"{saudacao}{nome_para_saudar}! 🌻 Eu sou a Lau, secretária virtual. Como posso te ajudar hoje?\n\n"
             else:
                 # Sessão ativa — verificar tempo desde última interação
                 ultima = sessao_atual.ultima_interacao
@@ -175,7 +213,7 @@ async def receive_message(request: Request, background_tasks: BackgroundTasks, d
                 if ultima and (agora - ultima) >= timedelta(hours=2):
                     # RETORNO LONGO (≥ 2h) → Nova saudação por horário
                     tipo_saudacao = "retorno_longo"
-                    saudacao_fixa = f"{saudacao}{nome_para_saudar}! 🌻 Eu sou a Lau, secretária virtual do(a) {nome_loja}. Como posso te ajudar hoje?\n\n"
+                    saudacao_fixa = f"{saudacao}{nome_para_saudar}! 🌻 Eu sou a Lau, secretária virtual. Como posso te ajudar hoje?\n\n"
                 else:
                     # RETORNO RÁPIDO (< 2h) ou conversa em andamento
                     tipo_saudacao = "retorno_rapido"
@@ -212,7 +250,11 @@ async def receive_message(request: Request, background_tasks: BackgroundTasks, d
             # =========================================================
             # PASSO 6: CHAMADA DA IA
             # =========================================================
-            resposta_ia = await analisar_mensagem_com_ia(historico, contexto, nome_cliente)
+            db.execute(text(f"SET search_path TO {schema_alvo}"))
+            servicos_db = db.execute(text("SELECT nome FROM services")).fetchall()
+            servicos_lista = [s.nome for s in servicos_db]
+            
+            resposta_ia = await analisar_mensagem_com_ia(historico, contexto, nome_cliente, servicos_disponiveis=servicos_lista)
             
             texto_ia = resposta_ia.get("mensagem_resposta") or "Como posso te ajudar?"
             historico.append({"role": "assistant", "content": texto_ia})
@@ -256,11 +298,17 @@ async def receive_message(request: Request, background_tasks: BackgroundTasks, d
                 
                 encerrar_sessao_cliente(db, telefone_cliente)
                 
+                # Formatar data para exibição ao usuário (YYYY-MM-DD -> DD/MM/YYYY)
+                try:
+                    data_exibicao = datetime.strptime(data, "%Y-%m-%d").strftime("%d/%m/%Y")
+                except ValueError:
+                    data_exibicao = data
+                
                 nome_final = cliente.nome if cliente.nome and cliente.nome != "Cliente" else ""
-                mensagem_envio = f"{saudacao_fixa}Tudo certo, {nome_final}! Enviei o seu pedido de {servico_escolhido} para o dia {data} às {hora} ao lojista e estou a aguardar a confirmação. Aviso já já!"
+                mensagem_envio = f"{saudacao_fixa}Tudo certo, {nome_final}! Enviei o seu pedido de {servico_escolhido} para o dia {data_exibicao} às {hora} ao lojista e estou a aguardar a confirmação. Aviso já já!"
                 enviar_mensagem_whatsapp(numero_destino=telefone_cliente, texto=mensagem_envio)
                 
-                background_tasks.add_task(simular_confirmacao_lojista, telefone_cliente, servico_escolhido, data, hora, schema_alvo)
+                background_tasks.add_task(simular_confirmacao_lojista, telefone_cliente, servico_escolhido, data_exibicao, hora, schema_alvo)
                 print("⏳ [MOCK] Confirmação automática agendada...")
                 
             else:

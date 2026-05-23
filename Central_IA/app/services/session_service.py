@@ -11,6 +11,7 @@ def get_sessao_cliente(db: Session, telefone: str):
         ActiveSession.ativo == True
     ).first()
 
+from sqlalchemy.orm.attributes import flag_modified
 
 def salvar_sessao_cliente(db: Session, telefone: str, schema_loja: str, dados_sessao: dict | None = None):
     sessao = get_sessao_cliente(db, telefone)
@@ -18,6 +19,7 @@ def salvar_sessao_cliente(db: Session, telefone: str, schema_loja: str, dados_se
         sessao.loja_atual = schema_loja  # type: ignore[assignment]
         if dados_sessao is not None:
             sessao.dados_sessao = dados_sessao  # type: ignore[assignment]
+            flag_modified(sessao, "dados_sessao")
     else:
         nova_sessao = ActiveSession(
             telefone_cliente=telefone, 
