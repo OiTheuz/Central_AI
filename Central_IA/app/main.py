@@ -1,4 +1,5 @@
 from fastapi import FastAPI
+from app.routers import app_lojista
 
 from app.database import engine, Base
 
