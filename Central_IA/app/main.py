@@ -23,6 +23,7 @@ app = FastAPI(title="API Central de Agendamento")
 # REGISTRA ROUTERS
 
 app.include_router(webhook_router)
+app.include_router(app_lojista.router)
 app.include_router(lojistas_router)
 app.include_router(agendamentos_router)
 
