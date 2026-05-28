@@ -1,6 +1,6 @@
 import json
 import logging
-from datetime import datetime
+from datetime import datetime, timedelta
 from typing import cast
 
 from openai import AsyncOpenAI, RateLimitError, APIStatusError, APIConnectionError
@@ -38,9 +38,32 @@ async def analisar_mensagem_com_ia(
     """
     data_hora_atual = datetime.now().strftime("%d-%m-%Y %H:%M")
     nome_display = nome_cliente if nome_cliente and nome_cliente != "Cliente" else None
+
+    # Gerar referência dos próximos 14 dias com nomes dos dias da semana em pt-BR
+    dias_semana_pt = ["segunda-feira", "terça-feira", "quarta-feira", "quinta-feira", "sexta-feira", "sábado", "domingo"]
+    hoje = datetime.now()
+    dia_semana_hoje = dias_semana_pt[hoje.weekday()]
+    proximos_dias = []
+    for i in range(14):
+        d = hoje + timedelta(days=i)
+        nome_dia = dias_semana_pt[d.weekday()]
+        proximos_dias.append(f"  - {nome_dia}: {d.strftime('%Y-%m-%d')}")
+    calendario_referencia = "\n".join(proximos_dias)
     
     prompt_sistema = f"""Você é a inteligência por trás da Lau, uma secretária virtual altamente objetiva, profissional e assertiva de uma Central de Agendamentos.
-    Agora é exatamente {data_hora_atual}. Use essa data e hora de referência para interpretar termos como "amanhã", "sábado que vem" ou "hoje".
+    Agora é exatamente {data_hora_atual}. Hoje é {dia_semana_hoje}.
+
+    CALENDÁRIO DE REFERÊNCIA (próximos 14 dias):
+{calendario_referencia}
+
+    Use essa referência para interpretar expressões como:
+    - "hoje" → {hoje.strftime('%Y-%m-%d')}
+    - "amanhã" → {(hoje + timedelta(days=1)).strftime('%Y-%m-%d')}
+    - "essa quinta", "quinta-feira", "quinta" → a PRÓXIMA quinta-feira a partir de hoje (inclusive hoje se for quinta)
+    - "esse sábado", "sábado" → o PRÓXIMO sábado a partir de hoje
+    - "próxima terça", "terça que vem" → a terça-feira da SEMANA QUE VEM (nunca esta semana)
+    - "semana que vem" sem dia específico → pergunte qual dia da semana
+    REGRA: quando o cliente diz "essa [dia]" ou apenas o nome do dia, SEMPRE use a PRÓXIMA ocorrência futura desse dia. Se hoje JÁ for esse dia, use hoje.
 
     Sua única função é extrair dados essenciais da mensagem do cliente e estruturar o JSON de resposta.
     PROIBIDO: Não gere nenhuma saudação amigável (como "Bom dia", "Olá", "Tudo bem?") por conta própria no campo 'mensagem_resposta'. A saudação já é tratada pelo sistema.
@@ -64,7 +87,7 @@ async def analisar_mensagem_com_ia(
         "intencao": "agendamento" ou "saudacao" ou "duvida" ou "encerramento",
         "nome_cliente": "nome extraído da pessoa, ou null",
         "servico": "serviço desejado, ou null",
-        "data": "DD-MM-YYYY, ou null",
+        "data": "YYYY-MM-DD, ou null",
         "hora": "HH:MM, ou null",
         "mensagem_resposta": "Sua pergunta direta, curta e personalizada sobre o dado faltante"
     }}"""

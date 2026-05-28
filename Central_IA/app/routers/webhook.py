@@ -318,6 +318,100 @@ async def receive_message(request: Request, db: Session = Depends(get_db)):
                 data = estado.get("data")
                 hora = estado.get("hora")
 
+                # ── Verificação de conflito de horário ──
+                # Busca config do lojista no schema public
+                db.execute(text("SET search_path TO public"))
+                merchant_config = db.query(Merchant).filter(
+                    Merchant.nome_do_schema == str(schema_alvo_seguro)
+                ).first()
+                permite_sobreposicao = bool(
+                    merchant_config.permitir_sobreposicao if merchant_config else False
+                )
+                # Volta para schema do lojista
+                db.execute(text(f"SET search_path TO {schema_alvo_seguro}, public"))
+
+                if not permite_sobreposicao:
+                    # Buscar duração do serviço solicitado
+                    duracao_serv = db.execute(
+                        text("SELECT duracao_minutos FROM services WHERE id = :sid"),
+                        {"sid": service_id}
+                    ).scalar() or 30  # fallback 30 min
+
+                    # Buscar agendamentos existentes nessa data (não recusados)
+                    agendamentos_dia = db.execute(text("""
+                        SELECT a.horario_agendamento, COALESCE(s.duracao_minutos, 30) AS dur
+                        FROM appointments a
+                        LEFT JOIN services s ON a.service_id = s.id
+                        WHERE a.data_agendamento = :data
+                          AND a.status NOT IN ('recusado')
+                        ORDER BY a.horario_agendamento
+                    """), {"data": data}).mappings().fetchall()
+
+                    # Verificar sobreposição
+                    from datetime import time as time_type
+                    hora_pedida = datetime.strptime(hora, "%H:%M").time()
+                    fim_pedido = (datetime.combine(datetime.today(), hora_pedida) + timedelta(minutes=duracao_serv)).time()
+
+                    conflito = False
+                    for ag in agendamentos_dia:
+                        ag_inicio = ag["horario_agendamento"]
+                        if isinstance(ag_inicio, str):
+                            ag_inicio = datetime.strptime(ag_inicio, "%H:%M").time()
+                        ag_fim = (datetime.combine(datetime.today(), ag_inicio) + timedelta(minutes=ag["dur"])).time()
+
+                        # Sobreposição: início_pedido < fim_existente AND fim_pedido > início_existente
+                        if hora_pedida < ag_fim and fim_pedido > ag_inicio:
+                            conflito = True
+                            break
+
+                    if conflito:
+                        # Sugerir próximo horário livre
+                        horarios_ocupados = []
+                        for ag in agendamentos_dia:
+                            ag_inicio = ag["horario_agendamento"]
+                            if isinstance(ag_inicio, str):
+                                ag_inicio = datetime.strptime(ag_inicio, "%H:%M").time()
+                            ag_fim = (datetime.combine(datetime.today(), ag_inicio) + timedelta(minutes=ag["dur"])).time()
+                            horarios_ocupados.append((ag_inicio, ag_fim))
+
+                        # Horário de funcionamento
+                        h_abre = merchant_config.horario_abertura if merchant_config else "08:00"
+                        h_fecha = merchant_config.horario_fechamento if merchant_config else "18:00"
+                        abertura = datetime.strptime(h_abre, "%H:%M").time()
+                        fechamento = datetime.strptime(h_fecha, "%H:%M").time()
+
+                        # Buscar slot livre (varrendo de 30 em 30 min)
+                        sugestao = None
+                        cursor_dt = datetime.combine(datetime.today(), abertura)
+                        fecha_dt = datetime.combine(datetime.today(), fechamento)
+                        while cursor_dt + timedelta(minutes=duracao_serv) <= fecha_dt:
+                            slot_inicio = cursor_dt.time()
+                            slot_fim = (cursor_dt + timedelta(minutes=duracao_serv)).time()
+                            livre = True
+                            for oc_ini, oc_fim in horarios_ocupados:
+                                if slot_inicio < oc_fim and slot_fim > oc_ini:
+                                    livre = False
+                                    break
+                            if livre:
+                                sugestao = slot_inicio.strftime("%H:%M")
+                                break
+                            cursor_dt += timedelta(minutes=30)
+
+                        msg_conflito = (
+                            f"{saudacao_fixa}Poxa, o horario das {hora} ja esta ocupado nessa data. "
+                        )
+                        if sugestao:
+                            msg_conflito += f"O proximo horario disponivel e as {sugestao}. Deseja agendar nesse horario?"
+                        else:
+                            msg_conflito += "Infelizmente nao temos mais horarios disponiveis nesse dia. Que tal outra data?"
+
+                        # Manter sessão ativa para o cliente poder responder
+                        salvar_sessao_cliente(db, telefone_cliente, str(schema_alvo_seguro), {
+                            "historico": historico, "estado": estado, "ja_saudou": True
+                        })
+                        enviar_mensagem_whatsapp(numero_destino=telefone_cliente, texto=msg_conflito)
+                        return JSONResponse(content={"status": "sucesso"}, status_code=200)
+
                 db.execute(text("""
                     INSERT INTO appointments (customer_id, service_id, data_agendamento, horario_agendamento, status) 
                     VALUES (:c_id, :s_id, :data, :hora, 'pendente')

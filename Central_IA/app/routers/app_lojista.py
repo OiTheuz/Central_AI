@@ -595,3 +595,46 @@ def obter_metricas_hoje(
         "atendimentosHoje": contagem,
         "ganhosPrevistos": float(ganhos),
     }
+
+
+# =========================================================
+# CONFIGURAÇÕES DO LOJISTA (Integração WhatsApp / IA)
+# =========================================================
+
+class ConfiguracoesRequest(BaseModel):
+    permitir_sobreposicao: bool
+    horario_abertura: str   # HH:MM
+    horario_fechamento: str # HH:MM
+
+
+@router.get("/configuracoes")
+def obter_configuracoes(
+    merchant: Merchant = Depends(get_lojista_atual),
+):
+    """Retorna as configurações de agendamento do lojista."""
+    return {
+        "status": "sucesso",
+        "permitir_sobreposicao": bool(merchant.permitir_sobreposicao),
+        "horario_abertura": merchant.horario_abertura or "08:00",
+        "horario_fechamento": merchant.horario_fechamento or "18:00",
+    }
+
+
+@router.put("/configuracoes")
+def atualizar_configuracoes(
+    body: ConfiguracoesRequest,
+    db: Session = Depends(get_db),
+    merchant: Merchant = Depends(get_lojista_atual),
+):
+    """Atualiza as configurações de agendamento do lojista."""
+    import re
+    hora_re = re.compile(r'^\d{2}:\d{2}$')
+    if not hora_re.match(body.horario_abertura) or not hora_re.match(body.horario_fechamento):
+        raise HTTPException(status_code=400, detail="Horários devem estar no formato HH:MM.")
+
+    merchant.permitir_sobreposicao = body.permitir_sobreposicao
+    merchant.horario_abertura = body.horario_abertura
+    merchant.horario_fechamento = body.horario_fechamento
+    db.commit()
+    logger.info("Configuracoes atualizadas pelo lojista %s", merchant.id)
+    return {"status": "sucesso", "mensagem": "Configurações salvas."}
