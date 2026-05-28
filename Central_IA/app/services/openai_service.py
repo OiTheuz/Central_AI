@@ -1,16 +1,22 @@
 import json
+import logging
 from datetime import datetime
 from typing import cast
 
-from openai import AsyncOpenAI
-from openai.types.chat import ChatCompletionMessageParam
+from openai import AsyncOpenAI, RateLimitError, APIStatusError, APIConnectionError
+from openai.types.chat import ChatCompletion, ChatCompletionMessageParam
 
 from app.config import OPENAI_API_KEY
+
+logger = logging.getLogger(__name__)
 
 # =========================================================
 # CLIENTE OPENAI
 # =========================================================
-client_ai = AsyncOpenAI(api_key=OPENAI_API_KEY)
+# timeout configurado no cliente — compatível com todas as versões do SDK.
+# Não passe timeout dentro de create() pois em certas versões do SDK isso
+# pode ser mal interpretado e retornar AsyncStream ao invés de ChatCompletion.
+client_ai = AsyncOpenAI(api_key=OPENAI_API_KEY, timeout=30.0)
 
 # =========================================================
 # ANÁLISE DE MENSAGEM COM IA
@@ -20,12 +26,15 @@ async def analisar_mensagem_com_ia(
     contexto_cliente: str = "cliente_antigo",
     nome_cliente: str | None = None,
     servicos_disponiveis: list[str] | None = None
-):
+) -> dict:
     """
     Analisa as mensagens e extrai os dados em formato JSON puro.
     contexto_cliente pode ser: 'cliente_novo' ou 'cliente_antigo'
     nome_cliente: nome já conhecido do cliente (ou None se desconhecido)
     servicos_disponiveis: lista de serviços cadastrados no banco para a loja atual
+
+    Retorna um dicionário com os campos extraídos pela IA, ou um fallback
+    seguro em caso de erro de API ou JSON inválido.
     """
     data_hora_atual = datetime.now().strftime("%d-%m-%Y %H:%M")
     nome_display = nome_cliente if nome_cliente and nome_cliente != "Cliente" else None
@@ -65,13 +74,55 @@ async def analisar_mensagem_com_ia(
         *historico
     ])
 
-    # Chamada da API com formato JSON garantido
-    response = await client_ai.chat.completions.create(
-        model="gpt-4o-mini",
-        messages=messages_payload,
-        response_format={"type": "json_object"},
-        temperature=0.1
-    )
-    
-    conteudo_texto = response.choices[0].message.content
-    return json.loads(conteudo_texto)
+    # ── Fallback seguro em caso de falha ──
+    fallback = {
+        "intencao": "duvida",
+        "nome_cliente": None,
+        "servico": None,
+        "data": None,
+        "hora": None,
+        "mensagem_resposta": "Desculpe, tive uma dificuldade técnica. Pode repetir o que precisa?"
+    }
+
+    try:
+        # cast() é necessário pois o Pylance não resolve o overload de create()
+        # corretamente a partir dos type stubs do SDK — em runtime, stream=False
+        # garante que o retorno é sempre ChatCompletion.
+        response = cast(
+            ChatCompletion,
+            await client_ai.chat.completions.create(
+                model="gpt-4o-mini",
+                messages=messages_payload,
+                response_format={"type": "json_object"},
+                temperature=0.1,
+                stream=False,
+            )
+        )
+        
+        conteudo_texto = response.choices[0].message.content
+        if not conteudo_texto:
+            logger.warning("OpenAI retornou resposta vazia")
+            return fallback
+
+        resultado = json.loads(conteudo_texto)
+        return resultado
+
+    except RateLimitError:
+        logger.error("OpenAI: rate limit atingido — aguarde e tente novamente")
+        return fallback
+
+    except APIConnectionError as e:
+        logger.error("OpenAI: falha de conexão: %s", e)
+        return fallback
+
+    except APIStatusError as e:
+        logger.error("OpenAI: erro de API (status %s): %s", e.status_code, e.message)
+        return fallback
+
+    except json.JSONDecodeError as e:
+        logger.error("OpenAI: JSON inválido na resposta: %s", e)
+        return fallback
+
+    except Exception as e:
+        logger.error("OpenAI: erro inesperado: %s", e)
+        return fallback

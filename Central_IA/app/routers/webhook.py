@@ -1,28 +1,33 @@
-import asyncio
+import logging
+import re
 from datetime import datetime, timedelta, timezone
-from fastapi import APIRouter, Depends, Request, BackgroundTasks
+from fastapi import APIRouter, Depends, Request
 from fastapi.responses import JSONResponse, PlainTextResponse
 from sqlalchemy.orm import Session
 from sqlalchemy import text
 
 from app.config import VERIFY_TOKEN
-from app.database import get_db, SessionLocal
+from app.database import get_db, validar_schema
 from app.models import Merchant
 from app.services.openai_service import analisar_mensagem_com_ia
 from app.services.whatsapp_service import enviar_mensagem_whatsapp
+from app.services.push_service import enviar_notificacao_push
 from app.services.session_service import get_sessao_cliente, salvar_sessao_cliente, encerrar_sessao_cliente
+
+logger = logging.getLogger(__name__)
 
 router = APIRouter(tags=["Webhook"])
 
 # =========================================================
 # DEDUPLICAÇÃO DE MENSAGENS (evita loop por retries da Meta)
+# Nota: em memória — sobrevive apenas enquanto o processo está vivo.
+# Para multi-worker/produção, migrar para Redis.
 # =========================================================
 _mensagens_processadas: dict[str, float] = {}
 
 def _ja_processou(message_id: str) -> bool:
     """Retorna True se a mensagem já foi processada. Limpa IDs antigos (>5min)."""
     agora = datetime.now().timestamp()
-    # Limpar IDs com mais de 5 minutos
     ids_antigos = [mid for mid, ts in _mensagens_processadas.items() if agora - ts > 300]
     for mid in ids_antigos:
         del _mensagens_processadas[mid]
@@ -31,6 +36,22 @@ def _ja_processou(message_id: str) -> bool:
         return True
     _mensagens_processadas[message_id] = agora
     return False
+
+# =========================================================
+# ROTEAMENTO DE LOJISTA POR NOME (palavra inteira)
+# =========================================================
+def _encontrar_lojista(texto: str, lojistas: list[Merchant]) -> Merchant | None:
+    """
+    Procura o nome do lojista no texto usando correspondência de palavra inteira
+    para evitar falsos positivos (ex: "bar" em "barbeamento").
+    """
+    texto_lower = texto.lower()
+    for lojista in lojistas:
+        # Escapa caracteres especiais do nome e exige palavra inteira
+        nome_escaped = re.escape(lojista.nome_loja.lower())
+        if re.search(rf'\b{nome_escaped}\b', texto_lower):
+            return lojista
+    return None
 
 # =========================================================
 # FUNÇÃO AUXILIAR: SAUDAÇÃO POR HORÁRIO
@@ -45,27 +66,6 @@ def _saudacao_por_horario() -> str:
         return "Boa noite"
 
 # =========================================================
-# FUNÇÃO AUXILIAR: SIMULADOR DE CONFIRMAÇÃO DO LOJISTA
-# =========================================================
-async def simular_confirmacao_lojista(telefone: str, servico: str, data: str, hora: str, schema_alvo: str):
-    await asyncio.sleep(5)
-    db_async = SessionLocal()
-    try:
-        db_async.execute(text(f"SET search_path TO {schema_alvo}"))
-        db_async.execute(text("""
-            UPDATE appointments 
-            SET status = 'confirmado' 
-            WHERE status = 'pendente' 
-            AND customer_id = (SELECT id FROM customers WHERE telefone_whatsapp = :tel LIMIT 1)
-        """), {"tel": telefone})
-        db_async.commit()
-        
-        mensagem_sucesso = f"✅ Seu agendamento para {servico} no dia {data} às {hora} foi confirmado pelo lojista!"
-        enviar_mensagem_whatsapp(numero_destino=telefone, texto=mensagem_sucesso)
-    finally:
-        db_async.close()
-
-# =========================================================
 # ROTA DE VALIDAÇÃO DO WEBHOOK (VERIFICAÇÃO DA META)
 # =========================================================
 @router.get("/webhook")
@@ -75,17 +75,17 @@ async def verify_webhook(request: Request):
     hub_challenge = request.query_params.get("hub.challenge")
 
     if hub_mode == "subscribe" and hub_verify_token == VERIFY_TOKEN:
-        print("✅ Webhook verificado com sucesso!")
+        logger.info("Webhook verificado com sucesso pela Meta.")
         return PlainTextResponse(content=hub_challenge, status_code=200)
     
-    print("❌ Falha na verificação do Webhook.")
+    logger.warning("Falha na verificação do Webhook — token inválido.")
     return JSONResponse(content={"detail": "Verification failed"}, status_code=403)
 
 # =========================================================
 # ROTA DE RECEBIMENTO DE MENSAGENS DO WHATSAPP
 # =========================================================
 @router.post("/webhook")
-async def receive_message(request: Request, background_tasks: BackgroundTasks, db: Session = Depends(get_db)):
+async def receive_message(request: Request, db: Session = Depends(get_db)):
     try:
         body = await request.json()
         
@@ -108,20 +108,24 @@ async def receive_message(request: Request, background_tasks: BackgroundTasks, d
             return JSONResponse(content={"status": "status atualizado"}, status_code=200)
 
         if "messages" in value:
-            mensagem = value["messages"][0]  # messages também é uma lista
+            mensagem = value["messages"][0]
             message_id = mensagem.get("id", "")
             telefone_cliente = mensagem["from"]
             
-            # Proteção 1: Ignorar mensagens antigas (retries da Meta após restart)
+            # Proteção 1: Ignorar mensagens muito antigas (retries da Meta após restart)
+            # Aumentado para 300s (5 min) para não descartar mensagens em picos de carga.
             msg_timestamp = int(mensagem.get("timestamp", 0))
             agora_unix = int(datetime.now().timestamp())
-            if msg_timestamp > 0 and (agora_unix - msg_timestamp) > 30:
-                print(f"⏭️ Mensagem antiga ignorada ({agora_unix - msg_timestamp}s atrás): {message_id}")
+            if msg_timestamp > 0 and (agora_unix - msg_timestamp) > 300:
+                logger.info(
+                    "Mensagem antiga ignorada (%ds atrás): %s",
+                    agora_unix - msg_timestamp, message_id
+                )
                 return JSONResponse(content={"status": "antiga"}, status_code=200)
             
             # Proteção 2: Deduplicação por message_id
             if _ja_processou(message_id):
-                print(f"⏭️ Mensagem duplicada ignorada: {message_id}")
+                logger.info("Mensagem duplicada ignorada: %s", message_id)
                 return JSONResponse(content={"status": "duplicada"}, status_code=200)
             
             if mensagem["type"] == "text":
@@ -129,22 +133,18 @@ async def receive_message(request: Request, background_tasks: BackgroundTasks, d
             else:
                 return JSONResponse(content={"status": "tipo de mensagem não suportado"}, status_code=200)
 
-            print(f"\n📩 Mensagem Recebida de {telefone_cliente}: {texto_cliente}")
+            logger.info("Mensagem recebida de %s: %s", telefone_cliente, texto_cliente[:80])
 
             # =========================================================
             # PASSO 1: IDENTIFICAR O LOJISTA (ROTEAMENTO)
             # =========================================================
-            texto_lower = texto_cliente.lower()
-            lojista_encontrado = None
-
             # Garante que estamos no schema público para consultar merchants
             db.execute(text("SET search_path TO public"))
             todos_lojistas = db.query(Merchant).all()
-            for lojista in todos_lojistas:
-                if lojista.nome_loja.lower() in texto_lower:
-                    lojista_encontrado = lojista
-                    print(f"🎯 Lojista Encontrado: {lojista.nome_loja}")
-                    break
+
+            lojista_encontrado = _encontrar_lojista(texto_cliente, todos_lojistas)
+            if lojista_encontrado:
+                logger.info("Lojista identificado: %s", lojista_encontrado.nome_loja)
                     
             # =========================================================
             # PASSO 2: GERENCIAMENTO DE SESSÃO
@@ -165,25 +165,44 @@ async def receive_message(request: Request, background_tasks: BackgroundTasks, d
                 nome_loja = lojista.nome_loja if lojista else "Loja"
             else:
                 saudacao = _saudacao_por_horario()
-                enviar_mensagem_whatsapp(numero_destino=telefone_cliente, texto=f"{saudacao}! 🌻 Eu sou a Lau, secretária virtual. Para começarmos, me diga qual estabelecimento você procura.")
+                enviar_mensagem_whatsapp(
+                    numero_destino=telefone_cliente,
+                    texto=f"{saudacao}! 🌻 Eu sou a Lau, secretária virtual. Para começarmos, me diga qual estabelecimento você procura."
+                )
                 return JSONResponse(content={"status": "recebido"}, status_code=200)
 
             # =========================================================
             # PASSO 3: BUSCAR CLIENTE NO SCHEMA DO LOJISTA
             # =========================================================
-            db.execute(text(f"SET search_path TO {schema_alvo}"))
-            cliente_db = db.execute(text("SELECT * FROM customers WHERE telefone_whatsapp = :tel"), {"tel": telefone_cliente}).fetchone()
+            # Validação anti SQL injection antes de SET search_path
+            schema_alvo_seguro = validar_schema(str(schema_alvo))
+            db.execute(text(f"SET search_path TO {schema_alvo_seguro}, public"))
+            
+            cliente_db = db.execute(
+                text("SELECT * FROM customers WHERE telefone_whatsapp = :tel"),
+                {"tel": telefone_cliente}
+            ).mappings().fetchone()
 
             if not cliente_db:
-                db.execute(text("INSERT INTO customers (nome, telefone_whatsapp) VALUES ('Cliente', :tel) ON CONFLICT DO NOTHING"), {"tel": telefone_cliente})
+                db.execute(
+                    text("INSERT INTO customers (nome, telefone_whatsapp) VALUES ('Cliente', :tel) ON CONFLICT DO NOTHING"),
+                    {"tel": telefone_cliente}
+                )
                 db.commit()
-                cliente_db = db.execute(text("SELECT * FROM customers WHERE telefone_whatsapp = :tel"), {"tel": telefone_cliente}).fetchone()
+                cliente_db = db.execute(
+                    text("SELECT * FROM customers WHERE telefone_whatsapp = :tel"),
+                    {"tel": telefone_cliente}
+                ).mappings().fetchone()
                 contexto = "cliente_novo"
             else:
                 contexto = "cliente_antigo"
 
             # Nome do cliente (None se desconhecido ou genérico)
-            nome_cliente = cliente_db.nome if cliente_db and cliente_db.nome and cliente_db.nome != "Cliente" else None
+            nome_cliente = (
+                cliente_db.get("nome")
+                if cliente_db and cliente_db.get("nome") and cliente_db.get("nome") != "Cliente"
+                else None
+            )
 
             # =========================================================
             # PASSO 4: SAUDAÇÃO INTELIGENTE 🌻
@@ -193,51 +212,44 @@ async def receive_message(request: Request, background_tasks: BackgroundTasks, d
 
             if not sessao_atual or trocou_de_loja:
                 if lojista_encontrado and not trocou_de_loja:
-                    # Loja mencionada na mensagem sem sessão prévia → usuário respondeu ao "qual estabelecimento?"
-                    # A Lau já se apresentou na mensagem anterior, não repetir saudação
                     tipo_saudacao = "continuacao"
                     saudacao_fixa = ""
                 else:
-                    # TROCA DE LOJA → Saudação com apresentação
                     tipo_saudacao = "primeira_vez"
                     saudacao_fixa = f"{saudacao}{nome_para_saudar}! 🌻 Eu sou a Lau, secretária virtual. Como posso te ajudar hoje?\n\n"
             else:
-                # Sessão ativa — verificar tempo desde última interação
                 ultima = sessao_atual.ultima_interacao
                 agora = datetime.now()
                 
-                # Tratar timezone: se ultima_interacao tem timezone, usar UTC aware
                 if ultima and ultima.tzinfo is not None:
                     agora = datetime.now(timezone.utc)
                 
                 if ultima and (agora - ultima) >= timedelta(hours=2):
-                    # RETORNO LONGO (≥ 2h) → Nova saudação por horário
                     tipo_saudacao = "retorno_longo"
                     saudacao_fixa = f"{saudacao}{nome_para_saudar}! 🌻 Eu sou a Lau, secretária virtual. Como posso te ajudar hoje?\n\n"
                 else:
-                    # RETORNO RÁPIDO (< 2h) ou conversa em andamento
                     tipo_saudacao = "retorno_rapido"
                     dados_sessao = sessao_atual.dados_sessao if isinstance(sessao_atual.dados_sessao, dict) else {}
                     ja_saudou = dados_sessao.get("ja_saudou", False)
                     
                     if not ja_saudou:
-                        # Primeira msg desta "janela" de retorno rápido
                         if nome_cliente:
                             saudacao_fixa = f"Que bom que retornou, {nome_cliente}! Como posso te ajudar dessa vez?\n\n"
                         else:
                             saudacao_fixa = "Que bom que retornou! Como posso te ajudar dessa vez?\n\n"
                     else:
-                        # Conversa em andamento, sem saudação
                         saudacao_fixa = ""
 
-            print(f"🧠 Tipo saudação: {tipo_saudacao} | Nome: {nome_cliente or 'desconhecido'} | Loja: {nome_loja}")
+            logger.info(
+                "Saudação: %s | cliente=%s | loja=%s",
+                tipo_saudacao, nome_cliente or "desconhecido", nome_loja
+            )
 
             # =========================================================
             # PASSO 5: RECUPERAR O "ESTADO" E HISTÓRICO 🧠
             # =========================================================
             dados = sessao_atual.dados_sessao if sessao_atual and isinstance(sessao_atual.dados_sessao, dict) else {}
             
-            # Em retorno longo ou troca de loja, limpar histórico e estado
             if tipo_saudacao in ("primeira_vez", "retorno_longo"):
                 historico = []
                 estado = {}
@@ -250,9 +262,10 @@ async def receive_message(request: Request, background_tasks: BackgroundTasks, d
             # =========================================================
             # PASSO 6: CHAMADA DA IA
             # =========================================================
-            db.execute(text(f"SET search_path TO {schema_alvo}"))
-            servicos_db = db.execute(text("SELECT nome FROM services")).fetchall()
-            servicos_lista = [s.nome for s in servicos_db]
+            # Reafirma search_path após possíveis queries de sessão
+            db.execute(text(f"SET search_path TO {schema_alvo_seguro}, public"))
+            servicos_db = db.execute(text("SELECT nome FROM services")).mappings().fetchall()
+            servicos_lista = [str(s.get("nome")) for s in servicos_db if s.get("nome") is not None]
             
             resposta_ia = await analisar_mensagem_com_ia(historico, contexto, nome_cliente, servicos_disponiveis=servicos_lista)
             
@@ -265,59 +278,102 @@ async def receive_message(request: Request, background_tasks: BackgroundTasks, d
             
             # Captura nome — funciona tanto para cliente novo quanto antigo sem nome
             if resposta_ia.get("nome_cliente") and (not nome_cliente):
-                db.execute(text("UPDATE customers SET nome = :nome WHERE telefone_whatsapp = :tel"), {"nome": resposta_ia["nome_cliente"], "tel": telefone_cliente})
+                db.execute(
+                    text("UPDATE customers SET nome = :nome WHERE telefone_whatsapp = :tel"),
+                    {"nome": resposta_ia["nome_cliente"], "tel": telefone_cliente}
+                )
                 db.commit()
                 nome_cliente = resposta_ia["nome_cliente"]
 
-            cliente = db.execute(text("SELECT * FROM customers WHERE telefone_whatsapp = :tel"), {"tel": telefone_cliente}).fetchone()
+            cliente = db.execute(
+                text("SELECT * FROM customers WHERE telefone_whatsapp = :tel"),
+                {"tel": telefone_cliente}
+            ).mappings().fetchone()
 
             # =========================================================
             # PASSO 7: VALIDAÇÃO FINAL E AGENDAMENTO
             # =========================================================
-            print(f"📦 Estado Acumulado: {estado}")
+            logger.debug("Estado acumulado: %s", estado)
             
-            if estado.get("servico") and estado.get("data") and estado.get("hora") and cliente.nome and cliente.nome != "Cliente":
-                
+            if (
+                estado.get("servico") and estado.get("data") and estado.get("hora")
+                and cliente
+                and cliente.get("nome") and cliente.get("nome") != "Cliente"
+            ):
                 servico_escolhido = estado.get("servico")
-                servico_db = db.execute(text("SELECT id FROM services WHERE nome ILIKE :nome LIMIT 1"), {"nome": f"%{servico_escolhido}%"}).fetchone()
+                servico_db = db.execute(
+                    text("SELECT id FROM services WHERE nome ILIKE :nome LIMIT 1"),
+                    {"nome": f"%{servico_escolhido}%"}
+                ).mappings().fetchone()
                 
                 if not servico_db:
-                    salvar_sessao_cliente(db, telefone_cliente, schema_alvo, {"historico": historico, "estado": estado, "ja_saudou": True})
-                    enviar_mensagem_whatsapp(numero_destino=telefone_cliente, texto=f"{saudacao_fixa}Poxa, não encontrei o serviço '{servico_escolhido}' na nossa lista. Que outro serviço gostaria?")
+                    salvar_sessao_cliente(db, telefone_cliente, str(schema_alvo_seguro), {"historico": historico, "estado": estado, "ja_saudou": True})
+                    enviar_mensagem_whatsapp(
+                        numero_destino=telefone_cliente,
+                        texto=f"{saudacao_fixa}Poxa, não encontrei o serviço '{servico_escolhido}' na nossa lista. Que outro serviço gostaria?"
+                    )
                     return JSONResponse(content={"status": "sucesso"}, status_code=200)
                     
-                service_id = servico_db.id
+                service_id = servico_db.get("id")
                 data = estado.get("data")
                 hora = estado.get("hora")
 
                 db.execute(text("""
                     INSERT INTO appointments (customer_id, service_id, data_agendamento, horario_agendamento, status) 
                     VALUES (:c_id, :s_id, :data, :hora, 'pendente')
-                """), {"c_id": cliente.id, "s_id": service_id, "data": data, "hora": hora})
+                """), {"c_id": cliente.get("id"), "s_id": service_id, "data": data, "hora": hora})
                 db.commit()
                 
                 encerrar_sessao_cliente(db, telefone_cliente)
                 
-                # Formatar data para exibição ao usuário (YYYY-MM-DD -> DD/MM/YYYY)
                 try:
                     data_exibicao = datetime.strptime(data, "%Y-%m-%d").strftime("%d/%m/%Y")
-                except ValueError:
-                    data_exibicao = data
+                except (ValueError, TypeError):
+                    data_exibicao = str(data)
                 
-                nome_final = cliente.nome if cliente.nome and cliente.nome != "Cliente" else ""
-                mensagem_envio = f"{saudacao_fixa}Tudo certo, {nome_final}! Enviei o seu pedido de {servico_escolhido} para o dia {data_exibicao} às {hora} ao lojista e estou a aguardar a confirmação. Aviso já já!"
+                nome_final = (
+                    cliente.get("nome")
+                    if cliente and cliente.get("nome") and cliente.get("nome") != "Cliente"
+                    else ""
+                )
+                mensagem_envio = (
+                    f"{saudacao_fixa}Tudo certo, {nome_final}! Salvei a sua intenção de agendamento para "
+                    f"{servico_escolhido} no dia {data_exibicao} às {hora}. "
+                    f"Aguarde um instante, o lojista já vai confirmar a disponibilidade e eu te aviso aqui!"
+                )
                 enviar_mensagem_whatsapp(numero_destino=telefone_cliente, texto=mensagem_envio)
                 
-                background_tasks.add_task(simular_confirmacao_lojista, telefone_cliente, servico_escolhido, data_exibicao, hora, schema_alvo)
-                print("⏳ [MOCK] Confirmação automática agendada...")
+                # Enviar Push Notification para o app do Lojista
+                # Refaz query no schema public para encontrar o merchant
+                db.execute(text("SET search_path TO public"))
+                merchant_alvo = db.query(Merchant).filter(
+                    Merchant.nome_do_schema == str(schema_alvo_seguro)
+                ).first()
+                if merchant_alvo and merchant_alvo.push_token:
+                    enviar_notificacao_push(
+                        push_token=merchant_alvo.push_token,
+                        titulo="Nova Confirmação Pendente! 🔔",
+                        corpo=f"{nome_final} quer agendar {servico_escolhido} para {data_exibicao} às {hora}.",
+                        dados={"tela": "pending"}
+                    )
+                
+                logger.info(
+                    "Agendamento pendente criado: cliente=%s | serviço=%s | data=%s | hora=%s | loja=%s",
+                    nome_final, servico_escolhido, data_exibicao, hora, nome_loja
+                )
                 
             else:
-                salvar_sessao_cliente(db, telefone_cliente, schema_alvo, {"historico": historico, "estado": estado, "ja_saudou": True})
+                salvar_sessao_cliente(db, telefone_cliente, str(schema_alvo_seguro), {"historico": historico, "estado": estado, "ja_saudou": True})
                 mensagem_final = f"{saudacao_fixa}{texto_ia}" if saudacao_fixa else texto_ia
                 enviar_mensagem_whatsapp(numero_destino=telefone_cliente, texto=mensagem_final)
 
         return JSONResponse(content={"status": "sucesso"}, status_code=200)
 
+    except ValueError as e:
+        # Schema inválido — responde 200 para não fazer a Meta retentar
+        logger.error("Schema inválido no webhook: %s", e)
+        return JSONResponse(content={"status": "erro_schema"}, status_code=200)
+
     except Exception as e:
-        print(f"❌ Erro crítico tratado no Webhook principal: {str(e)}")
+        logger.exception("Erro crítico no webhook: %s", e)
         return JSONResponse(content={"status": "erro", "detalhe": str(e)}, status_code=500)

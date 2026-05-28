@@ -26,3 +26,9 @@ OPENAI_API_KEY: str = _obter_env("OPENAI_API_KEY")
 META_ACCESS_TOKEN: str = _obter_env("META_ACCESS_TOKEN")
 META_PHONE_ID: str = _obter_env("META_PHONE_ID")
 VERIFY_TOKEN: str = os.getenv("VERIFY_TOKEN_META", "AgendAI_Meta_9f2a8b3c7e5d10a4f6b2")
+
+# =========================================================
+# JWT (Autenticação do App Lojista)
+JWT_SECRET: str = _obter_env("JWT_SECRET")
+JWT_ALGORITHM: str = "HS256"
+JWT_EXPIRA_HORAS: int = 72  # Token válido por 3 dias
