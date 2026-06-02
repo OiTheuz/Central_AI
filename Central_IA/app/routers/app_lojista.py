@@ -84,7 +84,8 @@ def obter_agendamentos_hoje(
             s.nome AS servico, 
             a.data_agendamento, 
             a.horario_agendamento,
-            a.status
+            a.status,
+            a.origem
         FROM appointments a
         LEFT JOIN customers c ON a.customer_id = c.id
         LEFT JOIN services s ON a.service_id = s.id
@@ -106,7 +107,7 @@ def obter_agendamentos_hoje(
             "data": str(row["data_agendamento"]),
             "hora": row["horario_agendamento"].strftime("%H:%M") if row["horario_agendamento"] else "--:--",
             "status": row["status"],
-            "origem": "whatsapp_lau",
+            "origem": row["origem"] or "whatsapp_lau",
         })
 
     return {"status": "sucesso", "total": len(agendamentos), "dados": agendamentos}
@@ -136,7 +137,8 @@ def obter_agendamentos_pendentes(
             s.nome AS servico,
             a.data_agendamento,
             a.horario_agendamento,
-            a.status
+            a.status,
+            a.origem
         FROM appointments a
         LEFT JOIN customers c ON a.customer_id = c.id
         LEFT JOIN services s ON a.service_id = s.id
@@ -157,7 +159,7 @@ def obter_agendamentos_pendentes(
             "data": str(row["data_agendamento"]),
             "hora": row["horario_agendamento"].strftime("%H:%M") if row["horario_agendamento"] else "--:--",
             "status": "pendente",
-            "origem": "whatsapp_lau",
+            "origem": row["origem"] or "whatsapp_lau",
         })
 
     return {"status": "sucesso", "total": len(agendamentos), "dados": agendamentos}
@@ -184,7 +186,8 @@ def obter_agendamentos_por_data(
             s.nome AS servico,
             a.data_agendamento,
             a.horario_agendamento,
-            a.status
+            a.status,
+            a.origem
         FROM appointments a
         LEFT JOIN customers c ON a.customer_id = c.id
         LEFT JOIN services s ON a.service_id = s.id
@@ -206,7 +209,7 @@ def obter_agendamentos_por_data(
             "data": str(row["data_agendamento"]),
             "hora": row["horario_agendamento"].strftime("%H:%M") if row["horario_agendamento"] else "--:--",
             "status": row["status"],
-            "origem": "whatsapp_lau",
+            "origem": row["origem"] or "whatsapp_lau",
         })
 
     return {"status": "sucesso", "total": len(agendamentos), "dados": agendamentos}
@@ -508,58 +511,59 @@ def criar_agendamento_manual(
     """Cria um agendamento manualmente pelo lojista (sem passar pelo WhatsApp)."""
     _set_schema(db, merchant)
 
-    # Verificar se o serviço existe
-    servico = db.execute(
-        text("SELECT id, nome FROM services WHERE id = :sid"),
-        {"sid": body.servicoId}
-    ).mappings().fetchone()
+    try:
+        # Verificar se o serviço existe
+        servico = db.execute(
+            text("SELECT id, nome FROM services WHERE id = :sid"),
+            {"sid": body.servicoId}
+        ).mappings().fetchone()
 
-    if not servico:
-        raise HTTPException(status_code=404, detail="Serviço não encontrado.")
+        if not servico:
+            raise HTTPException(status_code=404, detail="Serviço não encontrado.")
 
-    # Upsert do cliente pelo telefone
-    db.execute(
-        text("""
-            INSERT INTO customers (nome, telefone_whatsapp)
-            VALUES (:nome, :tel)
-            ON CONFLICT (telefone_whatsapp) DO UPDATE SET nome = EXCLUDED.nome
-        """),
-        {"nome": body.clienteNome, "tel": body.clienteTelefone}
-    )
-    db.commit()
+        # Upsert do cliente pelo telefone
+        cliente_id = db.execute(
+            text("""
+                INSERT INTO customers (nome, telefone_whatsapp)
+                VALUES (:nome, :tel)
+                ON CONFLICT (telefone_whatsapp) DO UPDATE SET nome = EXCLUDED.nome
+                RETURNING id
+            """),
+            {"nome": body.clienteNome, "tel": body.clienteTelefone}
+        ).scalar()
 
-    cliente = db.execute(
-        text("SELECT id FROM customers WHERE telefone_whatsapp = :tel"),
-        {"tel": body.clienteTelefone}
-    ).mappings().fetchone()
+        if not cliente_id:
+            raise HTTPException(status_code=500, detail="Falha ao localizar cliente após insert.")
 
-    if not cliente:
-        raise HTTPException(status_code=500, detail="Falha ao localizar cliente após insert.")
+        # Inserir agendamento com status 'aprovado' (criado pelo próprio lojista)
+        db.execute(
+            text("""
+                INSERT INTO appointments (customer_id, service_id, data_agendamento, horario_agendamento, status, origem)
+                VALUES (:c_id, :s_id, :data, :hora, 'aprovado', 'Manual')
+            """),
+            {
+                "c_id": cliente_id,
+                "s_id": body.servicoId,
+                "data": body.data,
+                "hora": body.hora,
+            }
+        )
+        db.commit()
 
-    # Inserir agendamento com status 'aprovado' (criado pelo próprio lojista)
-    db.execute(
-        text("""
-            INSERT INTO appointments (customer_id, service_id, data_agendamento, horario_agendamento, status)
-            VALUES (:c_id, :s_id, :data, :hora, 'aprovado')
-        """),
-        {
-            "c_id": cliente["id"],
-            "s_id": body.servicoId,
-            "data": body.data,
-            "hora": body.hora,
+        logger.info(
+            "Agendamento manual criado pelo lojista %s: %s em %s às %s",
+            merchant.id, servico["nome"], body.data, body.hora
+        )
+
+        return {
+            "status": "sucesso",
+            "mensagem": f"Agendamento de {body.clienteNome} para {servico['nome']} criado com sucesso!"
         }
-    )
-    db.commit()
-
-    logger.info(
-        "Agendamento manual criado pelo lojista %s: %s em %s às %s",
-        merchant.id, servico["nome"], body.data, body.hora
-    )
-
-    return {
-        "status": "sucesso",
-        "mensagem": f"Agendamento de {body.clienteNome} para {servico['nome']} criado com sucesso!"
-    }
+    except Exception as e:
+        import traceback
+        traceback.print_exc()
+        db.rollback()
+        raise HTTPException(status_code=500, detail=str(e))
 
 
 # =========================================================
@@ -632,9 +636,9 @@ def atualizar_configuracoes(
     if not hora_re.match(body.horario_abertura) or not hora_re.match(body.horario_fechamento):
         raise HTTPException(status_code=400, detail="Horários devem estar no formato HH:MM.")
 
-    merchant.permitir_sobreposicao = body.permitir_sobreposicao
-    merchant.horario_abertura = body.horario_abertura
-    merchant.horario_fechamento = body.horario_fechamento
+    merchant.permitir_sobreposicao = body.permitir_sobreposicao  # type: ignore
+    merchant.horario_abertura = body.horario_abertura  # type: ignore
+    merchant.horario_fechamento = body.horario_fechamento  # type: ignore
     db.commit()
     logger.info("Configuracoes atualizadas pelo lojista %s", merchant.id)
     return {"status": "sucesso", "mensagem": "Configurações salvas."}

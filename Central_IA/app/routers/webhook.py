@@ -270,6 +270,26 @@ async def receive_message(request: Request, db: Session = Depends(get_db)):
             resposta_ia = await analisar_mensagem_com_ia(historico, contexto, nome_cliente, servicos_disponiveis=servicos_lista)
             
             texto_ia = resposta_ia.get("mensagem_resposta") or "Como posso te ajudar?"
+
+            # =========================================================
+            # ENCERRAMENTO DE ATENDIMENTO VOLUNTÁRIO
+            # =========================================================
+            if resposta_ia.get("intencao") == "encerrar":
+                encerrar_sessao_cliente(db, telefone_cliente)
+                
+                # Resetar a última interação do cliente no banco para forçar nova saudação no futuro
+                if cliente_db:
+                    db.execute(
+                        text(f"UPDATE {schema_alvo_seguro}.customers SET ultima_interacao = :data_passado WHERE id = :c_id"),
+                        {"data_passado": datetime.now() - timedelta(hours=24), "c_id": cliente_db.get("id")}
+                    )
+                    db.commit()
+
+                mensagem_despedida = "Atendimento encerrado! Se precisar de mais alguma coisa depois, estarei por aqui. Até logo! 👋"
+                enviar_mensagem_whatsapp(numero_destino=telefone_cliente, texto=mensagem_despedida)
+                logger.info("Atendimento encerrado voluntariamente pelo cliente: %s", telefone_cliente)
+                return JSONResponse(content={"status": "sucesso"}, status_code=200)
+
             historico.append({"role": "assistant", "content": texto_ia})
 
             if resposta_ia.get("servico"): estado["servico"] = resposta_ia.get("servico")
@@ -298,8 +318,22 @@ async def receive_message(request: Request, db: Session = Depends(get_db)):
             if (
                 estado.get("servico") and estado.get("data") and estado.get("hora")
                 and cliente
-                and cliente.get("nome") and cliente.get("nome") != "Cliente"
             ):
+                data_str = estado.get("data")
+                try:
+                    data_obj = datetime.strptime(data_str, "%Y-%m-%d").date()
+                    if data_obj < datetime.now().date():
+                        # Limpar a data do estado para a IA perguntar novamente na próxima
+                        estado["data"] = None
+                        salvar_sessao_cliente(db, telefone_cliente, str(schema_alvo_seguro), {"historico": historico, "estado": estado, "ja_saudou": True})
+                        enviar_mensagem_whatsapp(
+                            numero_destino=telefone_cliente,
+                            texto=f"{saudacao_fixa}Poxa, não consigo agendar em datas que já passaram. Qual seria o dia ideal para você?"
+                        )
+                        return JSONResponse(content={"status": "sucesso"}, status_code=200)
+                except ValueError:
+                    pass
+
                 servico_escolhido = estado.get("servico")
                 servico_db = db.execute(
                     text("SELECT id FROM services WHERE nome ILIKE :nome LIMIT 1"),
@@ -380,10 +414,14 @@ async def receive_message(request: Request, db: Session = Depends(get_db)):
                         abertura = datetime.strptime(h_abre, "%H:%M").time()
                         fechamento = datetime.strptime(h_fecha, "%H:%M").time()
 
-                        # Buscar slot livre (varrendo de 30 em 30 min)
-                        sugestao = None
+                        # Buscar slots livres e ordenar pelos mais próximos ao horário solicitado
+                        slots_livres = []
                         cursor_dt = datetime.combine(datetime.today(), abertura)
                         fecha_dt = datetime.combine(datetime.today(), fechamento)
+                        
+                        # Varrendo de 30 em 30 min
+                        passo_minutos = 30
+                        
                         while cursor_dt + timedelta(minutes=duracao_serv) <= fecha_dt:
                             slot_inicio = cursor_dt.time()
                             slot_fim = (cursor_dt + timedelta(minutes=duracao_serv)).time()
@@ -393,18 +431,32 @@ async def receive_message(request: Request, db: Session = Depends(get_db)):
                                     livre = False
                                     break
                             if livre:
-                                sugestao = slot_inicio.strftime("%H:%M")
-                                break
-                            cursor_dt += timedelta(minutes=30)
+                                # Diferença absoluta em minutos
+                                diff = abs(
+                                    datetime.combine(datetime.today(), slot_inicio) - 
+                                    datetime.combine(datetime.today(), hora_pedida)
+                                ).total_seconds() / 60
+                                slots_livres.append({"hora": slot_inicio.strftime("%H:%M"), "diff": diff})
+                            
+                            cursor_dt += timedelta(minutes=passo_minutos)
+
+                        # Ordenar pela menor diferença de tempo e pegar os 2 melhores
+                        slots_livres.sort(key=lambda x: x["diff"])
+                        sugestoes = [s["hora"] for s in slots_livres[:2]]
 
                         msg_conflito = (
-                            f"{saudacao_fixa}Poxa, o horario das {hora} ja esta ocupado nessa data. "
+                            f"{saudacao_fixa}Poxa, o horário das {hora} já está ocupado nessa data. "
                         )
-                        if sugestao:
-                            msg_conflito += f"O proximo horario disponivel e as {sugestao}. Deseja agendar nesse horario?"
+                        if len(sugestoes) > 0:
+                            if len(sugestoes) == 1:
+                                msg_conflito += f"O horário mais próximo disponível é às {sugestoes[0]}. Podemos agendar nesse horário?"
+                            else:
+                                msg_conflito += f"Tenho disponibilidade às {sugestoes[0]} ou às {sugestoes[1]}. Qual você prefere?"
                         else:
-                            msg_conflito += "Infelizmente nao temos mais horarios disponiveis nesse dia. Que tal outra data?"
+                            msg_conflito += "Infelizmente não temos mais horários disponíveis nesse dia. Que tal outra data?"
 
+                        # Limpar a hora do estado para a IA capturar a nova escolha do cliente
+                        estado["hora"] = None
                         # Manter sessão ativa para o cliente poder responder
                         salvar_sessao_cliente(db, telefone_cliente, str(schema_alvo_seguro), {
                             "historico": historico, "estado": estado, "ja_saudou": True
@@ -413,8 +465,8 @@ async def receive_message(request: Request, db: Session = Depends(get_db)):
                         return JSONResponse(content={"status": "sucesso"}, status_code=200)
 
                 db.execute(text("""
-                    INSERT INTO appointments (customer_id, service_id, data_agendamento, horario_agendamento, status) 
-                    VALUES (:c_id, :s_id, :data, :hora, 'pendente')
+                    INSERT INTO appointments (customer_id, service_id, data_agendamento, horario_agendamento, status, origem) 
+                    VALUES (:c_id, :s_id, :data, :hora, 'pendente', 'WhatsApp (Lau)')
                 """), {"c_id": cliente.get("id"), "s_id": service_id, "data": data, "hora": hora})
                 db.commit()
                 
