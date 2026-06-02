@@ -3,7 +3,7 @@ from fastapi import APIRouter, Depends, HTTPException
 from sqlalchemy import text
 from sqlalchemy.orm import Session
 
-from app.database import get_db, validar_schema
+from app.database import get_public_db, validar_schema
 from app.models import Merchant
 from app.schemas import AgendamentoCreate
 
@@ -18,7 +18,7 @@ router = APIRouter(tags=["Agendamentos"])
 @router.post("/agendamentos/")
 def criar_agendamento(
     agendamento: AgendamentoCreate,
-    db: Session = Depends(get_db)
+    db: Session = Depends(get_public_db)
 ):
     merchant = db.query(Merchant).filter(
         Merchant.codigo_loja == agendamento.codigo_loja
@@ -78,7 +78,7 @@ def criar_agendamento(
 @router.get("/agendamentos/{codigo_loja}")
 def listar_agendamentos(
     codigo_loja: str,
-    db: Session = Depends(get_db)
+    db: Session = Depends(get_public_db)
 ):
     merchant = db.query(Merchant).filter(
         Merchant.codigo_loja == codigo_loja

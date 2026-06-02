@@ -12,6 +12,7 @@ class Merchant(Base):
     telefone_contato = Column(String(50))
     nome_do_schema = Column(String(50), unique=True, nullable=False)
     area_atuacao = Column(String(100))
+    is_admin = Column(Boolean, default=False, nullable=False, server_default="false")
 
     # Autenticação (login do lojista no app)
     email = Column(String(255), unique=True, nullable=True)

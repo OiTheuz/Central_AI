@@ -26,18 +26,15 @@ SessionLocal = sessionmaker(autocommit=False, autoflush=False, bind=engine)
 Base = declarative_base()
 
 # =========================================================
-# DEPENDENCY — usado nos routers via Depends()
+# DEPENDENCY PÚBLICA — sessão sem schema (usado em login, webhook, etc.)
 # =========================================================
 
-def get_db():
+def get_public_db():
+    """Retorna uma sessão com search_path = public (sem schema de lojista)."""
     db = SessionLocal()
     try:
         yield db
     finally:
-        # Reseta o search_path para evitar poluição do pool de conexões.
-        # Sem isso, a próxima requisição que reusar esta conexão pode
-        # falhar com "relation 'merchant' does not exist" porque o
-        # search_path ainda aponta para o schema de um lojista.
         try:
             db.execute(text("SET search_path TO public"))
             db.commit()

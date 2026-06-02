@@ -2,15 +2,21 @@ import logging
 import re
 from datetime import datetime, timedelta, timezone
 from fastapi import APIRouter, Depends, Request
+from dataclasses import dataclass
 from fastapi.responses import JSONResponse, PlainTextResponse
 from sqlalchemy.orm import Session
 from sqlalchemy import text
 
 from app.config import VERIFY_TOKEN
-from app.database import get_db, validar_schema
+from app.database import get_public_db, validar_schema
 from app.models import Merchant
 from app.services.openai_service import analisar_mensagem_com_ia
-from app.services.whatsapp_service import enviar_mensagem_whatsapp
+from app.services.whatsapp_service import (
+    enviar_mensagem_whatsapp, 
+    enviar_menu_lojas_whatsapp,
+    enviar_menu_intencao_whatsapp,
+    enviar_menu_servicos_whatsapp
+)
 from app.services.push_service import enviar_notificacao_push
 from app.services.session_service import get_sessao_cliente, salvar_sessao_cliente, encerrar_sessao_cliente
 
@@ -47,10 +53,15 @@ def _encontrar_lojista(texto: str, lojistas: list[Merchant]) -> Merchant | None:
     """
     texto_lower = texto.lower()
     for lojista in lojistas:
-        # Escapa caracteres especiais do nome e exige palavra inteira
-        nome_escaped = re.escape(lojista.nome_loja.lower())
-        if re.search(rf'\b{nome_escaped}\b', texto_lower):
+        # Correspondência exata por ID do menu interativo do WhatsApp
+        if texto.strip() == f"LOJA_{lojista.codigo_loja}":
             return lojista
+        
+        # Correspondência por palavra inteira no nome da loja
+        if lojista.nome_loja:
+            nome_escaped = re.escape(lojista.nome_loja.lower())
+            if re.search(rf'\b{nome_escaped}\b', texto_lower):
+                return lojista
     return None
 
 # =========================================================
@@ -85,7 +96,7 @@ async def verify_webhook(request: Request):
 # ROTA DE RECEBIMENTO DE MENSAGENS DO WHATSAPP
 # =========================================================
 @router.post("/webhook")
-async def receive_message(request: Request, db: Session = Depends(get_db)):
+async def receive_message(request: Request, db: Session = Depends(get_public_db)):
     try:
         body = await request.json()
         
@@ -130,51 +141,127 @@ async def receive_message(request: Request, db: Session = Depends(get_db)):
             
             if mensagem["type"] == "text":
                 texto_cliente = mensagem["text"]["body"]
+            elif mensagem["type"] == "interactive" and mensagem["interactive"]["type"] == "list_reply":
+                texto_cliente = mensagem["interactive"]["list_reply"]["id"]
             else:
                 return JSONResponse(content={"status": "tipo de mensagem não suportado"}, status_code=200)
 
             logger.info("Mensagem recebida de %s: %s", telefone_cliente, texto_cliente[:80])
 
             # =========================================================
-            # PASSO 1: IDENTIFICAR O LOJISTA (ROTEAMENTO)
-            # =========================================================
-            # Garante que estamos no schema público para consultar merchants
-            db.execute(text("SET search_path TO public"))
-            todos_lojistas = db.query(Merchant).all()
-
-            lojista_encontrado = _encontrar_lojista(texto_cliente, todos_lojistas)
-            if lojista_encontrado:
-                logger.info("Lojista identificado: %s", lojista_encontrado.nome_loja)
-                    
-            # =========================================================
-            # PASSO 2: GERENCIAMENTO DE SESSÃO
+            # GERENCIAMENTO DE SESSÃO E TIMEOUT
             # =========================================================
             sessao_atual = get_sessao_cliente(db, telefone_cliente)
-            trocou_de_loja = False
             
-            if lojista_encontrado:
-                if sessao_atual and sessao_atual.loja_atual != lojista_encontrado.nome_do_schema:
+            if sessao_atual:
+                ultima = sessao_atual.ultima_interacao
+                agora = datetime.now(timezone.utc) if ultima and ultima.tzinfo else datetime.now()
+                if ultima and (agora - ultima) >= timedelta(hours=2):
+                    logger.info("Sessão expirada para %s (mais de 2h).", telefone_cliente)
                     encerrar_sessao_cliente(db, telefone_cliente)
-                    trocou_de_loja = True
-                    sessao_atual = None 
-                schema_alvo = lojista_encontrado.nome_do_schema
-                nome_loja = lojista_encontrado.nome_loja
-            elif sessao_atual:
-                schema_alvo = sessao_atual.loja_atual
-                lojista = db.query(Merchant).filter(Merchant.nome_do_schema == schema_alvo).first()
-                nome_loja = lojista.nome_loja if lojista else "Loja"
-            else:
+                    sessao_atual = None
+            
+            dados_sessao = sessao_atual.dados_sessao if sessao_atual and isinstance(sessao_atual.dados_sessao, dict) else {}
+            estado_atual = dados_sessao.get("state")
+            
+            # =========================================================
+            # MÁQUINA DE ESTADOS DO ATENDIMENTO INICIAL
+            # =========================================================
+            
+            # Intercepta se não for LLM_CONVERSATION
+            if not sessao_atual or estado_atual != "LLM_CONVERSATION":
                 saudacao = _saudacao_por_horario()
-                enviar_mensagem_whatsapp(
-                    numero_destino=telefone_cliente,
-                    texto=f"{saudacao}! 🌻 Eu sou a Lau, secretária virtual. Para começarmos, me diga qual estabelecimento você procura."
-                )
-                return JSONResponse(content={"status": "recebido"}, status_code=200)
+                
+                # Estado Inicial: Cliente mandou primeira mensagem
+                if not sessao_atual:
+                    texto_pergunta = f"{saudacao}! 🌻 Eu sou a Lau, secretária virtual."
+                    enviar_menu_intencao_whatsapp(telefone_cliente, texto_pergunta)
+                    salvar_sessao_cliente(db, telefone_cliente, schema_loja="", dados_sessao={"state": "AGUARDANDO_INTENCAO"})
+                    return JSONResponse(content={"status": "recebido"}, status_code=200)
 
+                # Processar estados intermediários
+                if estado_atual == "AGUARDANDO_INTENCAO":
+                    if texto_cliente in ["INTENT_AGENDAR", "INTENT_CONSULTAR"]:
+                        dados_sessao["intencao"] = texto_cliente
+                        dados_sessao["state"] = "AGUARDANDO_LOJA"
+                        salvar_sessao_cliente(db, telefone_cliente, "", dados_sessao)
+                        
+                        db.execute(text("SET search_path TO public"))
+                        todos_lojistas = db.query(Merchant).all()
+                        
+                        if texto_cliente == "INTENT_AGENDAR":
+                            enviar_menu_lojas_whatsapp(telefone_cliente, "Para qual estabelecimento você deseja agendar?", todos_lojistas)
+                        else:
+                            enviar_menu_lojas_whatsapp(telefone_cliente, "De qual estabelecimento você deseja consultar o status?", todos_lojistas)
+                        return JSONResponse(content={"status": "recebido"}, status_code=200)
+                    else:
+                        enviar_menu_intencao_whatsapp(telefone_cliente, "Por favor, selecione uma das opções abaixo usando os botões:")
+                        return JSONResponse(content={"status": "recebido"}, status_code=200)
+                        
+                elif estado_atual == "AGUARDANDO_LOJA":
+                    if texto_cliente.startswith("LOJA_"):
+                        db.execute(text("SET search_path TO public"))
+                        todos_lojistas = db.query(Merchant).all()
+                        lojista = _encontrar_lojista(texto_cliente, todos_lojistas)
+                        
+                        if lojista:
+                            schema_alvo = str(lojista.nome_do_schema)
+                            sessao_atual.loja_atual = schema_alvo
+                            salvar_sessao_cliente(db, telefone_cliente, schema_alvo, dados_sessao)
+                            
+                            if dados_sessao.get("intencao") == "INTENT_CONSULTAR":
+                                # Se quer consultar, não precisa de serviço. Passa direto pra IA
+                                dados_sessao["state"] = "LLM_CONVERSATION"
+                                salvar_sessao_cliente(db, telefone_cliente, schema_alvo, dados_sessao)
+                                texto_cliente = "Gostaria de consultar o status dos meus agendamentos."
+                                # Deixa cair pro fluxo LLM abaixo
+                            else:
+                                # Quer agendar. Verifica se tem serviços antes de mandar pra IA.
+                                schema_alvo_seguro = validar_schema(str(schema_alvo))
+                                db.execute(text(f"SET search_path TO {schema_alvo_seguro}, public"))
+                                try:
+                                    servicos_rows = db.execute(text("SELECT id FROM services")).fetchall()
+                                    if not servicos_rows:
+                                        enviar_mensagem_whatsapp(telefone_cliente, "Este estabelecimento ainda não possui serviços disponíveis no momento.")
+                                        return JSONResponse(content={"status": "recebido"}, status_code=200)
+                                    
+                                    # Em vez de mandar um menu, transfere direto para a IA e pede para ela listar
+                                    dados_sessao["state"] = "LLM_CONVERSATION"
+                                    salvar_sessao_cliente(db, telefone_cliente, schema_alvo, dados_sessao)
+                                    
+                                    # Forja a mensagem para que a IA inicie listando os serviços disponíveis
+                                    texto_cliente = "Quero fazer um agendamento. Pode me listar quais serviços vocês têm disponíveis?"
+                                    # Deixa cair pro fluxo LLM abaixo
+                                except Exception as e:
+                                    logger.error("Erro ao buscar serviços: %s", e)
+                                    enviar_mensagem_whatsapp(telefone_cliente, "Ocorreu um erro ao buscar os serviços.")
+                                    return JSONResponse(content={"status": "recebido"}, status_code=200)
+                        else:
+                            enviar_mensagem_whatsapp(telefone_cliente, "Estabelecimento não encontrado.")
+                            return JSONResponse(content={"status": "recebido"}, status_code=200)
+                    else:
+                        db.execute(text("SET search_path TO public"))
+                        todos_lojistas = db.query(Merchant).all()
+                        enviar_menu_lojas_whatsapp(telefone_cliente, "Por favor, selecione um estabelecimento na lista usando o botão:", todos_lojistas)
+                        return JSONResponse(content={"status": "recebido"}, status_code=200)
+                
+                # (Bloco AGUARDANDO_SERVICO removido: os serviços agora são listados textualmente pela IA)
             # =========================================================
-            # PASSO 3: BUSCAR CLIENTE NO SCHEMA DO LOJISTA
+            # FLUXO LLM (Cliente já selecionou Loja e Serviço)
             # =========================================================
-            # Validação anti SQL injection antes de SET search_path
+            if not sessao_atual:
+                # O type checker precisa dessa validação de sanidade (embora na prática a sessão sempre exista aqui)
+                logger.error("Sessão desapareceu antes do fluxo LLM para %s", telefone_cliente)
+                return JSONResponse(content={"status": "erro_sessao"}, status_code=500)
+
+            schema_alvo = sessao_atual.loja_atual
+            
+            # Puxa o nome da loja para context
+            db.execute(text("SET search_path TO public"))
+            lojista = db.query(Merchant).filter(Merchant.nome_do_schema == schema_alvo).first()
+            nome_loja = lojista.nome_loja if lojista else "Loja"
+
+            # Busca o cliente no schema correto
             schema_alvo_seguro = validar_schema(str(schema_alvo))
             db.execute(text(f"SET search_path TO {schema_alvo_seguro}, public"))
             
@@ -197,53 +284,15 @@ async def receive_message(request: Request, db: Session = Depends(get_db)):
             else:
                 contexto = "cliente_antigo"
 
-            # Nome do cliente (None se desconhecido ou genérico)
             nome_cliente = (
                 cliente_db.get("nome")
                 if cliente_db and cliente_db.get("nome") and cliente_db.get("nome") != "Cliente"
                 else None
             )
 
-            # =========================================================
-            # PASSO 4: SAUDAÇÃO INTELIGENTE 🌻
-            # =========================================================
-            saudacao = _saudacao_por_horario()
-            nome_para_saudar = f", {nome_cliente}" if nome_cliente else ""
-
-            if not sessao_atual or trocou_de_loja:
-                if lojista_encontrado and not trocou_de_loja:
-                    tipo_saudacao = "continuacao"
-                    saudacao_fixa = ""
-                else:
-                    tipo_saudacao = "primeira_vez"
-                    saudacao_fixa = f"{saudacao}{nome_para_saudar}! 🌻 Eu sou a Lau, secretária virtual. Como posso te ajudar hoje?\n\n"
-            else:
-                ultima = sessao_atual.ultima_interacao
-                agora = datetime.now()
-                
-                if ultima and ultima.tzinfo is not None:
-                    agora = datetime.now(timezone.utc)
-                
-                if ultima and (agora - ultima) >= timedelta(hours=2):
-                    tipo_saudacao = "retorno_longo"
-                    saudacao_fixa = f"{saudacao}{nome_para_saudar}! 🌻 Eu sou a Lau, secretária virtual. Como posso te ajudar hoje?\n\n"
-                else:
-                    tipo_saudacao = "retorno_rapido"
-                    dados_sessao = sessao_atual.dados_sessao if isinstance(sessao_atual.dados_sessao, dict) else {}
-                    ja_saudou = dados_sessao.get("ja_saudou", False)
-                    
-                    if not ja_saudou:
-                        if nome_cliente:
-                            saudacao_fixa = f"Que bom que retornou, {nome_cliente}! Como posso te ajudar dessa vez?\n\n"
-                        else:
-                            saudacao_fixa = "Que bom que retornou! Como posso te ajudar dessa vez?\n\n"
-                    else:
-                        saudacao_fixa = ""
-
-            logger.info(
-                "Saudação: %s | cliente=%s | loja=%s",
-                tipo_saudacao, nome_cliente or "desconhecido", nome_loja
-            )
+            # Já sabemos que não é a primeira mensagem, então apenas definimos para a IA continuar
+            tipo_saudacao = "continuacao"
+            saudacao_fixa = ""
 
             # =========================================================
             # PASSO 5: RECUPERAR O "ESTADO" E HISTÓRICO 🧠
@@ -264,10 +313,26 @@ async def receive_message(request: Request, db: Session = Depends(get_db)):
             # =========================================================
             # Reafirma search_path após possíveis queries de sessão
             db.execute(text(f"SET search_path TO {schema_alvo_seguro}, public"))
-            servicos_db = db.execute(text("SELECT nome FROM services")).mappings().fetchall()
-            servicos_lista = [str(s.get("nome")) for s in servicos_db if s.get("nome") is not None]
+            servicos_db = db.execute(text("SELECT nome, preco, duracao_minutos FROM services")).mappings().fetchall()
+            servicos_lista = []
+            for s in servicos_db:
+                nome = s.get("nome")
+                if nome:
+                    preco = s.get("preco")
+                    duracao = s.get("duracao_minutos")
+                    try:
+                        preco_float = float(preco) if preco is not None else None
+                        preco_str = f"R$ {preco_float:.2f}".replace('.', ',') if preco_float is not None else "Preço a consultar"
+                    except (ValueError, TypeError):
+                        preco_str = "Preço a consultar"
+                        
+                    duracao_str = f"{duracao} min" if duracao else "Duração variável"
+                    # Passamos a duração separadamente para a IA saber, mas instruímos ela a não mostrar
+                    servicos_lista.append(f"• {nome} ({preco_str}) [Duração interna: {duracao_str}]")
             
-            resposta_ia = await analisar_mensagem_com_ia(historico, contexto, nome_cliente, servicos_disponiveis=servicos_lista)
+            servicos_formatados = "\n".join(servicos_lista) if servicos_lista else ""
+            
+            resposta_ia = await analisar_mensagem_com_ia(historico, contexto, nome_cliente, servicos_disponiveis=servicos_formatados)
             
             texto_ia = resposta_ia.get("mensagem_resposta") or "Como posso te ajudar?"
 
@@ -317,7 +382,7 @@ async def receive_message(request: Request, db: Session = Depends(get_db)):
             
             if (
                 estado.get("servico") and estado.get("data") and estado.get("hora")
-                and cliente
+                and cliente and nome_cliente
             ):
                 data_str = estado.get("data")
                 try:

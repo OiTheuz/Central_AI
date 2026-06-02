@@ -25,7 +25,7 @@ async def analisar_mensagem_com_ia(
     historico: list[dict[str, str]],
     contexto_cliente: str = "cliente_antigo",
     nome_cliente: str | None = None,
-    servicos_disponiveis: list[str] | None = None
+    servicos_disponiveis: str = ""
 ) -> dict:
     """
     Analisa as mensagens e extrai os dados em formato JSON puro.
@@ -71,7 +71,8 @@ async def analisar_mensagem_com_ia(
 
     CONTEXTO DO CLIENTE: O cliente atual está classificado como '{contexto_cliente}'.
     NOME DO CLIENTE: '{nome_display or "desconhecido"}'.
-    SERVIÇOS DISPONÍVEIS: {servicos_disponiveis if servicos_disponiveis else "Não fornecidos. Aceite qualquer serviço que o cliente pedir."}
+    SERVIÇOS DISPONÍVEIS:
+    {servicos_disponiveis if servicos_disponiveis else "Não fornecidos. Aceite qualquer serviço que o cliente pedir."}
 
     REGRAS DE OURO DA LAU:
     1. Se o cliente informar o serviço, data ou horário, extraia-os imediatamente.
@@ -83,7 +84,8 @@ async def analisar_mensagem_com_ia(
        - Se o contexto for 'cliente_antigo' E o nome for 'desconhecido', É PROIBIDO perguntar o nome. Siga o fluxo normalmente sem usar o nome.
        - Se o nome do cliente for conhecido, USE-O nas respostas para criar proximidade (ex: "Matheus, qual horário você gostaria de agendar?").
     6. Respostas Curtas e Personalizadas: Mantenha o campo 'mensagem_resposta' focado apenas no dado que está faltando no momento. Sempre inclua o nome do cliente quando disponível.
-    7. ENCERRAMENTO: Retorne 'encerrar' APENAS se o cliente expressamente pedir para cancelar, desistir ou encerrar a conversa (ex: "deixa pra lá", "não quero mais", "cancelar", "obrigado, tchau"). Se o cliente enviar apenas o nome de uma loja, uma palavra solta ou uma saudação, assuma a intenção de 'saudacao' ou 'agendamento', NUNCA 'encerrar'.
+    7. LISTAGEM DE SERVIÇOS: Quando o cliente pedir para listar os serviços, copie a formatação exata enviada no bloco SERVIÇOS DISPONÍVEIS (com os bullet points '•' e os preços). É obrigatório que cada serviço seja enviado em um parágrafo separado (um por linha), MAS É ESTRITAMENTE PROIBIDO exibir o bloco "[Duração interna: X]" para o cliente na lista. Apenas informe o tempo de duração se o cliente fizer uma pergunta direta sobre isso.
+    8. ENCERRAMENTO: Retorne 'encerrar' APENAS se o cliente expressamente pedir para cancelar, desistir ou encerrar a conversa (ex: "deixa pra lá", "não quero mais", "cancelar", "obrigado, tchau"). Se o cliente enviar apenas o nome de uma loja, uma palavra solta ou uma saudação, assuma a intenção de 'saudacao' ou 'agendamento', NUNCA 'encerrar'.
 
     O formato JSON estrito DEVE ser retornado sem blocos markdown (```json):
     {{

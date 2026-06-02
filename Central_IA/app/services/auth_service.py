@@ -11,7 +11,7 @@ from passlib.context import CryptContext
 from sqlalchemy.orm import Session
 
 from app.config import JWT_SECRET, JWT_ALGORITHM, JWT_EXPIRA_HORAS
-from app.database import get_db
+from app.database import get_public_db
 from app.models import Merchant
 
 # ─── Hashing de Senha ────────────────────────────────────────
@@ -41,7 +41,7 @@ def criar_token_jwt(data: dict) -> str:
 def decodificar_token_jwt(token: str) -> dict:
     """Decodifica e valida um token JWT. Levanta exceção se inválido."""
     try:
-        return jwt.decode(token, JWT_SECRET, algorithms=[JWT_ALGORITHM])
+        return dict(jwt.decode(token, JWT_SECRET, algorithms=[JWT_ALGORITHM]))
     except JWTError:
         raise HTTPException(
             status_code=status.HTTP_401_UNAUTHORIZED,
@@ -56,7 +56,7 @@ security = HTTPBearer()
 
 def get_lojista_atual(
     credentials: HTTPAuthorizationCredentials = Depends(security),
-    db: Session = Depends(get_db),
+    db: Session = Depends(get_public_db),
 ) -> Merchant:
     """
     Dependency do FastAPI: extrai o Bearer token, decodifica o JWT,
@@ -79,5 +79,17 @@ def get_lojista_atual(
             status_code=status.HTTP_404_NOT_FOUND,
             detail="Lojista não encontrado.",
         )
+
+    acting_as = payload.get("acting_as")
+    if merchant.is_admin and acting_as and acting_as != merchant.codigo_loja:
+        target_merchant = db.query(Merchant).filter(Merchant.codigo_loja == acting_as).first()
+        if target_merchant:
+            # Detach from session to prevent accidental commits of these changes
+            db.expunge(merchant)
+            merchant.codigo_loja = target_merchant.codigo_loja
+            merchant.nome_do_schema = target_merchant.nome_do_schema
+            merchant.nome_loja = target_merchant.nome_loja
+            merchant.area_atuacao = target_merchant.area_atuacao
+            merchant.telefone_contato = target_merchant.telefone_contato
 
     return merchant

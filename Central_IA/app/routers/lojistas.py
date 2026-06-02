@@ -2,7 +2,7 @@ from fastapi import APIRouter, Depends, HTTPException
 from sqlalchemy import text
 from sqlalchemy.orm import Session
 
-from app.database import get_db
+from app.database import get_public_db
 from app.models import Merchant
 from app.schemas import MerchantCreate, MerchantResponse
 
@@ -14,7 +14,7 @@ router = APIRouter(tags=["Lojistas"])
 @router.post("/lojistas/", response_model=MerchantResponse)
 def criar_lojista(
     merchant: MerchantCreate,
-    db: Session = Depends(get_db)
+    db: Session = Depends(get_public_db)
 ):
 
     db_merchant = db.query(Merchant).filter(
@@ -82,7 +82,7 @@ def criar_lojista(
 def listar_lojistas(
     skip: int = 0,
     limit: int = 100,
-    db: Session = Depends(get_db)
+    db: Session = Depends(get_public_db)
 ):
 
     lojistas = db.query(Merchant)\

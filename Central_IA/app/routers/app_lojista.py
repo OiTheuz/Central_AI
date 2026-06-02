@@ -10,7 +10,8 @@ from pydantic import BaseModel
 from sqlalchemy.orm import Session
 from sqlalchemy import text
 
-from app.database import get_db, validar_schema
+from app.dependencies import get_db
+from app.database import validar_schema
 from app.models import Merchant
 from app.services.auth_service import get_lojista_atual
 from app.services.whatsapp_service import enviar_mensagem_whatsapp
@@ -25,15 +26,6 @@ router = APIRouter(
 
 # ─── Helper: SET search_path ────────────────────────────────
 
-def _set_schema(db: Session, merchant: Merchant):
-    """
-    Define o search_path para o schema do lojista autenticado.
-    Valida o nome do schema antes de interpolá-lo (anti SQL Injection).
-    """
-    schema = validar_schema(str(merchant.nome_do_schema))
-    # Inclui 'public' para que queries ORM em tabelas do schema público
-    # (ex: merchant) continuem funcionando na mesma sessão.
-    db.execute(text(f"SET search_path TO {schema}, public"))
 
 
 # =========================================================
@@ -74,7 +66,7 @@ def obter_agendamentos_hoje(
     merchant: Merchant = Depends(get_lojista_atual),
 ):
     """Retorna agendamentos de hoje com status aprovado ou confirmado."""
-    _set_schema(db, merchant)
+
 
     query = text("""
         SELECT 
@@ -125,7 +117,7 @@ def obter_agendamentos_pendentes(
     merchant: Merchant = Depends(get_lojista_atual),
 ):
     """Retorna todos os agendamentos com status pendente (paginado)."""
-    _set_schema(db, merchant)
+
 
     offset = (page - 1) * size
 
@@ -176,7 +168,7 @@ def obter_agendamentos_por_data(
     merchant: Merchant = Depends(get_lojista_atual),
 ):
     """Retorna agendamentos de uma data específica (YYYY-MM-DD). Apenas aprovados/confirmados/concluidos."""
-    _set_schema(db, merchant)
+
 
     query = text("""
         SELECT 
@@ -225,7 +217,7 @@ def obter_datas_com_compromissos(
     merchant: Merchant = Depends(get_lojista_atual),
 ):
     """Retorna array de datas únicas que possuem agendamentos (aprovados/confirmados/concluidos)."""
-    _set_schema(db, merchant)
+
 
     query = text("""
         SELECT DISTINCT data_agendamento 
@@ -255,7 +247,7 @@ def aprovar_agendamento(
     Muda status do agendamento para 'aprovado' e envia mensagem
     de confirmação ao cliente via WhatsApp.
     """
-    _set_schema(db, merchant)
+
 
     # Buscar agendamento com dados do cliente e serviço
     query = text("""
@@ -319,7 +311,7 @@ def recusar_agendamento(
     Muda status do agendamento para 'recusado' e envia mensagem
     de aviso ao cliente via WhatsApp.
     """
-    _set_schema(db, merchant)
+
 
     query = text("""
         SELECT 
@@ -379,7 +371,7 @@ def obter_servicos(
     merchant: Merchant = Depends(get_lojista_atual),
 ):
     """Lista todos os serviços cadastrados no schema do lojista."""
-    _set_schema(db, merchant)
+
 
     # CORREÇÃO: A coluna real no banco é duracao_minutos
     resultados = db.execute(text("SELECT id, nome, preco, duracao_minutos AS duracao FROM services ORDER BY nome")).mappings().all()
@@ -409,7 +401,7 @@ def criar_servico(
     merchant: Merchant = Depends(get_lojista_atual),
 ):
     """Cria um novo serviço no schema do lojista."""
-    _set_schema(db, merchant)
+
 
     if not body.nome.strip():
         raise HTTPException(status_code=400, detail="O nome do serviço é obrigatório.")
@@ -440,7 +432,7 @@ def atualizar_servico(
     merchant: Merchant = Depends(get_lojista_atual),
 ):
     """Atualiza um serviço existente."""
-    _set_schema(db, merchant)
+
 
     if not body.nome.strip():
         raise HTTPException(status_code=400, detail="O nome do serviço é obrigatório.")
@@ -476,7 +468,7 @@ def excluir_servico(
     merchant: Merchant = Depends(get_lojista_atual),
 ):
     """Exclui um serviço existente."""
-    _set_schema(db, merchant)
+
 
     # Verifica se existe
     serv = db.execute(text("SELECT id FROM services WHERE id = :id"), {"id": servico_id}).fetchone()
@@ -509,7 +501,7 @@ def criar_agendamento_manual(
     merchant: Merchant = Depends(get_lojista_atual),
 ):
     """Cria um agendamento manualmente pelo lojista (sem passar pelo WhatsApp)."""
-    _set_schema(db, merchant)
+
 
     try:
         # Verificar se o serviço existe
@@ -576,7 +568,7 @@ def obter_metricas_hoje(
     merchant: Merchant = Depends(get_lojista_atual),
 ):
     """Retorna contagem de atendimentos e ganhos previstos para hoje."""
-    _set_schema(db, merchant)
+
 
     # Total de agendamentos de hoje (aprovados)
     contagem = db.execute(text("""
