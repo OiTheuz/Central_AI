@@ -533,7 +533,7 @@ async def receive_message(request: Request, db: Session = Depends(get_public_db)
 
                 db.execute(text("""
                     INSERT INTO appointments (customer_id, service_id, data_agendamento, horario_agendamento, status, origem) 
-                    VALUES (:c_id, :s_id, :data, :hora, 'pendente', 'WhatsApp (Lau)')
+                    VALUES (:c_id, :s_id, :data, :hora, 'pendente', 'whatsapp_lau')
                 """), {"c_id": cliente.get("id"), "s_id": service_id, "data": data, "hora": hora})
                 db.commit()
                 

@@ -6,7 +6,9 @@
 import logging
 import re
 import traceback
-from datetime import date, datetime
+import uuid
+from datetime import date, datetime, timedelta
+from dateutil.relativedelta import relativedelta
 from fastapi import APIRouter, Depends, HTTPException
 from pydantic import BaseModel
 from sqlalchemy.orm import Session
@@ -38,7 +40,7 @@ def _serializar_agendamento(row) -> dict:
         "data": str(row["data_agendamento"]),
         "hora": row["horario_agendamento"].strftime("%H:%M") if row["horario_agendamento"] else "--:--",
         "status": row["status"],
-        "origem": row["origem"] or "whatsapp_lau",
+        "origem": (row["origem"] or "manual").lower(),
     }
 
 
@@ -477,12 +479,21 @@ def excluir_servico(
 # AGENDAMENTO MANUAL (criado pelo lojista no app)
 # =========================================================
 
+# ── Limite máximo de ocorrências (segurança no servidor) ──
+_MAX_OCORRENCIAS = 52
+
+
 class AgendamentoManualRequest(BaseModel):
     clienteNome: str
     clienteTelefone: str
     servicoId: int
-    data: str   # YYYY-MM-DD
-    hora: str   # HH:MM
+    data: str           # YYYY-MM-DD
+    hora: str           # HH:MM
+    # Campos de recorrência — opcionais para retrocompatibilidade
+    isRecorrente: bool = False
+    frequencia: str | None = None   # 'semanal' | 'mensal'
+    ocorrencias: int | None = None  # 1–52
+
 
 @router.post("/agendamentos/manual")
 def criar_agendamento_manual(
@@ -490,11 +501,12 @@ def criar_agendamento_manual(
     db: Session = Depends(get_db),
     merchant: Merchant = Depends(get_lojista_atual),
 ):
-    """Cria um agendamento manualmente pelo lojista (sem passar pelo WhatsApp)."""
-
+    """Cria um agendamento manualmente pelo lojista.
+    Suporta agendamento único ou recorrente (semanal/mensal) com bulk insert.
+    """
 
     try:
-        # Verificar se o serviço existe
+        # ── 1. Validar serviço ──
         servico = db.execute(
             text("SELECT id, nome FROM services WHERE id = :sid"),
             {"sid": body.servicoId}
@@ -503,7 +515,24 @@ def criar_agendamento_manual(
         if not servico:
             raise HTTPException(status_code=404, detail="Serviço não encontrado.")
 
-        # Upsert do cliente pelo telefone
+        # ── 2. Validar campos de recorrência ──
+        if body.isRecorrente:
+            if body.frequencia not in ("semanal", "mensal"):
+                raise HTTPException(
+                    status_code=400,
+                    detail="Campo 'frequencia' deve ser 'semanal' ou 'mensal'."
+                )
+            if not body.ocorrencias or body.ocorrencias < 1:
+                raise HTTPException(
+                    status_code=400,
+                    detail="Campo 'ocorrencias' deve ser um inteiro >= 1."
+                )
+            # Impõe o limite de segurança do servidor
+            n_ocorrencias = min(body.ocorrencias, _MAX_OCORRENCIAS)
+        else:
+            n_ocorrencias = 1
+
+        # ── 3. Upsert do cliente pelo telefone ──
         cliente_id = db.execute(
             text("""
                 INSERT INTO customers (nome, telefone_whatsapp)
@@ -517,30 +546,70 @@ def criar_agendamento_manual(
         if not cliente_id:
             raise HTTPException(status_code=500, detail="Falha ao localizar cliente após insert.")
 
-        # Inserir agendamento com status 'aprovado' (criado pelo próprio lojista)
-        db.execute(
-            text("""
-                INSERT INTO appointments (customer_id, service_id, data_agendamento, horario_agendamento, status, origem)
-                VALUES (:c_id, :s_id, :data, :hora, 'aprovado', 'Manual')
-            """),
+        # ── 4. Gerar lista de datas ──
+        try:
+            data_base = datetime.strptime(body.data, "%Y-%m-%d").date()
+        except ValueError:
+            raise HTTPException(status_code=400, detail="Formato de data inválido. Use YYYY-MM-DD.")
+
+        datas: list[date] = []
+        for i in range(n_ocorrencias):
+            if body.isRecorrente and body.frequencia == "mensal":
+                datas.append(data_base + relativedelta(months=i))
+            else:
+                # Semanal ou agendamento único (i=0 → mesma data)
+                datas.append(data_base + timedelta(weeks=i))
+
+        # ── 5. Bulk insert ──
+        recurrence_id = str(uuid.uuid4()) if body.isRecorrente and n_ocorrencias > 1 else None
+
+        registros = [
             {
                 "c_id": cliente_id,
                 "s_id": body.servicoId,
-                "data": body.data,
+                "data": str(d),
                 "hora": body.hora,
+                "rec_id": recurrence_id,
             }
+            for d in datas
+        ]
+
+        db.execute(
+            text("""
+                INSERT INTO appointments
+                    (customer_id, service_id, data_agendamento, horario_agendamento,
+                     status, origem, recurrence_id)
+                VALUES
+                    (:c_id, :s_id, :data, :hora, 'aprovado', 'manual', :rec_id)
+            """),
+            registros,
         )
         db.commit()
 
+        total = len(datas)
         logger.info(
-            "Agendamento manual criado pelo lojista %s: %s em %s às %s",
-            merchant.id, servico["nome"], body.data, body.hora
+            "Agendamento(s) manual(is) criado(s) pelo lojista %s: %s — %d ocorrencia(s) a partir de %s | recurrence_id=%s",
+            merchant.id, servico["nome"], total, body.data, recurrence_id or "N/A"
         )
+
+        if body.isRecorrente and total > 1:
+            freq_label = "semanas" if body.frequencia == "semanal" else "meses"
+            mensagem = (
+                f"{total} agendamentos de {body.clienteNome} para {servico['nome']} "
+                f"criados com sucesso! ({total} {freq_label} a partir de {datas[0].strftime('%d/%m/%Y')})"
+            )
+        else:
+            mensagem = f"Agendamento de {body.clienteNome} para {servico['nome']} criado com sucesso!"
 
         return {
             "status": "sucesso",
-            "mensagem": f"Agendamento de {body.clienteNome} para {servico['nome']} criado com sucesso!"
+            "mensagem": mensagem,
+            "total_criados": total,
+            "recurrence_id": recurrence_id,
         }
+
+    except HTTPException:
+        raise
     except Exception as e:
         traceback.print_exc()
         db.rollback()
