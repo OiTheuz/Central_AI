@@ -1,8 +1,8 @@
 import logging
 import re
-from datetime import datetime, timedelta, timezone
+from collections import OrderedDict
+from datetime import datetime, time as time_type, timedelta, timezone
 from fastapi import APIRouter, Depends, Request
-from dataclasses import dataclass
 from fastapi.responses import JSONResponse, PlainTextResponse
 from sqlalchemy.orm import Session
 from sqlalchemy import text
@@ -29,18 +29,28 @@ router = APIRouter(tags=["Webhook"])
 # Nota: em memória — sobrevive apenas enquanto o processo está vivo.
 # Para multi-worker/produção, migrar para Redis.
 # =========================================================
-_mensagens_processadas: dict[str, float] = {}
+_mensagens_processadas: OrderedDict[str, float] = OrderedDict()
+_MAX_CACHE_SIZE = 10_000
 
 def _ja_processou(message_id: str) -> bool:
-    """Retorna True se a mensagem já foi processada. Limpa IDs antigos (>5min)."""
+    """Retorna True se a mensagem já foi processada. Limpa IDs antigos (>5min)
+    e mantém o cache com no máximo _MAX_CACHE_SIZE entradas."""
     agora = datetime.now().timestamp()
-    ids_antigos = [mid for mid, ts in _mensagens_processadas.items() if agora - ts > 300]
-    for mid in ids_antigos:
-        del _mensagens_processadas[mid]
+    # Limpa entradas expiradas (> 5 min)
+    while _mensagens_processadas:
+        oldest_id, oldest_ts = next(iter(_mensagens_processadas.items()))
+        if agora - oldest_ts > 300:
+            del _mensagens_processadas[oldest_id]
+        else:
+            break
     
     if message_id in _mensagens_processadas:
         return True
+    
     _mensagens_processadas[message_id] = agora
+    # Evita crescimento ilimitado
+    while len(_mensagens_processadas) > _MAX_CACHE_SIZE:
+        _mensagens_processadas.popitem(last=False)
     return False
 
 # =========================================================
@@ -156,8 +166,8 @@ async def receive_message(request: Request, db: Session = Depends(get_public_db)
             if sessao_atual:
                 ultima = sessao_atual.ultima_interacao
                 agora = datetime.now(timezone.utc) if ultima and ultima.tzinfo else datetime.now()
-                if ultima and (agora - ultima) >= timedelta(hours=2):
-                    logger.info("Sessão expirada para %s (mais de 2h).", telefone_cliente)
+                if ultima and (agora - ultima) >= timedelta(hours=1):
+                    logger.info("Sessão expirada para %s (mais de 1h).", telefone_cliente)
                     encerrar_sessao_cliente(db, telefone_cliente)
                     sessao_atual = None
             
@@ -290,21 +300,14 @@ async def receive_message(request: Request, db: Session = Depends(get_public_db)
                 else None
             )
 
-            # Já sabemos que não é a primeira mensagem, então apenas definimos para a IA continuar
-            tipo_saudacao = "continuacao"
             saudacao_fixa = ""
 
             # =========================================================
             # PASSO 5: RECUPERAR O "ESTADO" E HISTÓRICO 🧠
             # =========================================================
             dados = sessao_atual.dados_sessao if sessao_atual and isinstance(sessao_atual.dados_sessao, dict) else {}
-            
-            if tipo_saudacao in ("primeira_vez", "retorno_longo"):
-                historico = []
-                estado = {}
-            else:
-                historico = dados.get("historico", [])
-                estado = dados.get("estado", {})
+            historico = dados.get("historico", [])
+            estado = dados.get("estado", {})
 
             historico.append({"role": "user", "content": texto_cliente})
 
@@ -382,7 +385,7 @@ async def receive_message(request: Request, db: Session = Depends(get_public_db)
             
             if (
                 estado.get("servico") and estado.get("data") and estado.get("hora")
-                and cliente and nome_cliente
+                and cliente
             ):
                 data_str = estado.get("data")
                 try:
@@ -447,7 +450,6 @@ async def receive_message(request: Request, db: Session = Depends(get_public_db)
                     """), {"data": data}).mappings().fetchall()
 
                     # Verificar sobreposição
-                    from datetime import time as time_type
                     hora_pedida = datetime.strptime(hora, "%H:%M").time()
                     fim_pedido = (datetime.combine(datetime.today(), hora_pedida) + timedelta(minutes=duracao_serv)).time()
 
@@ -542,41 +544,53 @@ async def receive_message(request: Request, db: Session = Depends(get_public_db)
                 except (ValueError, TypeError):
                     data_exibicao = str(data)
                 
+                # ── Mensagem de confirmação ao cliente (exata conforme fluxograma) ──
                 nome_final = (
                     cliente.get("nome")
                     if cliente and cliente.get("nome") and cliente.get("nome") != "Cliente"
-                    else ""
+                    else None
                 )
                 mensagem_envio = (
-                    f"{saudacao_fixa}Tudo certo, {nome_final}! Salvei a sua intenção de agendamento para "
-                    f"{servico_escolhido} no dia {data_exibicao} às {hora}. "
-                    f"Aguarde um instante, o lojista já vai confirmar a disponibilidade e eu te aviso aqui!"
+                    f"Tudo certo, {nome_final}! Salvei a sua intenção de agendamento. "
+                    f"Aguarde um instante, o lojista já vai confirmar e eu te aviso aqui! ☺️"
+                    if nome_final else
+                    "Tudo certo! Salvei a sua intenção de agendamento. "
+                    "Aguarde um instante, o lojista já vai confirmar e eu te aviso aqui! ☺️"
                 )
                 enviar_mensagem_whatsapp(numero_destino=telefone_cliente, texto=mensagem_envio)
                 
-                # Enviar Push Notification para o app do Lojista
+                # ── Push Notification para o app do Lojista ──
                 # Refaz query no schema public para encontrar o merchant
                 db.execute(text("SET search_path TO public"))
                 merchant_alvo = db.query(Merchant).filter(
                     Merchant.nome_do_schema == str(schema_alvo_seguro)
                 ).first()
                 if merchant_alvo and merchant_alvo.push_token:
+                    nome_push = nome_final or "Cliente"
                     enviar_notificacao_push(
                         push_token=merchant_alvo.push_token,
-                        titulo="Nova Confirmação Pendente! 🔔",
-                        corpo=f"{nome_final} quer agendar {servico_escolhido} para {data_exibicao} às {hora}.",
+                        titulo="Nova Solicitação Pendente! 🔔",
+                        corpo=f"{nome_push} quer agendar {servico_escolhido} para {data_exibicao} às {hora}.",
                         dados={"tela": "pending"}
                     )
                 
                 logger.info(
                     "Agendamento pendente criado: cliente=%s | serviço=%s | data=%s | hora=%s | loja=%s",
-                    nome_final, servico_escolhido, data_exibicao, hora, nome_loja
+                    nome_final or "sem nome", servico_escolhido, data_exibicao, hora, nome_loja
                 )
                 
             else:
                 salvar_sessao_cliente(db, telefone_cliente, str(schema_alvo_seguro), {"historico": historico, "estado": estado, "ja_saudou": True})
-                mensagem_final = f"{saudacao_fixa}{texto_ia}" if saudacao_fixa else texto_ia
-                enviar_mensagem_whatsapp(numero_destino=telefone_cliente, texto=mensagem_final)
+                # Só envia se houver texto — a IA pode retornar mensagem_resposta=""
+                # quando todos os dados foram coletados (Regra 9 do System Prompt)
+                if texto_ia and texto_ia.strip():
+                    mensagem_final = f"{saudacao_fixa}{texto_ia}" if saudacao_fixa else texto_ia
+                    enviar_mensagem_whatsapp(numero_destino=telefone_cliente, texto=mensagem_final)
+                else:
+                    logger.warning(
+                        "IA retornou mensagem vazia para %s — estado: %s. Nenhuma mensagem enviada.",
+                        telefone_cliente, estado
+                    )
 
         return JSONResponse(content={"status": "sucesso"}, status_code=200)
 

@@ -4,7 +4,9 @@
 # ============================================================
 
 import logging
-from datetime import date
+import re
+import traceback
+from datetime import date, datetime
 from fastapi import APIRouter, Depends, HTTPException
 from pydantic import BaseModel
 from sqlalchemy.orm import Session
@@ -24,7 +26,20 @@ router = APIRouter(
 )
 
 
-# ─── Helper: SET search_path ────────────────────────────────
+# ─── Helper: Serialização de agendamento ────────────────────
+
+def _serializar_agendamento(row) -> dict:
+    """Serializa uma row de agendamento para o formato JSON do app."""
+    return {
+        "id": row["id"],
+        "clienteNome": row["cliente_nome"] or "Cliente",
+        "clienteTelefone": row["cliente_telefone"] or "",
+        "servico": row["servico"] or "Serviço não especificado",
+        "data": str(row["data_agendamento"]),
+        "hora": row["horario_agendamento"].strftime("%H:%M") if row["horario_agendamento"] else "--:--",
+        "status": row["status"],
+        "origem": row["origem"] or "whatsapp_lau",
+    }
 
 
 
@@ -88,19 +103,7 @@ def obter_agendamentos_hoje(
     """)
 
     resultados = db.execute(query, {"hoje": date.today()}).mappings().all()
-
-    agendamentos = []
-    for row in resultados:
-        agendamentos.append({
-            "id": row["id"],
-            "clienteNome": row["cliente_nome"] or "Cliente",
-            "clienteTelefone": row["cliente_telefone"] or "",
-            "servico": row["servico"] or "Serviço não especificado",
-            "data": str(row["data_agendamento"]),
-            "hora": row["horario_agendamento"].strftime("%H:%M") if row["horario_agendamento"] else "--:--",
-            "status": row["status"],
-            "origem": row["origem"] or "whatsapp_lau",
-        })
+    agendamentos = [_serializar_agendamento(row) for row in resultados]
 
     return {"status": "sucesso", "total": len(agendamentos), "dados": agendamentos}
 
@@ -140,19 +143,7 @@ def obter_agendamentos_pendentes(
     """)
 
     resultados = db.execute(query, {"size": size, "offset": offset}).mappings().all()
-
-    agendamentos = []
-    for row in resultados:
-        agendamentos.append({
-            "id": row["id"],
-            "clienteNome": row["cliente_nome"] or "Cliente",
-            "clienteTelefone": row["cliente_telefone"] or "",
-            "servico": row["servico"] or "Serviço não especificado",
-            "data": str(row["data_agendamento"]),
-            "hora": row["horario_agendamento"].strftime("%H:%M") if row["horario_agendamento"] else "--:--",
-            "status": "pendente",
-            "origem": row["origem"] or "whatsapp_lau",
-        })
+    agendamentos = [_serializar_agendamento(row) for row in resultados]
 
     return {"status": "sucesso", "total": len(agendamentos), "dados": agendamentos}
 
@@ -169,6 +160,11 @@ def obter_agendamentos_por_data(
 ):
     """Retorna agendamentos de uma data específica (YYYY-MM-DD). Apenas aprovados/confirmados/concluidos."""
 
+    # Validação do formato de data
+    try:
+        datetime.strptime(data, "%Y-%m-%d")
+    except ValueError:
+        raise HTTPException(status_code=400, detail="Formato de data inválido. Use YYYY-MM-DD.")
 
     query = text("""
         SELECT 
@@ -190,19 +186,7 @@ def obter_agendamentos_por_data(
     """)
 
     resultados = db.execute(query, {"data": data}).mappings().all()
-
-    agendamentos = []
-    for row in resultados:
-        agendamentos.append({
-            "id": row["id"],
-            "clienteNome": row["cliente_nome"] or "Cliente",
-            "clienteTelefone": row["cliente_telefone"] or "",
-            "servico": row["servico"] or "Serviço não especificado",
-            "data": str(row["data_agendamento"]),
-            "hora": row["horario_agendamento"].strftime("%H:%M") if row["horario_agendamento"] else "--:--",
-            "status": row["status"],
-            "origem": row["origem"] or "whatsapp_lau",
-        })
+    agendamentos = [_serializar_agendamento(row) for row in resultados]
 
     return {"status": "sucesso", "total": len(agendamentos), "dados": agendamentos}
 
@@ -281,15 +265,7 @@ def aprovar_agendamento(
     telefone = row["telefone_whatsapp"]
     if telefone:
         try:
-            data_fmt = row["data_agendamento"].strftime("%d/%m/%Y") if row["data_agendamento"] else "data"
-            hora_fmt = row["horario_agendamento"].strftime("%H:%M") if row["horario_agendamento"] else "horário"
-            servico = row["servico_nome"] or "seu serviço"
-
-            mensagem = (
-                f"✅ Ótima notícia! Seu agendamento para {servico} "
-                f"no dia {data_fmt} às {hora_fmt} foi confirmado "
-                f"pela {merchant.nome_loja}! Te esperamos! 😊"
-            )
+            mensagem = "Seu agendamento foi confirmado pelo lojista! Te esperamos. Até logo! 👋"
             enviar_mensagem_whatsapp(numero_destino=telefone, texto=mensagem)
         except Exception as e:
             logger.warning("Erro ao enviar WhatsApp de aprovação: %s", e)
@@ -332,27 +308,41 @@ def recusar_agendamento(
     if row["status"] != "pendente":
         raise HTTPException(status_code=400, detail=f"Agendamento já está com status '{row['status']}'.")
 
-    # Atualizar status
-    db.execute(
-        text("UPDATE appointments SET status = 'recusado' WHERE id = :id"),
-        {"id": agendamento_id},
-    )
-    db.commit()
+    # Atualizar status — com rollback explícito em caso de falha
+    try:
+        db.execute(
+            text("UPDATE appointments SET status = 'recusado' WHERE id = :id"),
+            {"id": agendamento_id},
+        )
+        db.commit()
+    except Exception as e:
+        db.rollback()
+        logger.error("Erro ao recusar agendamento %s: %s", agendamento_id, e)
+        raise HTTPException(status_code=500, detail="Falha ao atualizar o status do agendamento.")
+
     logger.info("Agendamento %s recusado pelo lojista %s", agendamento_id, merchant.id)
 
     # Enviar aviso via WhatsApp ao cliente
     telefone = row["telefone_whatsapp"]
     if telefone:
         try:
-            data_fmt = row["data_agendamento"].strftime("%d/%m/%Y") if row["data_agendamento"] else "data"
-            hora_fmt = row["horario_agendamento"].strftime("%H:%M") if row["horario_agendamento"] else "horário"
-            servico = row["servico_nome"] or "seu serviço"
+            # Monta contexto do agendamento para o cliente saber qual foi recusado
+            data_fmt = row["data_agendamento"].strftime("%d/%m/%Y") if row["data_agendamento"] else None
+            hora_fmt = row["horario_agendamento"].strftime("%H:%M") if row["horario_agendamento"] else None
+            servico = row["servico_nome"]
+
+            # Linha de contexto opcional (ex: "para Corte de Cabelo em 12/06 às 14:00")
+            if servico and data_fmt and hora_fmt:
+                contexto = f" para *{servico}* em {data_fmt} às {hora_fmt}"
+            elif servico:
+                contexto = f" para *{servico}*"
+            else:
+                contexto = ""
 
             mensagem = (
-                f"😔 Infelizmente, o horário para {servico} "
-                f"no dia {data_fmt} às {hora_fmt} não está disponível "
-                f"na {merchant.nome_loja}. Que tal escolher outro horário? "
-                f"É só me mandar uma mensagem! 😊"
+                f"Infelizmente, o estabelecimento precisou recusar a sua solicitação{contexto}. "
+                f"Mas você pode fazer um novo agendamento! "
+                f"É só mandar um 'Oi' para recomeçarmos. 😊"
             )
             enviar_mensagem_whatsapp(numero_destino=telefone, texto=mensagem)
         except Exception as e:
@@ -552,7 +542,6 @@ def criar_agendamento_manual(
             "mensagem": f"Agendamento de {body.clienteNome} para {servico['nome']} criado com sucesso!"
         }
     except Exception as e:
-        import traceback
         traceback.print_exc()
         db.rollback()
         raise HTTPException(status_code=500, detail=str(e))
@@ -623,7 +612,6 @@ def atualizar_configuracoes(
     merchant: Merchant = Depends(get_lojista_atual),
 ):
     """Atualiza as configurações de agendamento do lojista."""
-    import re
     hora_re = re.compile(r'^\d{2}:\d{2}$')
     if not hora_re.match(body.horario_abertura) or not hora_re.match(body.horario_fechamento):
         raise HTTPException(status_code=400, detail="Horários devem estar no formato HH:MM.")
