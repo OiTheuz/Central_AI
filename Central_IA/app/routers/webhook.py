@@ -188,7 +188,16 @@ async def receive_message(request: Request, db: Session = Depends(get_public_db)
                 
                 # Estado Inicial: Cliente mandou primeira mensagem
                 if not sessao_atual:
-                    texto_pergunta = f"{saudacao}! 🌻 Eu sou a Lau, secretária virtual."
+                    db.execute(text("SET search_path TO public"))
+                    merchant_padrao = db.query(Merchant).first()
+                    nome_lojista = merchant_padrao.nome_loja if merchant_padrao else "nossa loja"
+                    
+                    texto_pergunta = (
+                        f"{saudacao}! 🌻 Que bom ter você por aqui.\n\n"
+                        f"Eu sou a Lau, a secretária virtual exclusiva da {nome_lojista}. "
+                        f"Estou aqui para organizar o seu atendimento num piscar de olhos! \n\n"
+                        f"Você gostaria de agendar um horário ou consultar seus agendamentos?"
+                    )
                     enviar_menu_intencao_whatsapp(telefone_cliente, texto_pergunta)
                     salvar_sessao_cliente(db, telefone_cliente, schema_loja="", dados_sessao={"state": "AGUARDANDO_INTENCAO"})
                     return JSONResponse(content={"status": "recebido"}, status_code=200)
@@ -404,6 +413,41 @@ async def receive_message(request: Request, db: Session = Depends(get_public_db)
                 logger.info("Atendimento encerrado voluntariamente pelo cliente: %s", telefone_cliente)
                 return JSONResponse(content={"status": "sucesso"}, status_code=200)
 
+            # =========================================================
+            # CONSULTA DE AGENDAMENTOS
+            # =========================================================
+            if resposta_ia.get("intencao") == "consultar":
+                db.execute(text(f"SET search_path TO {schema_alvo_seguro}, public"))
+                
+                query_consulta = text("""
+                    SELECT a.data_agendamento, a.horario_agendamento, a.status, s.nome AS servico
+                    FROM appointments a
+                    LEFT JOIN services s ON a.service_id = s.id
+                    LEFT JOIN customers c ON a.customer_id = c.id
+                    WHERE c.telefone_whatsapp = :tel
+                      AND a.data_agendamento >= CURRENT_DATE
+                      AND a.status IN ('pendente', 'aprovado', 'confirmado')
+                    ORDER BY a.data_agendamento, a.horario_agendamento
+                """)
+                
+                agendamentos_cliente = db.execute(query_consulta, {"tel": telefone_cliente}).mappings().fetchall()
+                
+                if agendamentos_cliente:
+                    linhas_msg = ["Aqui estão os seus próximos agendamentos:"]
+                    for ag in agendamentos_cliente:
+                        data_str = ag["data_agendamento"].strftime("%d/%m/%Y") if ag["data_agendamento"] else "???"
+                        hora_str = ag["horario_agendamento"].strftime("%H:%M") if ag["horario_agendamento"] else "???"
+                        servico_nome = ag["servico"] or "Serviço não especificado"
+                        status_str = ag["status"].capitalize()
+                        linhas_msg.append(f"Você tem um agendamento para {servico_nome} no dia {data_str} às {hora_str}. Status: {status_str}.")
+                    linhas_msg.append("\nPosso ajudar em algo mais?")
+                    msg_consulta = "\n".join(linhas_msg)
+                else:
+                    msg_consulta = "Verifiquei aqui e você não tem nenhum agendamento futuro conosco. Deseja marcar um horário agora?"
+                    
+                enviar_mensagem_whatsapp(numero_destino=telefone_cliente, texto=msg_consulta)
+                return JSONResponse(content={"status": "sucesso"}, status_code=200)
+
             historico.append({"role": "assistant", "content": texto_ia})
 
             if resposta_ia.get("servico"): estado["servico"] = resposta_ia.get("servico")
@@ -458,25 +502,37 @@ async def receive_message(request: Request, db: Session = Depends(get_public_db)
                 except ValueError:
                     pass
 
-                servico_escolhido = estado.get("servico")
-                servico_db = db.execute(
-                    text("SELECT id FROM services WHERE nome ILIKE :nome LIMIT 1"),
-                    {"nome": f"%{servico_escolhido}%"}
-                ).mappings().fetchone()
+                servicos_escolhidos = estado.get("servico")
+                if not isinstance(servicos_escolhidos, list):
+                    servicos_escolhidos = [servicos_escolhidos]
                 
-                if not servico_db:
+                servicos_encontrados = []
+                nomes_nao_encontrados = []
+                
+                for s_nome in servicos_escolhidos:
+                    s_db = db.execute(
+                        text("SELECT id, nome, duracao_minutos FROM services WHERE nome ILIKE :nome LIMIT 1"),
+                        {"nome": f"%{s_nome}%"}
+                    ).mappings().fetchone()
+                    if s_db:
+                        servicos_encontrados.append(s_db)
+                    else:
+                        nomes_nao_encontrados.append(s_nome)
+
+                if nomes_nao_encontrados or not servicos_encontrados:
+                    str_nao_encontrados = ", ".join(nomes_nao_encontrados) if nomes_nao_encontrados else str(servicos_escolhidos)
                     dados_atualizados = dados_sessao.copy() if dados_sessao else {}
                     dados_atualizados["historico"] = historico
+                    estado["servico"] = None
                     dados_atualizados["estado"] = estado
                     dados_atualizados["ja_saudou"] = True
                     salvar_sessao_cliente(db, telefone_cliente, str(schema_alvo_seguro), dados_atualizados)
                     enviar_mensagem_whatsapp(
                         numero_destino=telefone_cliente,
-                        texto=f"{saudacao_fixa}Poxa, não encontrei o serviço '{servico_escolhido}' na nossa lista. Que outro serviço gostaria?"
+                        texto=f"{saudacao_fixa}Poxa, não encontrei o(s) serviço(s) '{str_nao_encontrados}' na nossa lista. Que outro serviço gostaria?"
                     )
                     return JSONResponse(content={"status": "sucesso"}, status_code=200)
-                    
-                service_id = servico_db.get("id")
+
                 data = estado.get("data")
                 hora = estado.get("hora")
 
@@ -493,11 +549,8 @@ async def receive_message(request: Request, db: Session = Depends(get_public_db)
                 db.execute(text(f"SET search_path TO {schema_alvo_seguro}, public"))
 
                 if not permite_sobreposicao:
-                    # Buscar duração do serviço solicitado
-                    duracao_serv = db.execute(
-                        text("SELECT duracao_minutos FROM services WHERE id = :sid"),
-                        {"sid": service_id}
-                    ).scalar() or 30  # fallback 30 min
+                    # A duração total agora é a soma de todos os serviços solicitados
+                    duracao_serv = sum([(s.get("duracao_minutos") or 30) for s in servicos_encontrados])
 
                     # Buscar agendamentos existentes nessa data (não recusados)
                     agendamentos_dia = db.execute(text("""
@@ -593,10 +646,20 @@ async def receive_message(request: Request, db: Session = Depends(get_public_db)
                         enviar_mensagem_whatsapp(numero_destino=telefone_cliente, texto=msg_conflito)
                         return JSONResponse(content={"status": "sucesso"}, status_code=200)
 
-                db.execute(text("""
-                    INSERT INTO appointments (customer_id, service_id, data_agendamento, horario_agendamento, status, origem) 
-                    VALUES (:c_id, :s_id, :data, :hora, 'pendente', 'whatsapp_lau')
-                """), {"c_id": cliente.get("id"), "s_id": service_id, "data": data, "hora": hora})
+                hora_atual_obj = datetime.strptime(hora, "%H:%M")
+                
+                for s_db in servicos_encontrados:
+                    s_id = s_db.get("id")
+                    hora_str = hora_atual_obj.strftime("%H:%M")
+                    
+                    db.execute(text("""
+                        INSERT INTO appointments (customer_id, service_id, data_agendamento, horario_agendamento, status, origem) 
+                        VALUES (:c_id, :s_id, :data, :hora, 'pendente', 'whatsapp_lau')
+                    """), {"c_id": cliente.get("id"), "s_id": s_id, "data": data, "hora": hora_str})
+                    
+                    dur = s_db.get("duracao_minutos") or 30
+                    hora_atual_obj += timedelta(minutes=dur)
+
                 db.commit()
                 
                 encerrar_sessao_cliente(db, telefone_cliente)
@@ -629,10 +692,11 @@ async def receive_message(request: Request, db: Session = Depends(get_public_db)
                 ).first()
                 if merchant_alvo and merchant_alvo.push_token:
                     nome_push = nome_final or "Cliente"
+                    nomes_servicos = ", ".join([s.get("nome") for s in servicos_encontrados])
                     enviar_notificacao_push(
                         push_token=merchant_alvo.push_token,
                         titulo="Nova Solicitação Pendente! 🔔",
-                        corpo=f"{nome_push} quer agendar {servico_escolhido} para {data_exibicao} às {hora}.",
+                        corpo=f"{nome_push} quer agendar {nomes_servicos} para {data_exibicao} às {hora}.",
                         dados={"tela": "pending"}
                     )
                 

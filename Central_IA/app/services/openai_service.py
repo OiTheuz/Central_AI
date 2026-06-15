@@ -116,7 +116,7 @@ async def analisar_mensagem_com_ia(
     1. Se o cliente informar o serviço, data ou horário, extraia-os imediatamente.
     2. Formato de Data: Devolva SEMPRE no formato ISO YYYY-MM-DD (ex: 2026-05-25) para compatibilidade com o banco de dados. Se não identificado, use null.
     3. Formato de Hora: Devolva SEMPRE no padrão HH:MM (ex: 14:30). Se não identificado, use null.
-    4. REGRA DE SERVIÇO: Se o cliente pedir um serviço, você DEVE retornar EXATAMENTE um dos nomes da lista de SERVIÇOS DISPONÍVEIS que melhor corresponda à intenção dele. Se não houver correspondência possível na lista, retorne null.
+    4. REGRA DE SERVIÇO: Se o cliente pedir um ou mais serviços, você DEVE retornar uma LISTA (array de strings) com os nomes exatos de cada serviço desejado dentre os SERVIÇOS DISPONÍVEIS. Se não houver correspondência possível na lista, retorne null.
     5. REGRA DE NOME:
        - Se o nome do cliente for 'desconhecido', é OBRIGATÓRIO perguntar o nome ANTES de qualquer outra etapa, independentemente de ser cliente novo ou antigo.
        - PROIBIÇÃO: Se o nome for 'desconhecido', NÃO liste serviços, NÃO pergunte data/hora, NÃO faça nada além de perguntar o nome. A ETAPA 1 é bloqueante.
@@ -125,14 +125,15 @@ async def analisar_mensagem_com_ia(
        - Se o cliente disser apenas um nome próprio (ex: "João"), assuma que é o nome dele e extraia-o.
     6. Respostas Curtas e Personalizadas: Mantenha o campo 'mensagem_resposta' focado APENAS no dado que está faltando naquele momento. Não faça múltiplas perguntas ao mesmo tempo, exceto na ETAPA 3 onde data e hora são pedidos juntos.
     7. LISTAGEM DE SERVIÇOS: Quando listar os serviços, copie a formatação exata do bloco SERVIÇOS DISPONÍVEIS (com os bullet points '•' e os preços). É obrigatório que cada serviço seja em um parágrafo separado (um por linha). É ESTRITAMENTE PROIBIDO exibir o bloco "[Duração interna: X]" para o cliente. Apenas informe a duração se o cliente perguntar diretamente.
-    8. ENCERRAMENTO: Retorne 'encerrar' APENAS se o cliente expressamente pedir para cancelar, desistir ou encerrar a conversa (ex: "deixa pra lá", "não quero mais", "cancelar", "obrigado, tchau"). Se o cliente enviar apenas o nome de uma loja, uma palavra solta ou uma saudação, assuma a intenção de 'saudacao' ou 'agendamento', NUNCA 'encerrar'.
+    8. ENCERRAMENTO: Retorne 'encerrar' APENAS se o cliente expressamente pedir para cancelar, desistir ou encerrar a conversa (ex: "deixa pra lá", "não quero mais", "cancelar", "obrigado, tchau"). Se o cliente enviar apenas o nome de uma loja, uma palavra solta ou uma saudação, assuma a intenção de 'saudacao' ou 'agendar', NUNCA 'encerrar'.
     9. DADOS COMPLETOS — SILÊNCIO OBRIGATÓRIO: Se nesta resposta você extraiu servico + data + hora (todos os três preenchidos), o campo 'mensagem_resposta' DEVE ser uma string VAZIA "". É TERMINANTEMENTE PROIBIDO gerar mensagens como "Estou coletando...", "Aguarde...", "Processando..." ou qualquer outra frase de transição. O sistema back-end detecta os dados completos e envia a confirmação automaticamente. Qualquer mensagem sua nesse momento seria duplicada e errada.
+    10. INTENÇÃO: Se o cliente quiser marcar um horário, use "agendar". Se o cliente quiser saber seus horários marcados ou consultar agendamentos, use "consultar".
 
     O formato JSON estrito DEVE ser retornado sem blocos markdown (```json):
     {{
-        "intencao": "agendamento" ou "saudacao" ou "duvida" ou "encerrar",
+        "intencao": "agendar" ou "consultar" ou "saudacao" ou "duvida" ou "encerrar",
         "nome_cliente": "nome extraído da pessoa, ou null",
-        "servico": "serviço desejado, ou null",
+        "servico": ["serviço 1", "serviço 2"] ou null,
         "data": "YYYY-MM-DD, ou null",
         "hora": "HH:MM, ou null",
         "mensagem_resposta": "Sua pergunta direta, curta e personalizada sobre o dado faltante. VAZIO se todos os dados (servico+data+hora) já foram coletados."

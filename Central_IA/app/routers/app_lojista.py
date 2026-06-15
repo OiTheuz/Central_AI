@@ -272,7 +272,16 @@ def aprovar_agendamento(
     telefone = row["telefone_whatsapp"]
     if telefone:
         try:
-            mensagem = "Seu agendamento foi confirmado pelo lojista! Te esperamos. Até logo! 👋"
+            nome_cliente = row["cliente_nome"] if row["cliente_nome"] and row["cliente_nome"] != "Cliente" else ""
+            servico = row["servico_nome"] or "serviço"
+            data_fmt = row["data_agendamento"].strftime("%d/%m/%Y") if row["data_agendamento"] else "??/??/????"
+            hora_fmt = row["horario_agendamento"].strftime("%H:%M") if row["horario_agendamento"] else "??:??"
+            
+            if nome_cliente:
+                mensagem = f"Tudo certo, {nome_cliente}! ✅ O seu agendamento para {servico} foi confirmadíssimo para o dia {data_fmt} às {hora_fmt}. Estamos te esperando! Até logo! 👋"
+            else:
+                mensagem = f"Tudo certo! ✅ O seu agendamento para {servico} foi confirmadíssimo para o dia {data_fmt} às {hora_fmt}. Estamos te esperando! Até logo! 👋"
+                
             enviar_mensagem_whatsapp(numero_destino=telefone, texto=mensagem)
         except Exception as e:
             logger.warning("Erro ao enviar WhatsApp de aprovação: %s", e)
