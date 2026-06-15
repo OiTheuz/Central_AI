@@ -25,7 +25,8 @@ async def analisar_mensagem_com_ia(
     historico: list[dict[str, str]],
     contexto_cliente: str = "cliente_antigo",
     nome_cliente: str | None = None,
-    servicos_disponiveis: str = ""
+    servicos_disponiveis: str = "",
+    nome_loja: str = "Loja"
 ) -> dict:
     """
     Analisa as mensagens e extrai os dados em formato JSON puro.
@@ -50,7 +51,8 @@ async def analisar_mensagem_com_ia(
         proximos_dias.append(f"  - {nome_dia}: {d.strftime('%Y-%m-%d')}")
     calendario_referencia = "\n".join(proximos_dias)
     
-    prompt_sistema = f"""Você é a inteligência por trás da Lau, uma secretária virtual altamente objetiva, profissional e assertiva de uma Central de Agendamentos.
+    prompt_sistema = f"""Você é a Lau, a secretária virtual exclusiva e oficial da loja '{nome_loja}'.
+    Você é altamente objetiva, profissional e assertiva em agendamentos.
     Agora é exatamente {data_hora_atual}. Hoje é {dia_semana_hoje}.
 
     CALENDÁRIO DE REFERÊNCIA (próximos 14 dias):

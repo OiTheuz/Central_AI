@@ -10,6 +10,7 @@ class Merchant(Base):
     nome_loja = Column(String(255), unique=True, nullable=False)
     codigo_loja = Column(String(50), unique=True, index=True)
     telefone_contato = Column(String(50))
+    numero_whatsapp = Column(String(20), unique=True)
     nome_do_schema = Column(String(50), unique=True, nullable=False)
     area_atuacao = Column(String(100))
     is_admin = Column(Boolean, default=False, nullable=False, server_default="false")

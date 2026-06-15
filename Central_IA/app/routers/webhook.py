@@ -13,7 +13,6 @@ from app.models import Merchant
 from app.services.openai_service import analisar_mensagem_com_ia
 from app.services.whatsapp_service import (
     enviar_mensagem_whatsapp, 
-    enviar_menu_lojas_whatsapp,
     enviar_menu_intencao_whatsapp,
     enviar_menu_servicos_whatsapp
 )
@@ -159,10 +158,39 @@ async def receive_message(request: Request, db: Session = Depends(get_public_db)
             logger.info("Mensagem recebida de %s: %s", telefone_cliente, texto_cliente[:80])
 
             # =========================================================
+            # ROTEAMENTO WHITE-LABEL (Por Número de Destino)
+            # =========================================================
+            numero_destino = value.get("metadata", {}).get("display_phone_number")
+            if not numero_destino:
+                logger.error("Payload não contém metadata.display_phone_number. Impossível rotear.")
+                return JSONResponse(content={"status": "erro_roteamento"}, status_code=200)
+            
+            # Limpa qualquer formatação que a Meta possa mandar (+, espaços)
+            numero_destino_limpo = re.sub(r'\D', '', str(numero_destino))
+            
+            db.execute(text("SET search_path TO public"))
+            lojista = db.query(Merchant).filter(Merchant.numero_whatsapp == numero_destino_limpo).first()
+            
+            if not lojista:
+                logger.warning("Mensagem recebida para número não registrado: %s", numero_destino_limpo)
+                # Responde 200 para que a Meta não fique retentando indefinidamente
+                return JSONResponse(content={"status": "numero_nao_registrado"}, status_code=200)
+            
+            schema_alvo = lojista.nome_do_schema
+            nome_loja = lojista.nome_loja
+
+            # =========================================================
             # GERENCIAMENTO DE SESSÃO E TIMEOUT
             # =========================================================
             sessao_atual = get_sessao_cliente(db, telefone_cliente)
             
+            # Se o cliente mandou mensagem para uma loja diferente da que ele estava, reseta a sessão
+            if sessao_atual and sessao_atual.loja_atual != schema_alvo:
+                logger.info("Cliente %s mudou da loja %s para a loja %s. Resetando sessão.", 
+                            telefone_cliente, sessao_atual.loja_atual, schema_alvo)
+                encerrar_sessao_cliente(db, telefone_cliente)
+                sessao_atual = None
+
             if sessao_atual:
                 ultima = sessao_atual.ultima_interacao
                 if ultima:
@@ -188,89 +216,50 @@ async def receive_message(request: Request, db: Session = Depends(get_public_db)
                 
                 # Estado Inicial: Cliente mandou primeira mensagem
                 if not sessao_atual:
-                    db.execute(text("SET search_path TO public"))
-                    merchant_padrao = db.query(Merchant).first()
-                    nome_lojista = merchant_padrao.nome_loja if merchant_padrao else "nossa loja"
-                    
                     texto_pergunta = (
                         f"{saudacao}! 🌻 Que bom ter você por aqui.\n\n"
-                        f"Eu sou a Lau, a secretária virtual exclusiva da {nome_lojista}. "
+                        f"Eu sou a Lau, a secretária virtual exclusiva da {nome_loja}. "
                         f"Estou aqui para organizar o seu atendimento num piscar de olhos! \n\n"
                         f"Você gostaria de agendar um horário ou consultar seus agendamentos?"
                     )
                     enviar_menu_intencao_whatsapp(telefone_cliente, texto_pergunta)
-                    salvar_sessao_cliente(db, telefone_cliente, schema_loja="", dados_sessao={"state": "AGUARDANDO_INTENCAO"})
+                    salvar_sessao_cliente(db, telefone_cliente, schema_alvo, dados_sessao={"state": "AGUARDANDO_INTENCAO"})
                     return JSONResponse(content={"status": "recebido"}, status_code=200)
 
                 # Processar estados intermediários
                 if estado_atual == "AGUARDANDO_INTENCAO":
                     if texto_cliente in ["INTENT_AGENDAR", "INTENT_CONSULTAR"]:
                         dados_sessao["intencao"] = texto_cliente
-                        dados_sessao["state"] = "AGUARDANDO_LOJA"
-                        salvar_sessao_cliente(db, telefone_cliente, "", dados_sessao)
+                        dados_sessao["state"] = "LLM_CONVERSATION"
+                        salvar_sessao_cliente(db, telefone_cliente, schema_alvo, dados_sessao)
                         
-                        db.execute(text("SET search_path TO public"))
-                        todos_lojistas = db.query(Merchant).all()
-                        
-                        if texto_cliente == "INTENT_AGENDAR":
-                            enviar_menu_lojas_whatsapp(telefone_cliente, "Para qual estabelecimento você deseja agendar?", todos_lojistas)
+                        if texto_cliente == "INTENT_CONSULTAR":
+                            # Se quer consultar, não precisa de serviço. Passa direto pra IA
+                            texto_cliente = "Gostaria de consultar o status dos meus agendamentos."
+                            # Deixa cair pro fluxo LLM abaixo
                         else:
-                            enviar_menu_lojas_whatsapp(telefone_cliente, "De qual estabelecimento você deseja consultar o status?", todos_lojistas)
-                        return JSONResponse(content={"status": "recebido"}, status_code=200)
+                            # Quer agendar. Verifica se tem serviços antes de mandar pra IA.
+                            schema_alvo_seguro = validar_schema(schema_alvo)
+                            db.execute(text(f"SET search_path TO {schema_alvo_seguro}, public"))
+                            try:
+                                servicos_rows = db.execute(text("SELECT id FROM services")).fetchall()
+                                if not servicos_rows:
+                                    enviar_mensagem_whatsapp(telefone_cliente, "Este estabelecimento ainda não possui serviços disponíveis no momento.")
+                                    return JSONResponse(content={"status": "recebido"}, status_code=200)
+                                
+                                # Forja a mensagem para que a IA inicie listando os serviços disponíveis
+                                texto_cliente = "Quero fazer um agendamento. Pode me listar quais serviços vocês têm disponíveis?"
+                                # Deixa cair pro fluxo LLM abaixo
+                            except Exception as e:
+                                logger.error("Erro ao buscar serviços: %s", e)
+                                enviar_mensagem_whatsapp(telefone_cliente, "Ocorreu um erro ao buscar os serviços.")
+                                return JSONResponse(content={"status": "recebido"}, status_code=200)
                     else:
                         enviar_menu_intencao_whatsapp(telefone_cliente, "Por favor, selecione uma das opções abaixo usando os botões:")
                         return JSONResponse(content={"status": "recebido"}, status_code=200)
-                        
-                elif estado_atual == "AGUARDANDO_LOJA":
-                    if texto_cliente.startswith("LOJA_"):
-                        db.execute(text("SET search_path TO public"))
-                        todos_lojistas = db.query(Merchant).all()
-                        lojista = _encontrar_lojista(texto_cliente, todos_lojistas)
-                        
-                        if lojista:
-                            schema_alvo = str(lojista.nome_do_schema)
-                            sessao_atual.loja_atual = schema_alvo
-                            salvar_sessao_cliente(db, telefone_cliente, schema_alvo, dados_sessao)
-                            
-                            if dados_sessao.get("intencao") == "INTENT_CONSULTAR":
-                                # Se quer consultar, não precisa de serviço. Passa direto pra IA
-                                dados_sessao["state"] = "LLM_CONVERSATION"
-                                salvar_sessao_cliente(db, telefone_cliente, schema_alvo, dados_sessao)
-                                texto_cliente = "Gostaria de consultar o status dos meus agendamentos."
-                                # Deixa cair pro fluxo LLM abaixo
-                            else:
-                                # Quer agendar. Verifica se tem serviços antes de mandar pra IA.
-                                schema_alvo_seguro = validar_schema(schema_alvo)
-                                db.execute(text(f"SET search_path TO {schema_alvo_seguro}, public"))
-                                try:
-                                    servicos_rows = db.execute(text("SELECT id FROM services")).fetchall()
-                                    if not servicos_rows:
-                                        enviar_mensagem_whatsapp(telefone_cliente, "Este estabelecimento ainda não possui serviços disponíveis no momento.")
-                                        return JSONResponse(content={"status": "recebido"}, status_code=200)
-                                    
-                                    # Em vez de mandar um menu, transfere direto para a IA e pede para ela listar
-                                    dados_sessao["state"] = "LLM_CONVERSATION"
-                                    salvar_sessao_cliente(db, telefone_cliente, schema_alvo, dados_sessao)
-                                    
-                                    # Forja a mensagem para que a IA inicie listando os serviços disponíveis
-                                    texto_cliente = "Quero fazer um agendamento. Pode me listar quais serviços vocês têm disponíveis?"
-                                    # Deixa cair pro fluxo LLM abaixo
-                                except Exception as e:
-                                    logger.error("Erro ao buscar serviços: %s", e)
-                                    enviar_mensagem_whatsapp(telefone_cliente, "Ocorreu um erro ao buscar os serviços.")
-                                    return JSONResponse(content={"status": "recebido"}, status_code=200)
-                        else:
-                            enviar_mensagem_whatsapp(telefone_cliente, "Estabelecimento não encontrado.")
-                            return JSONResponse(content={"status": "recebido"}, status_code=200)
-                    else:
-                        db.execute(text("SET search_path TO public"))
-                        todos_lojistas = db.query(Merchant).all()
-                        enviar_menu_lojas_whatsapp(telefone_cliente, "Por favor, selecione um estabelecimento na lista usando o botão:", todos_lojistas)
-                        return JSONResponse(content={"status": "recebido"}, status_code=200)
                 
-                # (Bloco AGUARDANDO_SERVICO removido: os serviços agora são listados textualmente pela IA)
             # =========================================================
-            # FLUXO LLM (Cliente já selecionou Loja e Serviço)
+            # FLUXO LLM (Cliente já informou intenção e o roteamento foi feito)
             # =========================================================
             if not sessao_atual:
                 # Sessão desapareceu após a máquina de estados — não deveria acontecer.
@@ -278,8 +267,6 @@ async def receive_message(request: Request, db: Session = Depends(get_public_db)
                 logger.error("Sessao desapareceu antes do fluxo LLM para %s", telefone_cliente)
                 return JSONResponse(content={"status": "erro_sessao"}, status_code=200)
 
-            schema_alvo = sessao_atual.loja_atual
-            
             # Puxa o nome da loja para context
             db.execute(text("SET search_path TO public"))
             lojista = db.query(Merchant).filter(Merchant.nome_do_schema == schema_alvo).first()
@@ -390,7 +377,7 @@ async def receive_message(request: Request, db: Session = Depends(get_public_db)
             
             servicos_formatados = "\n".join(servicos_lista) if servicos_lista else ""
             
-            resposta_ia = await analisar_mensagem_com_ia(historico, contexto, nome_cliente, servicos_disponiveis=servicos_formatados)
+            resposta_ia = await analisar_mensagem_com_ia(historico, contexto, nome_cliente, servicos_disponiveis=servicos_formatados, nome_loja=nome_loja)
             
             texto_ia = resposta_ia.get("mensagem_resposta") or "Como posso te ajudar?"
 
