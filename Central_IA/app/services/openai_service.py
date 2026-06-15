@@ -78,10 +78,19 @@ async def analisar_mensagem_com_ia(
     ║         PROTOCOLO DE COLETA SEQUENCIAL — OBRIGATÓRIO        ║
     ║  Siga RIGOROSAMENTE esta ordem. NÃO pule etapas.            ║
     ║                                                             ║
-    ║  ETAPA 1 — NOME (apenas se cliente_novo e desconhecido)     ║
+    ║  ETAPA 1 — NOME (sempre que o nome for desconhecido)       ║
     ║    → Pergunte o nome do cliente antes de qualquer outra     ║
     ║      coisa. Não passe para a ETAPA 2 sem o nome.            ║
     ║    → Se o cliente já tiver nome conhecido: pule a ETAPA 1.  ║
+    ║    ⚠ BLOQUEIO ABSOLUTO: Enquanto o nome for 'desconhecido' ║
+    ║      você NÃO PODE listar serviços, perguntar data/hora,   ║
+    ║      nem avançar para NENHUMA outra etapa. A sua ÚNICA      ║
+    ║      resposta possível é pedir o nome. Exemplo:             ║
+    ║      "Para iniciarmos, qual é o seu nome?" — sem nada mais. ║
+    ║    → Se o cliente responder com algo que não parece um nome ║
+    ║      (ex: "quero cortar cabelo"), peça novamente com         ║
+    ║      gentileza: "Antes de continuarmos, preciso do seu      ║
+    ║      nome para o registro. Como posso te chamar?"            ║
     ║                                                             ║
     ║  ETAPA 2 — SERVIÇO                                          ║
     ║    → Liste TODOS os serviços disponíveis com os preços      ║
@@ -109,9 +118,11 @@ async def analisar_mensagem_com_ia(
     3. Formato de Hora: Devolva SEMPRE no padrão HH:MM (ex: 14:30). Se não identificado, use null.
     4. REGRA DE SERVIÇO: Se o cliente pedir um serviço, você DEVE retornar EXATAMENTE um dos nomes da lista de SERVIÇOS DISPONÍVEIS que melhor corresponda à intenção dele. Se não houver correspondência possível na lista, retorne null.
     5. REGRA DE NOME:
-       - Se o contexto for 'cliente_novo' E o nome do cliente for 'desconhecido', peça o nome ANTES de qualquer outra coisa.
-       - Se o contexto for 'cliente_antigo' E o nome for 'desconhecido', É PROIBIDO perguntar o nome. Siga o fluxo normalmente.
-       - Se o nome do cliente for conhecido, USE-O nas respostas para criar proximidade (ex: "Matheus, qual horário você gostaria de agendar?").
+       - Se o nome do cliente for 'desconhecido', é OBRIGATÓRIO perguntar o nome ANTES de qualquer outra etapa, independentemente de ser cliente novo ou antigo.
+       - PROIBIÇÃO: Se o nome for 'desconhecido', NÃO liste serviços, NÃO pergunte data/hora, NÃO faça nada além de perguntar o nome. A ETAPA 1 é bloqueante.
+       - Se o cliente já tiver nome conhecido, USE-O nas respostas para criar proximidade (ex: "Maria, qual horário você gostaria?") e NUNCA peça o nome novamente.
+       - EXTRAÇÃO AUTOMÁTICA: Sempre que o cliente mencionar um nome próprio em qualquer mensagem (ex: "Meu nome é João", "sou o Carlos", "pode me chamar de Ana", ou simplesmente "Lucas"), extraia-o imediatamente e preencha o campo 'nome_cliente' no JSON. Nomes próprios geralmente começam com letra maiúscula e não são palavras comuns do dicionário.
+       - Se o cliente disser apenas um nome próprio (ex: "João"), assuma que é o nome dele e extraia-o.
     6. Respostas Curtas e Personalizadas: Mantenha o campo 'mensagem_resposta' focado APENAS no dado que está faltando naquele momento. Não faça múltiplas perguntas ao mesmo tempo, exceto na ETAPA 3 onde data e hora são pedidos juntos.
     7. LISTAGEM DE SERVIÇOS: Quando listar os serviços, copie a formatação exata do bloco SERVIÇOS DISPONÍVEIS (com os bullet points '•' e os preços). É obrigatório que cada serviço seja em um parágrafo separado (um por linha). É ESTRITAMENTE PROIBIDO exibir o bloco "[Duração interna: X]" para o cliente. Apenas informe a duração se o cliente perguntar diretamente.
     8. ENCERRAMENTO: Retorne 'encerrar' APENAS se o cliente expressamente pedir para cancelar, desistir ou encerrar a conversa (ex: "deixa pra lá", "não quero mais", "cancelar", "obrigado, tchau"). Se o cliente enviar apenas o nome de uma loja, uma palavra solta ou uma saudação, assuma a intenção de 'saudacao' ou 'agendamento', NUNCA 'encerrar'.

@@ -6,7 +6,7 @@ from datetime import datetime, timedelta
 
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
-from app.routers import app_lojista, auth, admin
+from app.routers import app_lojista, auth, admin, dashboards
 
 from app.database import engine, Base, SessionLocal
 
@@ -14,7 +14,7 @@ from app.database import engine, Base, SessionLocal
 from app.models import Merchant, ActiveSession  # noqa: F401
 
 # Importa os routers
-from app.routers import webhook_router, lojistas_router, agendamentos_router
+from app.routers import webhook_router, lojistas_router, agendamentos_router, custos
 
 # =========================================================
 # LOGGING — substitui print() por logs estruturados
@@ -189,6 +189,8 @@ app.include_router(app_lojista.router)  # /api/mobile/...
 app.include_router(lojistas_router)
 app.include_router(agendamentos_router)
 app.include_router(admin.router)       # /admin/estabelecimento (requer JWT admin)
+app.include_router(dashboards.router)  # /api/dashboards/...
+app.include_router(custos.router)
 
 # =========================================================
 # HEALTH CHECK

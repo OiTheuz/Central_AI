@@ -1,0 +1,36 @@
+# ── Variáveis de ambiente (NUNCA commitar no Git) ──────────────
+.env
+.env.*
+!.env.example
+
+# ── Ambiente virtual Python ─────────────────────────────────────
+.venv/
+venv/
+env/
+
+# ── Cache Python ────────────────────────────────────────────────
+__pycache__/
+*.py[cod]
+*$py.class
+*.pyc
+
+# ── Logs ────────────────────────────────────────────────────────
+*.log
+
+# ── Scripts de debug e teste (não subir para produção) ──────────
+reproduce_bug.py
+test_*.py
+check_*.py
+listar_*.py
+add_*.py
+reset_*.py
+
+# ── IDEs ────────────────────────────────────────────────────────
+.vscode/
+.idea/
+*.suo
+*.user
+
+# ── OS ──────────────────────────────────────────────────────────
+.DS_Store
+Thumbs.db

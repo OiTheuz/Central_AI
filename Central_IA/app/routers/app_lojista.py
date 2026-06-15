@@ -5,7 +5,6 @@
 
 import logging
 import re
-import traceback
 import uuid
 from datetime import date, datetime, timedelta
 from dateutil.relativedelta import relativedelta
@@ -256,11 +255,17 @@ def aprovar_agendamento(
         raise HTTPException(status_code=400, detail=f"Agendamento já está com status '{row['status']}'.")
 
     # Atualizar status
-    db.execute(
-        text("UPDATE appointments SET status = 'aprovado' WHERE id = :id"),
-        {"id": agendamento_id},
-    )
-    db.commit()
+    try:
+        db.execute(
+            text("UPDATE appointments SET status = 'aprovado' WHERE id = :id"),
+            {"id": agendamento_id},
+        )
+        db.commit()
+    except Exception as e:
+        db.rollback()
+        logger.error("Erro ao aprovar agendamento %s: %s", agendamento_id, e)
+        raise HTTPException(status_code=500, detail="Falha ao atualizar o status do agendamento.")
+
     logger.info("Agendamento %s aprovado pelo lojista %s", agendamento_id, merchant.id)
 
     # Enviar confirmação via WhatsApp ao cliente
@@ -354,8 +359,189 @@ def recusar_agendamento(
 
 
 # =========================================================
+# CANCELAR AGENDAMENTO (qualquer status → cancelado) + WhatsApp
+# =========================================================
+
+@router.put("/agendamentos/{agendamento_id}/cancelar")
+def cancelar_agendamento(
+    agendamento_id: int,
+    db: Session = Depends(get_db),
+    merchant: Merchant = Depends(get_lojista_atual),
+):
+    """
+    Cancela um agendamento (qualquer status que não seja já cancelado/recusado)
+    e envia mensagem de aviso ao cliente via WhatsApp.
+    """
+
+    query = text("""
+        SELECT
+            a.id, a.status, a.data_agendamento, a.horario_agendamento,
+            c.nome AS cliente_nome, c.telefone_whatsapp,
+            s.nome AS servico_nome
+        FROM appointments a
+        LEFT JOIN customers c ON a.customer_id = c.id
+        LEFT JOIN services s ON a.service_id = s.id
+        WHERE a.id = :id
+    """)
+
+    row = db.execute(query, {"id": agendamento_id}).mappings().first()
+
+    if not row:
+        raise HTTPException(status_code=404, detail="Agendamento não encontrado.")
+
+    if row["status"] in ("cancelado", "recusado"):
+        raise HTTPException(
+            status_code=400,
+            detail=f"Agendamento já está com status '{row['status']}' e não pode ser cancelado novamente."
+        )
+
+    try:
+        db.execute(
+            text("UPDATE appointments SET status = 'cancelado' WHERE id = :id"),
+            {"id": agendamento_id},
+        )
+        db.commit()
+    except Exception as e:
+        db.rollback()
+        logger.error("Erro ao cancelar agendamento %s: %s", agendamento_id, e)
+        raise HTTPException(status_code=500, detail="Falha ao atualizar o status do agendamento.")
+
+    logger.info("Agendamento %s cancelado pelo lojista %s", agendamento_id, merchant.id)
+
+    # Enviar aviso via WhatsApp ao cliente
+    telefone = row["telefone_whatsapp"]
+    if telefone:
+        try:
+            data_fmt = row["data_agendamento"].strftime("%d/%m/%Y") if row["data_agendamento"] else "data não informada"
+            servico = row["servico_nome"] or "serviço"
+            nome_loja = merchant.nome_loja or "o estabelecimento"
+
+            mensagem = (
+                f"Olá! Informamos que o estabelecimento *{nome_loja}* realizou o cancelamento "
+                f"do seu agendamento do serviço *{servico}* no dia *{data_fmt}*. "
+                f"Se desejar reagendar, é só mandar um 'Oi'! 😊"
+            )
+            enviar_mensagem_whatsapp(numero_destino=telefone, texto=mensagem)
+        except Exception as e:
+            logger.warning("Erro ao enviar WhatsApp de cancelamento: %s", e)
+
+    return {"status": "sucesso", "mensagem": "Agendamento cancelado e cliente notificado."}
+
+
+# =========================================================
+# REMANEJAR AGENDAMENTO (nova data/hora) + WhatsApp
+# =========================================================
+
+class RemanejamentoRequest(BaseModel):
+    nova_data: str   # YYYY-MM-DD
+    nova_hora: str   # HH:MM
+
+
+@router.put("/agendamentos/{agendamento_id}/remanejar")
+def remanejar_agendamento(
+    agendamento_id: int,
+    body: RemanejamentoRequest,
+    db: Session = Depends(get_db),
+    merchant: Merchant = Depends(get_lojista_atual),
+):
+    """
+    Atualiza a data e horário de um agendamento e notifica o cliente
+    com o horário antigo e o novo via WhatsApp.
+    """
+
+    # Validação de formato
+    try:
+        datetime.strptime(body.nova_data, "%Y-%m-%d")
+    except ValueError:
+        raise HTTPException(status_code=400, detail="Formato de nova_data inválido. Use YYYY-MM-DD.")
+    try:
+        datetime.strptime(body.nova_hora, "%H:%M")
+    except ValueError:
+        raise HTTPException(status_code=400, detail="Formato de nova_hora inválido. Use HH:MM.")
+
+    query = text("""
+        SELECT
+            a.id, a.status, a.data_agendamento, a.horario_agendamento,
+            c.nome AS cliente_nome, c.telefone_whatsapp,
+            s.nome AS servico_nome
+        FROM appointments a
+        LEFT JOIN customers c ON a.customer_id = c.id
+        LEFT JOIN services s ON a.service_id = s.id
+        WHERE a.id = :id
+    """)
+
+    row = db.execute(query, {"id": agendamento_id}).mappings().first()
+
+    if not row:
+        raise HTTPException(status_code=404, detail="Agendamento não encontrado.")
+
+    if row["status"] in ("cancelado", "recusado"):
+        raise HTTPException(
+            status_code=400,
+            detail=f"Não é possível remanejar um agendamento com status '{row['status']}'."
+        )
+
+    # Guardar data/hora antigas antes de atualizar
+    data_antiga_fmt = row["data_agendamento"].strftime("%d/%m/%Y") if row["data_agendamento"] else "?"
+    hora_antiga_fmt = row["horario_agendamento"].strftime("%H:%M") if row["horario_agendamento"] else "?"
+
+    try:
+        db.execute(
+            text("""
+                UPDATE appointments
+                SET data_agendamento = :nova_data,
+                    horario_agendamento = :nova_hora
+                WHERE id = :id
+            """),
+            {"nova_data": body.nova_data, "nova_hora": body.nova_hora, "id": agendamento_id},
+        )
+        db.commit()
+    except Exception as e:
+        db.rollback()
+        logger.error("Erro ao remanejar agendamento %s: %s", agendamento_id, e)
+        raise HTTPException(status_code=500, detail="Falha ao atualizar o agendamento.")
+
+    logger.info(
+        "Agendamento %s remanejado pelo lojista %s: %s %s → %s %s",
+        agendamento_id, merchant.id,
+        data_antiga_fmt, hora_antiga_fmt,
+        body.nova_data, body.nova_hora,
+    )
+
+    # Formatar nova data/hora para exibição
+    try:
+        nova_data_fmt = datetime.strptime(body.nova_data, "%Y-%m-%d").strftime("%d/%m/%Y")
+    except ValueError:
+        nova_data_fmt = body.nova_data
+
+    # Enviar aviso via WhatsApp ao cliente
+    telefone = row["telefone_whatsapp"]
+    if telefone:
+        try:
+            servico = row["servico_nome"] or "serviço"
+            nome_loja = merchant.nome_loja or "o estabelecimento"
+
+            mensagem = (
+                f"Olá! O estabelecimento *{nome_loja}* realizou uma alteração no seu agendamento "
+                f"do serviço *{servico}*, passando do dia/horário "
+                f"*{data_antiga_fmt} às {hora_antiga_fmt}* "
+                f"para *{nova_data_fmt} às {body.nova_hora}*. "
+                f"Se tiver alguma dúvida, é só falar! 😊"
+            )
+            enviar_mensagem_whatsapp(numero_destino=telefone, texto=mensagem)
+        except Exception as e:
+            logger.warning("Erro ao enviar WhatsApp de remanejamento: %s", e)
+
+    return {
+        "status": "sucesso",
+        "mensagem": f"Agendamento remanejado para {nova_data_fmt} às {body.nova_hora}. Cliente notificado."
+    }
+
+
+# =========================================================
 # SERVIÇOS DO LOJISTA
 # =========================================================
+
 
 @router.get("/servicos")
 def obter_servicos(
@@ -493,6 +679,8 @@ class AgendamentoManualRequest(BaseModel):
     isRecorrente: bool = False
     frequencia: str | None = None   # 'semanal' | 'mensal'
     ocorrencias: int | None = None  # 1–52
+    isPacotePrePago: bool = False
+    valorTotalPacote: float | None = None
 
 
 @router.post("/agendamentos/manual")
@@ -563,24 +751,35 @@ def criar_agendamento_manual(
         # ── 5. Bulk insert ──
         recurrence_id = str(uuid.uuid4()) if body.isRecorrente and n_ocorrencias > 1 else None
 
-        registros = [
-            {
+        registros = []
+        for i, d in enumerate(datas):
+            valor_cobrado = None
+            is_paid_in_package = False
+
+            if body.isRecorrente and body.isPacotePrePago:
+                if i == 0:
+                    valor_cobrado = body.valorTotalPacote
+                else:
+                    valor_cobrado = 0.0
+                    is_paid_in_package = True
+
+            registros.append({
                 "c_id": cliente_id,
                 "s_id": body.servicoId,
                 "data": str(d),
                 "hora": body.hora,
                 "rec_id": recurrence_id,
-            }
-            for d in datas
-        ]
+                "valor": valor_cobrado,
+                "is_paid": is_paid_in_package,
+            })
 
         db.execute(
             text("""
                 INSERT INTO appointments
                     (customer_id, service_id, data_agendamento, horario_agendamento,
-                     status, origem, recurrence_id)
+                     status, origem, recurrence_id, valor_cobrado, is_paid_in_package)
                 VALUES
-                    (:c_id, :s_id, :data, :hora, 'aprovado', 'manual', :rec_id)
+                    (:c_id, :s_id, :data, :hora, 'aprovado', 'manual', :rec_id, :valor, :is_paid)
             """),
             registros,
         )
@@ -611,7 +810,7 @@ def criar_agendamento_manual(
     except HTTPException:
         raise
     except Exception as e:
-        traceback.print_exc()
+        logger.exception("Erro ao criar agendamento manual para lojista %s: %s", merchant.id, e)
         db.rollback()
         raise HTTPException(status_code=500, detail=str(e))
 
@@ -681,9 +880,12 @@ def atualizar_configuracoes(
     merchant: Merchant = Depends(get_lojista_atual),
 ):
     """Atualiza as configurações de agendamento do lojista."""
-    hora_re = re.compile(r'^\d{2}:\d{2}$')
-    if not hora_re.match(body.horario_abertura) or not hora_re.match(body.horario_fechamento):
-        raise HTTPException(status_code=400, detail="Horários devem estar no formato HH:MM.")
+    # Valida formato e valores das horas
+    try:
+        datetime.strptime(body.horario_abertura, "%H:%M")
+        datetime.strptime(body.horario_fechamento, "%H:%M")
+    except ValueError:
+        raise HTTPException(status_code=400, detail="Horários devem estar no formato HH:MM com valores válidos (ex: 08:00, 18:30).")
 
     merchant.permitir_sobreposicao = body.permitir_sobreposicao  # type: ignore
     merchant.horario_abertura = body.horario_abertura  # type: ignore

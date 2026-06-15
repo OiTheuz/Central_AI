@@ -1,7 +1,7 @@
 import logging
 import re
 from collections import OrderedDict
-from datetime import datetime, time as time_type, timedelta, timezone
+from datetime import datetime, time as time_type, timedelta
 from fastapi import APIRouter, Depends, Request
 from fastapi.responses import JSONResponse, PlainTextResponse
 from sqlalchemy.orm import Session
@@ -165,11 +165,15 @@ async def receive_message(request: Request, db: Session = Depends(get_public_db)
             
             if sessao_atual:
                 ultima = sessao_atual.ultima_interacao
-                agora = datetime.now(timezone.utc) if ultima and ultima.tzinfo else datetime.now()
-                if ultima and (agora - ultima) >= timedelta(hours=1):
-                    logger.info("Sessão expirada para %s (mais de 1h).", telefone_cliente)
-                    encerrar_sessao_cliente(db, telefone_cliente)
-                    sessao_atual = None
+                if ultima:
+                    # Garante comparação sempre entre datetimes sem timezone (naive)
+                    # para evitar TypeError entre offset-aware e offset-naive
+                    ultima_naive = ultima.replace(tzinfo=None) if ultima.tzinfo else ultima
+                    agora_naive = datetime.now()
+                    if (agora_naive - ultima_naive) >= timedelta(hours=1):
+                        logger.info("Sessao expirada para %s (mais de 1h).", telefone_cliente)
+                        encerrar_sessao_cliente(db, telefone_cliente)
+                        sessao_atual = None
             
             dados_sessao = sessao_atual.dados_sessao if sessao_atual and isinstance(sessao_atual.dados_sessao, dict) else {}
             estado_atual = dados_sessao.get("state")
@@ -260,9 +264,10 @@ async def receive_message(request: Request, db: Session = Depends(get_public_db)
             # FLUXO LLM (Cliente já selecionou Loja e Serviço)
             # =========================================================
             if not sessao_atual:
-                # O type checker precisa dessa validação de sanidade (embora na prática a sessão sempre exista aqui)
-                logger.error("Sessão desapareceu antes do fluxo LLM para %s", telefone_cliente)
-                return JSONResponse(content={"status": "erro_sessao"}, status_code=500)
+                # Sessão desapareceu após a máquina de estados — não deveria acontecer.
+                # Responde 200 para a Meta não retentar (o cliente terá de recomeçar).
+                logger.error("Sessao desapareceu antes do fluxo LLM para %s", telefone_cliente)
+                return JSONResponse(content={"status": "erro_sessao"}, status_code=200)
 
             schema_alvo = sessao_atual.loja_atual
             
@@ -271,7 +276,7 @@ async def receive_message(request: Request, db: Session = Depends(get_public_db)
             lojista = db.query(Merchant).filter(Merchant.nome_do_schema == schema_alvo).first()
             nome_loja = lojista.nome_loja if lojista else "Loja"
 
-            # Busca o cliente no schema correto
+            # Busca ou cria o cliente no schema correto — UPSERT robusto
             schema_alvo_seguro = validar_schema(str(schema_alvo))
             db.execute(text(f"SET search_path TO {schema_alvo_seguro}, public"))
             
@@ -281,18 +286,53 @@ async def receive_message(request: Request, db: Session = Depends(get_public_db)
             ).mappings().fetchone()
 
             if not cliente_db:
-                db.execute(
-                    text("INSERT INTO customers (nome, telefone_whatsapp) VALUES ('Cliente', :tel) ON CONFLICT DO NOTHING"),
-                    {"tel": telefone_cliente}
+                try:
+                    # UPSERT: insere ou retorna o existente em caso de conflito
+                    result = db.execute(
+                        text("""
+                            INSERT INTO customers (nome, telefone_whatsapp) 
+                            VALUES ('Cliente', :tel) 
+                            ON CONFLICT (telefone_whatsapp) DO UPDATE 
+                                SET telefone_whatsapp = EXCLUDED.telefone_whatsapp
+                            RETURNING *
+                        """),
+                        {"tel": telefone_cliente}
+                    )
+                    db.commit()
+                    cliente_db = result.mappings().fetchone()
+                except Exception as e:
+                    db.rollback()
+                    logger.error("Erro ao criar cliente novo %s: %s", telefone_cliente, e)
+
+                # Fallback: tenta buscar novamente após possível conflito
+                if not cliente_db:
+                    db.execute(text(f"SET search_path TO {schema_alvo_seguro}, public"))
+                    cliente_db = db.execute(
+                        text("SELECT * FROM customers WHERE telefone_whatsapp = :tel"),
+                        {"tel": telefone_cliente}
+                    ).mappings().fetchone()
+
+            # Proteção final: se não conseguiu criar nem encontrar, responde ao cliente
+            if not cliente_db:
+                logger.error(
+                    "CRÍTICO: impossível criar/encontrar cliente %s no schema %s",
+                    telefone_cliente, schema_alvo
                 )
-                db.commit()
-                cliente_db = db.execute(
-                    text("SELECT * FROM customers WHERE telefone_whatsapp = :tel"),
-                    {"tel": telefone_cliente}
-                ).mappings().fetchone()
-                contexto = "cliente_novo"
-            else:
-                contexto = "cliente_antigo"
+                enviar_mensagem_whatsapp(
+                    numero_destino=telefone_cliente,
+                    texto="Desculpe, tive um problema técnico ao iniciar seu atendimento. Por favor, tente novamente em alguns instantes. 🙏"
+                )
+                return JSONResponse(content={"status": "erro_cliente"}, status_code=200)
+
+            # Re-garante search_path após possível rollback/commit da criação do cliente
+            db.execute(text(f"SET search_path TO {schema_alvo_seguro}, public"))
+
+            # Contexto baseado na presença de nome REAL — não apenas na existência do registo.
+            # Se o cliente existir mas o nome ainda for o placeholder 'Cliente' (ou vazio),
+            # ele é tratado como 'cliente_novo' para a IA perguntar o nome corretamente.
+            _nome_db = cliente_db.get("nome") if cliente_db else None
+            tem_nome_real = bool(_nome_db and _nome_db.strip() and _nome_db.strip() not in ("Cliente", ""))
+            contexto = "cliente_antigo" if tem_nome_real else "cliente_novo"
 
             nome_cliente = (
                 cliente_db.get("nome")
@@ -308,6 +348,12 @@ async def receive_message(request: Request, db: Session = Depends(get_public_db)
             dados = sessao_atual.dados_sessao if sessao_atual and isinstance(sessao_atual.dados_sessao, dict) else {}
             historico = dados.get("historico", [])
             estado = dados.get("estado", {})
+
+            # Limita histórico a 20 mensagens para evitar crescimento ilimitado do JSON
+            # e reduzir custo/latência com a OpenAI em conversas longas.
+            MAX_HISTORICO = 20
+            if len(historico) > MAX_HISTORICO:
+                historico = historico[-MAX_HISTORICO:]
 
             historico.append({"role": "user", "content": texto_cliente})
 
@@ -364,15 +410,21 @@ async def receive_message(request: Request, db: Session = Depends(get_public_db)
             if resposta_ia.get("data"): estado["data"] = resposta_ia.get("data")
             if resposta_ia.get("hora"): estado["hora"] = resposta_ia.get("hora")
             
-            # Captura nome — funciona tanto para cliente novo quanto antigo sem nome
-            if resposta_ia.get("nome_cliente") and (not nome_cliente):
+            # Captura nome — salva sempre que a IA extraiu um nome E o cliente ainda não tem nome real
+            nome_extraido = resposta_ia.get("nome_cliente")
+            nome_db_atual = cliente_db.get("nome") if cliente_db else None
+            nome_db_e_placeholder = not nome_db_atual or nome_db_atual.strip() in ("Cliente", "")
+            if nome_extraido and (not nome_cliente or nome_db_e_placeholder):
                 db.execute(
                     text("UPDATE customers SET nome = :nome WHERE telefone_whatsapp = :tel"),
-                    {"nome": resposta_ia["nome_cliente"], "tel": telefone_cliente}
+                    {"nome": nome_extraido.strip(), "tel": telefone_cliente}
                 )
                 db.commit()
-                nome_cliente = resposta_ia["nome_cliente"]
+                nome_cliente = nome_extraido.strip()
+                logger.info("Nome do cliente actualizado: '%s' para tel %s", nome_cliente, telefone_cliente)
 
+            # Re-garante search_path antes de buscar o cliente atualizado
+            db.execute(text(f"SET search_path TO {schema_alvo_seguro}, public"))
             cliente = db.execute(
                 text("SELECT * FROM customers WHERE telefone_whatsapp = :tel"),
                 {"tel": telefone_cliente}
@@ -385,7 +437,7 @@ async def receive_message(request: Request, db: Session = Depends(get_public_db)
             
             if (
                 estado.get("servico") and estado.get("data") and estado.get("hora")
-                and cliente
+                and cliente and cliente.get("id")
             ):
                 data_str = estado.get("data")
                 try:
@@ -393,7 +445,11 @@ async def receive_message(request: Request, db: Session = Depends(get_public_db)
                     if data_obj < datetime.now().date():
                         # Limpar a data do estado para a IA perguntar novamente na próxima
                         estado["data"] = None
-                        salvar_sessao_cliente(db, telefone_cliente, str(schema_alvo_seguro), {"historico": historico, "estado": estado, "ja_saudou": True})
+                        dados_atualizados = dados_sessao.copy() if dados_sessao else {}
+                        dados_atualizados["historico"] = historico
+                        dados_atualizados["estado"] = estado
+                        dados_atualizados["ja_saudou"] = True
+                        salvar_sessao_cliente(db, telefone_cliente, str(schema_alvo_seguro), dados_atualizados)
                         enviar_mensagem_whatsapp(
                             numero_destino=telefone_cliente,
                             texto=f"{saudacao_fixa}Poxa, não consigo agendar em datas que já passaram. Qual seria o dia ideal para você?"
@@ -409,7 +465,11 @@ async def receive_message(request: Request, db: Session = Depends(get_public_db)
                 ).mappings().fetchone()
                 
                 if not servico_db:
-                    salvar_sessao_cliente(db, telefone_cliente, str(schema_alvo_seguro), {"historico": historico, "estado": estado, "ja_saudou": True})
+                    dados_atualizados = dados_sessao.copy() if dados_sessao else {}
+                    dados_atualizados["historico"] = historico
+                    dados_atualizados["estado"] = estado
+                    dados_atualizados["ja_saudou"] = True
+                    salvar_sessao_cliente(db, telefone_cliente, str(schema_alvo_seguro), dados_atualizados)
                     enviar_mensagem_whatsapp(
                         numero_destino=telefone_cliente,
                         texto=f"{saudacao_fixa}Poxa, não encontrei o serviço '{servico_escolhido}' na nossa lista. Que outro serviço gostaria?"
@@ -525,9 +585,11 @@ async def receive_message(request: Request, db: Session = Depends(get_public_db)
                         # Limpar a hora do estado para a IA capturar a nova escolha do cliente
                         estado["hora"] = None
                         # Manter sessão ativa para o cliente poder responder
-                        salvar_sessao_cliente(db, telefone_cliente, str(schema_alvo_seguro), {
-                            "historico": historico, "estado": estado, "ja_saudou": True
-                        })
+                        dados_atualizados = dados_sessao.copy() if dados_sessao else {}
+                        dados_atualizados["historico"] = historico
+                        dados_atualizados["estado"] = estado
+                        dados_atualizados["ja_saudou"] = True
+                        salvar_sessao_cliente(db, telefone_cliente, str(schema_alvo_seguro), dados_atualizados)
                         enviar_mensagem_whatsapp(numero_destino=telefone_cliente, texto=msg_conflito)
                         return JSONResponse(content={"status": "sucesso"}, status_code=200)
 
@@ -580,7 +642,13 @@ async def receive_message(request: Request, db: Session = Depends(get_public_db)
                 )
                 
             else:
-                salvar_sessao_cliente(db, telefone_cliente, str(schema_alvo_seguro), {"historico": historico, "estado": estado, "ja_saudou": True})
+                dados_atualizados = dados_sessao.copy() if dados_sessao else {}
+                dados_atualizados["historico"] = historico
+                dados_atualizados["estado"] = estado
+                dados_atualizados["ja_saudou"] = True
+                
+                salvar_sessao_cliente(db, telefone_cliente, str(schema_alvo_seguro), dados_atualizados)
+                
                 # Só envia se houver texto — a IA pode retornar mensagem_resposta=""
                 # quando todos os dados foram coletados (Regra 9 do System Prompt)
                 if texto_ia and texto_ia.strip():
@@ -596,9 +664,11 @@ async def receive_message(request: Request, db: Session = Depends(get_public_db)
 
     except ValueError as e:
         # Schema inválido — responde 200 para não fazer a Meta retentar
-        logger.error("Schema inválido no webhook: %s", e)
+        logger.error("Schema invalido no webhook: %s", e)
         return JSONResponse(content={"status": "erro_schema"}, status_code=200)
 
     except Exception as e:
-        logger.exception("Erro crítico no webhook: %s", e)
-        return JSONResponse(content={"status": "erro", "detalhe": str(e)}, status_code=500)
+        # Qualquer erro inesperado deve retornar 200 para a Meta NÃO reenviar a mensagem.
+        # O erro completo fica no log para diagnóstico.
+        logger.exception("Erro critico no webhook: %s", e)
+        return JSONResponse(content={"status": "erro", "detalhe": str(e)}, status_code=200)

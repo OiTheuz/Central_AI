@@ -1,13 +1,10 @@
-from app.database import SessionLocal
-from app.models.active_session import ActiveSession
 import json
+from app.database import engine
+from sqlalchemy import text
 
-db = SessionLocal()
-session = db.query(ActiveSession).filter(ActiveSession.telefone_cliente == '554199692193').first()
-if session:
-    print(f"Loja: {session.loja_atual}")
-    print(f"Ativo: {session.ativo}")
-    print(f"Dados: {json.dumps(session.dados_sessao, indent=2, ensure_ascii=False)}")
-else:
-    print("Nenhuma sessao encontrada.")
-db.close()
+with engine.connect() as conn:
+    res = conn.execute(text("SELECT telefone_cliente, dados_sessao, loja_atual FROM public.active_sessions ORDER BY ultima_interacao DESC LIMIT 1")).mappings().fetchone()
+    if res:
+        print(f"Telefone: {res['telefone_cliente']}")
+        print(f"Loja: {res['loja_atual']}")
+        print(f"Dados: {json.dumps(res['dados_sessao'], indent=2, ensure_ascii=False)}")
