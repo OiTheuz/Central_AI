@@ -240,7 +240,7 @@ async def receive_message(request: Request, db: Session = Depends(get_public_db)
                                 # Deixa cair pro fluxo LLM abaixo
                             else:
                                 # Quer agendar. Verifica se tem serviços antes de mandar pra IA.
-                                schema_alvo_seguro = validar_schema(str(schema_alvo))
+                                schema_alvo_seguro = validar_schema(schema_alvo)
                                 db.execute(text(f"SET search_path TO {schema_alvo_seguro}, public"))
                                 try:
                                     servicos_rows = db.execute(text("SELECT id FROM services")).fetchall()
@@ -493,7 +493,7 @@ async def receive_message(request: Request, db: Session = Depends(get_public_db)
                         dados_atualizados["historico"] = historico
                         dados_atualizados["estado"] = estado
                         dados_atualizados["ja_saudou"] = True
-                        salvar_sessao_cliente(db, telefone_cliente, str(schema_alvo_seguro), dados_atualizados)
+                        salvar_sessao_cliente(db, telefone_cliente, schema_alvo_seguro, dados_atualizados)
                         enviar_mensagem_whatsapp(
                             numero_destino=telefone_cliente,
                             texto=f"{saudacao_fixa}Poxa, não consigo agendar em datas que já passaram. Qual seria o dia ideal para você?"
@@ -526,7 +526,7 @@ async def receive_message(request: Request, db: Session = Depends(get_public_db)
                     estado["servico"] = None
                     dados_atualizados["estado"] = estado
                     dados_atualizados["ja_saudou"] = True
-                    salvar_sessao_cliente(db, telefone_cliente, str(schema_alvo_seguro), dados_atualizados)
+                    salvar_sessao_cliente(db, telefone_cliente, schema_alvo_seguro, dados_atualizados)
                     enviar_mensagem_whatsapp(
                         numero_destino=telefone_cliente,
                         texto=f"{saudacao_fixa}Poxa, não encontrei o(s) serviço(s) '{str_nao_encontrados}' na nossa lista. Que outro serviço gostaria?"
@@ -540,7 +540,7 @@ async def receive_message(request: Request, db: Session = Depends(get_public_db)
                 # Busca config do lojista no schema public
                 db.execute(text("SET search_path TO public"))
                 merchant_config = db.query(Merchant).filter(
-                    Merchant.nome_do_schema == str(schema_alvo_seguro)
+                    Merchant.nome_do_schema == schema_alvo_seguro
                 ).first()
                 permite_sobreposicao = bool(
                     merchant_config.permitir_sobreposicao if merchant_config else False
@@ -642,7 +642,7 @@ async def receive_message(request: Request, db: Session = Depends(get_public_db)
                         dados_atualizados["historico"] = historico
                         dados_atualizados["estado"] = estado
                         dados_atualizados["ja_saudou"] = True
-                        salvar_sessao_cliente(db, telefone_cliente, str(schema_alvo_seguro), dados_atualizados)
+                        salvar_sessao_cliente(db, telefone_cliente, schema_alvo_seguro, dados_atualizados)
                         enviar_mensagem_whatsapp(numero_destino=telefone_cliente, texto=msg_conflito)
                         return JSONResponse(content={"status": "sucesso"}, status_code=200)
 
@@ -688,11 +688,12 @@ async def receive_message(request: Request, db: Session = Depends(get_public_db)
                 # Refaz query no schema public para encontrar o merchant
                 db.execute(text("SET search_path TO public"))
                 merchant_alvo = db.query(Merchant).filter(
-                    Merchant.nome_do_schema == str(schema_alvo_seguro)
+                    Merchant.nome_do_schema == schema_alvo_seguro
                 ).first()
+                nomes_servicos = ", ".join([s.get("nome") for s in servicos_encontrados])
+                
                 if merchant_alvo and merchant_alvo.push_token:
                     nome_push = nome_final or "Cliente"
-                    nomes_servicos = ", ".join([s.get("nome") for s in servicos_encontrados])
                     enviar_notificacao_push(
                         push_token=merchant_alvo.push_token,
                         titulo="Nova Solicitação Pendente! 🔔",
@@ -702,7 +703,7 @@ async def receive_message(request: Request, db: Session = Depends(get_public_db)
                 
                 logger.info(
                     "Agendamento pendente criado: cliente=%s | serviço=%s | data=%s | hora=%s | loja=%s",
-                    nome_final or "sem nome", servico_escolhido, data_exibicao, hora, nome_loja
+                    nome_final or "sem nome", nomes_servicos, data_exibicao, hora, nome_loja
                 )
                 
             else:
@@ -710,13 +711,12 @@ async def receive_message(request: Request, db: Session = Depends(get_public_db)
                 dados_atualizados["historico"] = historico
                 dados_atualizados["estado"] = estado
                 dados_atualizados["ja_saudou"] = True
-                
-                salvar_sessao_cliente(db, telefone_cliente, str(schema_alvo_seguro), dados_atualizados)
+                salvar_sessao_cliente(db, telefone_cliente, schema_alvo_seguro, dados_atualizados)
                 
                 # Só envia se houver texto — a IA pode retornar mensagem_resposta=""
                 # quando todos os dados foram coletados (Regra 9 do System Prompt)
                 if texto_ia and texto_ia.strip():
-                    mensagem_final = f"{saudacao_fixa}{texto_ia}" if saudacao_fixa else texto_ia
+                    mensagem_final = f"{saudacao_fixa}{texto_ia}"
                     enviar_mensagem_whatsapp(numero_destino=telefone_cliente, texto=mensagem_final)
                 else:
                     logger.warning(
