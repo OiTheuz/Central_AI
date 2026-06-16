@@ -1,0 +1,17 @@
+[Unit]
+Description=Gunicorn/Uvicorn Daemon para a Central de IA
+After=network.target
+
+[Service]
+User=root
+Group=www-data
+WorkingDirectory=/var/www/central_ai
+Environment="PATH=/var/www/central_ai/venv/bin"
+EnvironmentFile=/var/www/central_ai/.env
+ExecStart=/var/www/central_ai/venv/bin/uvicorn app.main:app --host 0.0.0.0 --port 8000 --workers 4
+
+Restart=always
+RestartSec=3
+
+[Install]
+WantedBy=multi-user.target

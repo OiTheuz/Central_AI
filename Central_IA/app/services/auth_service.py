@@ -7,26 +7,25 @@ from datetime import datetime, timedelta, timezone
 from fastapi import Depends, HTTPException, status
 from fastapi.security import HTTPBearer, HTTPAuthorizationCredentials
 from jose import JWTError, jwt
-from passlib.context import CryptContext
 from sqlalchemy.orm import Session
 
 from app.config import JWT_SECRET, JWT_ALGORITHM, JWT_EXPIRA_HORAS
 from app.database import get_public_db
 from app.models import Merchant
 
-# ─── Hashing de Senha ────────────────────────────────────────
-
-pwd_context = CryptContext(schemes=["bcrypt"], deprecated="auto")
-
+import bcrypt
 
 def hash_senha(senha: str) -> str:
     """Gera o hash bcrypt de uma senha em texto puro."""
-    return pwd_context.hash(senha)
-
+    salt = bcrypt.gensalt()
+    return bcrypt.hashpw(senha.encode('utf-8'), salt).decode('utf-8')
 
 def verificar_senha(senha_pura: str, senha_hash: str) -> bool:
     """Compara senha em texto puro com o hash armazenado."""
-    return pwd_context.verify(senha_pura, senha_hash)
+    try:
+        return bcrypt.checkpw(senha_pura.encode('utf-8'), senha_hash.encode('utf-8'))
+    except (ValueError, TypeError):
+        return False
 
 
 # ─── JWT ─────────────────────────────────────────────────────
