@@ -787,7 +787,11 @@ def criar_agendamento_manual(
         # ── 5. Bulk insert ──
         recurrence_id = str(uuid.uuid4()) if body.isRecorrente and n_ocorrencias > 1 else None
 
-        max_ticket = db.execute(\n            text(\"SELECT COALESCE(MAX(numero_ticket), 0) FROM appointments\")\n        ).scalar() or 0\n\n        registros = []
+        max_ticket = db.execute(
+            text("SELECT COALESCE(MAX(numero_ticket), 0) FROM appointments")
+        ).scalar() or 0
+
+        registros = []
         for i, d in enumerate(datas):
             valor_cobrado = None
             is_paid_in_package = False
