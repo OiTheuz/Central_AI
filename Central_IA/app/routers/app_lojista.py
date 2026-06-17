@@ -250,7 +250,19 @@ def confirmar_reagendamento(
         raise HTTPException(status_code=400, detail="Formato de data/hora inválido. Use YYYY-MM-DD e HH:MM.")
 
     try:
+        # 1. Remove a pendência de reagendamento
         db.execute(text("DELETE FROM appointments WHERE id = :id"), {"id": agendamento_id})
+        
+        # 2. Atualiza o agendamento original
+        db.execute(text("""
+            UPDATE appointments
+            SET data_agendamento = :nova_data, horario_agendamento = :nova_hora
+            WHERE numero_ticket = :ticket AND status IN ('aprovado', 'confirmado')
+        """), {
+            "nova_data": nova_data_obj,
+            "nova_hora": nova_hora_obj,
+            "ticket": row["numero_ticket"]
+        })
         db.commit()
     except Exception as e:
         db.rollback()
@@ -276,7 +288,7 @@ def confirmar_reagendamento(
         from app.services.push_service import enviar_notificacao_push
         if merchant.push_token:
             enviar_notificacao_push(
-                push_token=merchant.push_token,
+                push_token=str(merchant.push_token),
                 titulo="Reagendamento Confirmado ✅",
                 corpo=f"Reagendamento de {row.get('cliente_nome') or 'Cliente'} confirmado para {nova_data_obj.strftime('%d/%m/%Y')} às {nova_hora_obj.strftime('%H:%M')}.",
                 dados={"tela": "home"}
@@ -340,7 +352,7 @@ def recusar_reagendamento(
         from app.services.push_service import enviar_notificacao_push
         if merchant.push_token:
             enviar_notificacao_push(
-                push_token=merchant.push_token,
+                push_token=str(merchant.push_token),
                 titulo="Reagendamento Recusado ❌",
                 corpo=f"Reagendamento de {row.get('cliente_nome') or 'Cliente'} recusado.",
                 dados={"tela": "home"}
@@ -374,10 +386,18 @@ def aceitar_cancelamento(
         raise HTTPException(status_code=404, detail="Pendência de cancelamento não encontrada.")
 
     try:
-        db.execute(
-            text("UPDATE appointments SET status = 'cancelado' WHERE id = :id"),
-            {"id": agendamento_id}
-        )
+        # 1. Remove a pendência de cancelamento
+        db.execute(text("DELETE FROM appointments WHERE id = :id"), {"id": agendamento_id})
+        
+        # 2. Atualiza o agendamento original para cancelado
+        db.execute(text("""
+            UPDATE appointments
+            SET status = 'cancelado', motivo_cancelamento = :motivo
+            WHERE numero_ticket = :ticket AND status IN ('aprovado', 'confirmado', 'pendente')
+        """), {
+            "motivo": row["motivo_cancelamento"],
+            "ticket": row["numero_ticket"]
+        })
         db.commit()
     except Exception as e:
         db.rollback()
@@ -408,7 +428,7 @@ def aceitar_cancelamento(
         from app.services.push_service import enviar_notificacao_push
         if merchant.push_token:
             enviar_notificacao_push(
-                push_token=merchant.push_token,
+                push_token=str(merchant.push_token),
                 titulo="Cancelamento Aceito ✅",
                 corpo=f"Cancelamento de {row.get('cliente_nome') or 'Cliente'} processado com sucesso.",
                 dados={"tela": "home"}
