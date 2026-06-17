@@ -461,21 +461,16 @@ async def receive_message(request: Request, db: Session = Depends(get_public_db)
                         ).mappings().fetchone()
 
                         if ag_ref:
-                            max_ticket = db.execute(
-                                text("SELECT COALESCE(MAX(numero_ticket), 0) FROM appointments")
-                            ).scalar() or 0
-                            novo_ticket = max_ticket + 1
-
                             db.execute(text("""
                                 INSERT INTO appointments
                                     (customer_id, service_id, data_agendamento, horario_agendamento,
                                      status, origem, tipo_pendencia, numero_ticket, motivo_cancelamento)
                                 SELECT
                                     customer_id, service_id, data_agendamento, horario_agendamento,
-                                    'pendente', 'whatsapp_lau', 'cancelamento', :novo_ticket, :motivo
+                                    'pendente', 'whatsapp_lau', 'cancelamento', numero_ticket, :motivo
                                 FROM appointments
                                 WHERE id = :ag_id
-                            """), {"ag_id": ag_id_alvo, "novo_ticket": novo_ticket, "motivo": motivo_texto})
+                            """), {"ag_id": ag_id_alvo, "motivo": motivo_texto})
                             db.commit()
 
                             # Push notification ao lojista
@@ -682,28 +677,21 @@ async def receive_message(request: Request, db: Session = Depends(get_public_db)
                         ).mappings().fetchone()
                         
                         if ag_original:
-                            max_ticket = db.execute(
-                                text("SELECT COALESCE(MAX(numero_ticket), 0) FROM appointments")
-                            ).scalar()
-                            novo_ticket = (max_ticket or 0) + 1
-                            
                             db.execute(text("""
                                 INSERT INTO appointments
                                     (customer_id, service_id, data_agendamento, horario_agendamento,
                                      status, origem, tipo_pendencia, reagendamento_data, reagendamento_hora,
                                      numero_ticket)
-                                VALUES
-                                    (:c_id, :s_id, :data_orig, :hora_orig,
-                                     'pendente', 'whatsapp_lau', 'reagendamento', :reag_data, :reag_hora,
-                                     :novo_ticket)
+                                SELECT 
+                                    customer_id, service_id, data_agendamento, horario_agendamento,
+                                    'pendente', 'whatsapp_lau', 'reagendamento', :reag_data, :reag_hora,
+                                    numero_ticket
+                                FROM appointments
+                                WHERE id = :ag_id
                             """), {
-                                "c_id": ag_original["customer_id"],
-                                "s_id": ag_original["service_id"],
-                                "data_orig": ag_original["data_agendamento"],
-                                "hora_orig": ag_original["horario_agendamento"],
+                                "ag_id": ag_original["id"],
                                 "reag_data": nova_data,
                                 "reag_hora": nova_hora,
-                                "novo_ticket": novo_ticket,
                             })
                             db.commit()
                     
