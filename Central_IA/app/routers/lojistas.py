@@ -152,17 +152,21 @@ def criar_sub_usuario(
     # mas tem suas próprias credenciais e permissões
     sub_codigo = f"{loja_pai.codigo_loja}_user_{dados.email.split('@')[0]}"
 
+    # nome_do_schema precisa ser único no banco — usamos o sub_codigo como valor
+    # O schema real (da loja pai) é resolvido no login via loja_pai_id
+    sub_schema = f"sub_{sub_codigo}"[:50]  # max 50 chars conforme o model
+
     sub = Merchant(
         nome_loja=dados.nome_loja,
         codigo_loja=sub_codigo,
-        nome_do_schema=loja_pai.nome_do_schema,   # ← herda o schema da loja pai
-        numero_whatsapp=None,                      # sub-usuários não têm WhatsApp próprio
+        nome_do_schema=sub_schema,          # ← schema único só para satisfazer constraint
+        numero_whatsapp=None,
         area_atuacao=loja_pai.area_atuacao,
         email=dados.email,
         senha_hash=hash_senha(dados.senha),
         is_admin=False,
         tem_dashboard=dados.tem_dashboard,
-        loja_pai_id=lojista_id,                    # ← vínculo com a loja pai
+        loja_pai_id=lojista_id,             # ← vínculo com a loja pai (schema real)
     )
 
     db.add(sub)
