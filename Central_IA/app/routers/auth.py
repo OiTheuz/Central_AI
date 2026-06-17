@@ -114,6 +114,7 @@ def me(
 
     return {
         "id": merchant.id,
+        "nome_usuario": merchant.nome_usuario,
         "nome_loja": nome_estabelecimento,
         "codigo_loja": merchant.codigo_loja,
         "nome_do_schema": merchant.nome_do_schema,

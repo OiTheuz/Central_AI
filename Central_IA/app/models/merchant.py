@@ -8,6 +8,7 @@ class Merchant(Base):
 
     id = Column(Integer, primary_key=True, index=True)
     nome_loja = Column(String(255), unique=True, nullable=False)
+    nome_usuario = Column(String(255), nullable=True)
     codigo_loja = Column(String(50), unique=True, index=True)
     telefone_contato = Column(String(50))
     numero_whatsapp = Column(String(20), unique=True)
