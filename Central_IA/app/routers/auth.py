@@ -42,6 +42,10 @@ class SetPasswordRequest(BaseModel):
     senha: str
 
 
+class ChangePasswordRequest(BaseModel):
+    nova_senha: str
+
+
 # ─── Rotas ───────────────────────────────────────────────────
 
 @router.post("/login", response_model=LoginResponse)
@@ -119,6 +123,19 @@ def me(
         "tem_dashboard": getattr(merchant, 'tem_dashboard', False),
         "pode_editar_servicos": getattr(merchant, 'pode_editar_servicos', True),
     }
+
+
+@router.post("/change-password")
+def change_password(
+    body: ChangePasswordRequest,
+    merchant: Merchant = Depends(get_lojista_atual),
+    db: Session = Depends(get_public_db)
+):
+    """Permite ao usuário logado alterar sua própria senha."""
+    from app.services.auth_service import get_password_hash
+    merchant.senha_hash = get_password_hash(body.nova_senha)
+    db.commit()
+    return {"status": "sucesso", "mensagem": "Senha alterada com sucesso!"}
 
 
 # ─── Definição de senha — protegida por JWT do lojista ───────
