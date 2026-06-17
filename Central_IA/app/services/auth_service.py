@@ -92,8 +92,8 @@ def get_lojista_atual(
             merchant.telefone_contato = target_merchant.telefone_contato
     elif merchant.loja_pai_id:
         schema = payload.get("schema")
-        # Fallback para tokens antigos que não possuem o schema no payload
-        if not schema:
+        # Fallback para tokens antigos que não possuem o schema ou possuem schema "sub_..."
+        if not schema or schema.startswith("sub_"):
             loja_pai = db.query(Merchant).filter(Merchant.id == merchant.loja_pai_id).first()
             if loja_pai:
                 schema = loja_pai.nome_do_schema
