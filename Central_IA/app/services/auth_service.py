@@ -92,14 +92,18 @@ def get_lojista_atual(
             merchant.telefone_contato = target_merchant.telefone_contato
     elif merchant.loja_pai_id:
         schema = payload.get("schema")
+        print(f"!!! DEBUG AUTH: schema do token={schema}, merchant.loja_pai_id={merchant.loja_pai_id}", flush=True)
         # Fallback para tokens antigos que não possuem o schema ou possuem schema "sub_..."
         if not schema or schema.startswith("sub_"):
             loja_pai = db.query(Merchant).filter(Merchant.id == merchant.loja_pai_id).first()
             if loja_pai:
                 schema = loja_pai.nome_do_schema
+                print(f"!!! DEBUG AUTH: Fallback executado. Novo schema={schema}", flush=True)
         
+        print(f"!!! DEBUG AUTH: comparando schema={schema} com merchant={merchant.nome_do_schema}", flush=True)
         if schema and schema != merchant.nome_do_schema:
             db.expunge(merchant)
             merchant.nome_do_schema = schema
+            print(f"!!! DEBUG AUTH: expunged! merchant agora tem schema={merchant.nome_do_schema}", flush=True)
 
     return merchant
