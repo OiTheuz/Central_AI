@@ -97,11 +97,20 @@ def login(body: LoginRequest, db: Session = Depends(get_public_db)):
 
 
 @router.get("/me")
-def me(merchant: Merchant = Depends(get_lojista_atual)):
+def me(
+    merchant: Merchant = Depends(get_lojista_atual),
+    db: Session = Depends(get_public_db)
+):
     """Retorna dados do lojista autenticado (protegido por JWT)."""
+    nome_estabelecimento = merchant.nome_loja
+    if getattr(merchant, "loja_pai_id", None):
+        parent = db.query(Merchant).filter(Merchant.id == merchant.loja_pai_id).first()
+        if parent:
+            nome_estabelecimento = parent.nome_loja
+
     return {
         "id": merchant.id,
-        "nome_loja": merchant.nome_loja,
+        "nome_loja": nome_estabelecimento,
         "codigo_loja": merchant.codigo_loja,
         "nome_do_schema": merchant.nome_do_schema,
         "area_atuacao": merchant.area_atuacao,
@@ -176,7 +185,7 @@ def admin_list_stores(
             detail="Acesso negado. Apenas administradores podem listar lojas.",
         )
     
-    lojas = db.query(Merchant).all()
+    lojas = db.query(Merchant).filter(Merchant.loja_pai_id.is_(None)).all()
     return [{
         "id": l.id,
         "nome_loja": l.nome_loja,
