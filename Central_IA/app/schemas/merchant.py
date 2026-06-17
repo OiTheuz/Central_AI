@@ -18,8 +18,17 @@ class MerchantCreate(MerchantBase):
     tem_dashboard: bool = False
 
 
+class SubUsuarioCreate(BaseModel):
+    """Cria um sub-usuário vinculado a uma loja já existente.
+    Não cria um schema novo — herda o da loja pai."""
+    nome_loja: str           # Nome/apelido da funcionária (exibido no app)
+    email: str
+    senha: str
+    tem_dashboard: bool = False
+
+
 class MerchantUpdate(BaseModel):
-    """Schema para editar permissões de um lojista existente."""
+    """Editar permissões e dados de um lojista ou sub-usuário."""
     tem_dashboard: Optional[bool] = None
     is_admin: Optional[bool] = None
     area_atuacao: Optional[str] = None
@@ -32,7 +41,7 @@ class MerchantResponse(MerchantBase):
     is_admin: bool
     tem_dashboard: bool
     email: Optional[str] = None
-    push_token: Optional[str] = None
+    loja_pai_id: Optional[int] = None
 
     class Config:
         from_attributes = True

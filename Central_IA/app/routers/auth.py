@@ -64,9 +64,16 @@ def login(body: LoginRequest, db: Session = Depends(get_public_db)):
             detail="Email ou senha incorretos.",
         )
 
+    # Se é sub-usuário, buscar o schema da loja pai
+    schema = merchant.nome_do_schema
+    if merchant.loja_pai_id:
+        loja_pai = db.query(Merchant).filter(Merchant.id == merchant.loja_pai_id).first()
+        if loja_pai:
+            schema = loja_pai.nome_do_schema
+
     token = criar_token_jwt({
         "merchant_id": merchant.id,
-        "schema": merchant.nome_do_schema,
+        "schema": schema,
     })
 
     logger.info("Login bem-sucedido: merchant_id=%s", merchant.id)
@@ -77,13 +84,15 @@ def login(body: LoginRequest, db: Session = Depends(get_public_db)):
             "id": merchant.id,
             "nome_loja": merchant.nome_loja,
             "codigo_loja": merchant.codigo_loja,
-            "nome_do_schema": merchant.nome_do_schema,
+            "nome_do_schema": schema,
             "area_atuacao": merchant.area_atuacao,
             "telefone_contato": merchant.telefone_contato,
             "is_admin": merchant.is_admin,
             "tem_dashboard": getattr(merchant, 'tem_dashboard', False),
+            "loja_pai_id": merchant.loja_pai_id,
         },
     }
+
 
 
 @router.get("/me")

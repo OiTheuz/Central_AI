@@ -1,4 +1,4 @@
-from sqlalchemy import Column, Integer, String, Boolean
+from sqlalchemy import Column, Integer, String, Boolean, ForeignKey
 
 from app.database import Base
 
@@ -15,6 +15,7 @@ class Merchant(Base):
     area_atuacao = Column(String(100))
     is_admin = Column(Boolean, default=False, nullable=False, server_default="false")
     tem_dashboard = Column(Boolean, default=False, nullable=False, server_default="false")
+    loja_pai_id = Column(Integer, ForeignKey('merchant.id'), nullable=True)
 
 
     # Autenticação (login do lojista no app)
