@@ -99,7 +99,11 @@ def obter_agendamentos_hoje(
             a.data_agendamento, 
             a.horario_agendamento,
             a.status,
-            a.origem
+            a.origem,
+            a.numero_ticket,
+            a.tipo_pendencia,
+            a.reagendamento_data,
+            a.reagendamento_hora
         FROM appointments a
         LEFT JOIN customers c ON a.customer_id = c.id
         LEFT JOIN services s ON a.service_id = s.id
