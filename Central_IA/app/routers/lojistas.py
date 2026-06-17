@@ -178,6 +178,46 @@ def criar_sub_usuario(
     return sub
 
 # =========================================================
+# EDITAR SUB-USUÁRIO (admin mestre apenas)
+
+@router.put("/lojistas/{lojista_id}/usuarios/{usuario_id}", response_model=MerchantResponse)
+def editar_sub_usuario(
+    lojista_id: int,
+    usuario_id: int,
+    dados: MerchantUpdate,
+    db: Session = Depends(get_public_db),
+    admin: Merchant = Depends(get_lojista_atual),
+):
+    if not admin.is_admin:
+        raise HTTPException(status_code=403, detail="Apenas administradores podem editar sub-usuários.")
+
+    usuario = db.query(Merchant).filter(
+        Merchant.id == usuario_id,
+        Merchant.loja_pai_id == lojista_id
+    ).first()
+
+    if not usuario:
+        raise HTTPException(status_code=404, detail="Sub-usuário não encontrado nesta loja.")
+
+    if dados.nome_loja is not None:
+        usuario.nome_loja = dados.nome_loja
+    if dados.email is not None:
+        email_existe = db.query(Merchant).filter(Merchant.email == dados.email, Merchant.id != usuario_id).first()
+        if email_existe:
+            raise HTTPException(status_code=400, detail="E-mail já está em uso por outra conta.")
+        usuario.email = dados.email
+    if dados.senha is not None and dados.senha.strip() != "":
+        usuario.senha_hash = hash_senha(dados.senha)
+    if dados.tem_dashboard is not None:
+        usuario.tem_dashboard = dados.tem_dashboard
+    if dados.pode_editar_servicos is not None:
+        usuario.pode_editar_servicos = dados.pode_editar_servicos
+
+    db.commit()
+    db.refresh(usuario)
+    return usuario
+
+# =========================================================
 # REMOVER SUB-USUÁRIO (admin mestre apenas)
 
 @router.delete("/lojistas/{lojista_id}/usuarios/{usuario_id}")

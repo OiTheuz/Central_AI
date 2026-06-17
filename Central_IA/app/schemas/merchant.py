@@ -31,6 +31,9 @@ class SubUsuarioCreate(BaseModel):
 
 class MerchantUpdate(BaseModel):
     """Editar permissões e dados de um lojista ou sub-usuário."""
+    nome_loja: Optional[str] = None
+    email: Optional[str] = None
+    senha: Optional[str] = None
     tem_dashboard: Optional[bool] = None
     is_admin: Optional[bool] = None
     area_atuacao: Optional[str] = None
