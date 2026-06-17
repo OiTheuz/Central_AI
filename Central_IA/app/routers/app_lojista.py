@@ -787,7 +787,7 @@ def criar_agendamento_manual(
         # ── 5. Bulk insert ──
         recurrence_id = str(uuid.uuid4()) if body.isRecorrente and n_ocorrencias > 1 else None
 
-        registros = []
+        max_ticket = db.execute(\n            text(\"SELECT COALESCE(MAX(numero_ticket), 0) FROM appointments\")\n        ).scalar() or 0\n\n        registros = []
         for i, d in enumerate(datas):
             valor_cobrado = None
             is_paid_in_package = False
@@ -807,15 +807,16 @@ def criar_agendamento_manual(
                 "rec_id": recurrence_id,
                 "valor": valor_cobrado,
                 "is_paid": is_paid_in_package,
+                "numero_ticket": max_ticket + i + 1,
             })
 
         db.execute(
             text("""
                 INSERT INTO appointments
                     (customer_id, service_id, data_agendamento, horario_agendamento,
-                     status, origem, recurrence_id, valor_cobrado, is_paid_in_package)
+                     status, origem, recurrence_id, valor_cobrado, is_paid_in_package, numero_ticket)
                 VALUES
-                    (:c_id, :s_id, :data, :hora, 'aprovado', 'manual', :rec_id, :valor, :is_paid)
+                    (:c_id, :s_id, :data, :hora, 'aprovado', 'manual', :rec_id, :valor, :is_paid, :numero_ticket)
             """),
             registros,
         )
