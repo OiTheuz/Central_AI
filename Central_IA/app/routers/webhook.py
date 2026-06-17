@@ -257,6 +257,299 @@ async def receive_message(request: Request, db: Session = Depends(get_public_db)
                     else:
                         enviar_menu_intencao_whatsapp(telefone_cliente, "Por favor, selecione uma das opções abaixo usando os botões:")
                         return JSONResponse(content={"status": "recebido"}, status_code=200)
+
+                # ── Estado: Aguardando resposta pós-consulta (quer fazer alteração?) ──
+                if estado_atual == "AGUARDANDO_POS_CONSULTA":
+                    resposta_lower = texto_cliente.lower().strip()
+                    palavras_sim = ["sim", "quero", "gostaria", "pode", "s", "yes", "ok", "claro", "vou", "quero sim"]
+                    palavras_nao = ["não", "nao", "n", "no", "obrigado", "obrigada", "tá bom", "ta bom", "tudo bem", "tudo certo", "pode ser", "até", "ate"]
+                    
+                    quer_alterar = any(p in resposta_lower for p in palavras_sim)
+                    nao_quer_alterar = any(p in resposta_lower for p in palavras_nao)
+                    
+                    if nao_quer_alterar and not quer_alterar:
+                        encerrar_sessao_cliente(db, telefone_cliente)
+                        enviar_mensagem_whatsapp(
+                            numero_destino=telefone_cliente,
+                            texto="Tudo bem! 😊 Qualquer coisa é só mandar um *Oi* que estarei aqui. Até logo! 👋"
+                        )
+                        return JSONResponse(content={"status": "sucesso"}, status_code=200)
+                    elif quer_alterar:
+                        dados_sessao["state"] = "AGUARDANDO_TIPO_SOLICITACAO"
+                        salvar_sessao_cliente(db, telefone_cliente, schema_alvo, dados_sessao)
+                        enviar_mensagem_whatsapp(
+                            numero_destino=telefone_cliente,
+                            texto="Entendido! Você gostaria de solicitar um *Reagendamento* ou um *Cancelamento*?\n\n"
+                                  "Digite a opção desejada."
+                        )
+                        return JSONResponse(content={"status": "sucesso"}, status_code=200)
+                    else:
+                        # Resposta ambígua — pede confirmação
+                        enviar_mensagem_whatsapp(
+                            numero_destino=telefone_cliente,
+                            texto="Desculpe, não entendi bem. 😊 Você gostaria de fazer alguma alteração em seus agendamentos? Responda *Sim* ou *Não*."
+                        )
+                        return JSONResponse(content={"status": "sucesso"}, status_code=200)
+
+                # ── Estado: Aguardando tipo da solicitação (cancelamento ou reagendamento) ──
+                if estado_atual == "AGUARDANDO_TIPO_SOLICITACAO":
+                    resposta_lower = texto_cliente.lower().strip()
+                    
+                    is_cancelamento = "cancel" in resposta_lower
+                    is_reagendamento = "reagen" in resposta_lower or "remarc" in resposta_lower or "mudar" in resposta_lower or "alterar" in resposta_lower
+                    
+                    if is_cancelamento or is_reagendamento:
+                        tipo = "cancelamento" if is_cancelamento else "reagendamento"
+                        dados_sessao["tipo_solicitacao"] = tipo
+                        dados_sessao["state"] = "AGUARDANDO_TICKET"
+                        salvar_sessao_cliente(db, telefone_cliente, schema_alvo, dados_sessao)
+                        
+                        # Reexibe a lista de agendamentos com tickets para facilitar
+                        schema_alvo_seguro = validar_schema(str(schema_alvo))
+                        db.execute(text(f"SET search_path TO {schema_alvo_seguro}, public"))
+                        query_tickets = text("""
+                            SELECT a.numero_ticket, a.data_agendamento, a.horario_agendamento, a.status, s.nome AS servico
+                            FROM appointments a
+                            LEFT JOIN services s ON a.service_id = s.id
+                            LEFT JOIN customers c ON a.customer_id = c.id
+                            WHERE c.telefone_whatsapp = :tel
+                              AND a.data_agendamento >= CURRENT_DATE
+                              AND a.status IN ('pendente', 'aprovado', 'confirmado')
+                              AND (a.tipo_pendencia IS NULL)
+                            ORDER BY a.data_agendamento, a.horario_agendamento
+                        """)
+                        ags_ticket = db.execute(query_tickets, {"tel": telefone_cliente}).mappings().fetchall()
+                        
+                        tipo_label = "cancelamento" if tipo == "cancelamento" else "reagendamento"
+                        if ags_ticket:
+                            linhas = [f"Qual agendamento você gostaria de solicitar o {tipo_label}?\n\nInforme o *número do ticket*:\n"]
+                            for ag in ags_ticket:
+                                ticket = ag["numero_ticket"] or "?"
+                                data_str = ag["data_agendamento"].strftime("%d/%m/%Y") if ag["data_agendamento"] else "???"
+                                hora_str = ag["horario_agendamento"].strftime("%H:%M") if ag["horario_agendamento"] else "???"
+                                servico_nome = ag["servico"] or "Serviço"
+                                status_str = ag["status"].capitalize()
+                                linhas.append(f"🎫 Ticket *#{ticket}* — {servico_nome}\n   📅 {data_str} às {hora_str} | {status_str}")
+                            enviar_mensagem_whatsapp(numero_destino=telefone_cliente, texto="\n\n".join(linhas))
+                        else:
+                            encerrar_sessao_cliente(db, telefone_cliente)
+                            enviar_mensagem_whatsapp(
+                                numero_destino=telefone_cliente,
+                                texto="Parece que não há agendamentos futuros para alterar. Qualquer coisa é só mandar um *Oi*! 👋"
+                            )
+                        return JSONResponse(content={"status": "sucesso"}, status_code=200)
+                    else:
+                        enviar_mensagem_whatsapp(
+                            numero_destino=telefone_cliente,
+                            texto="Não entendi. 😊 Por favor, responda *Cancelamento* ou *Reagendamento*."
+                        )
+                        return JSONResponse(content={"status": "sucesso"}, status_code=200)
+
+                # ── Estado: Aguardando número do ticket ──
+                if estado_atual == "AGUARDANDO_TICKET":
+                    # Tenta extrair um número da mensagem do cliente
+                    numeros_encontrados = re.findall(r'\d+', texto_cliente)
+                    if not numeros_encontrados:
+                        enviar_mensagem_whatsapp(
+                            numero_destino=telefone_cliente,
+                            texto="Por favor, informe o *número do ticket* do agendamento (somente o número). 🎫"
+                        )
+                        return JSONResponse(content={"status": "sucesso"}, status_code=200)
+                    
+                    ticket_informado = int(numeros_encontrados[0])
+                    tipo_solicitacao = dados_sessao.get("tipo_solicitacao", "cancelamento")
+                    
+                    # Valida se o ticket pertence ao cliente e está em um status válido
+                    schema_alvo_seguro = validar_schema(str(schema_alvo))
+                    db.execute(text(f"SET search_path TO {schema_alvo_seguro}, public"))
+                    ag_encontrado = db.execute(text("""
+                        SELECT a.id, a.numero_ticket, a.data_agendamento, a.horario_agendamento,
+                               a.status, s.nome AS servico, c.nome AS cliente_nome
+                        FROM appointments a
+                        LEFT JOIN services s ON a.service_id = s.id
+                        LEFT JOIN customers c ON a.customer_id = c.id
+                        WHERE c.telefone_whatsapp = :tel
+                          AND a.numero_ticket = :ticket
+                          AND a.data_agendamento >= CURRENT_DATE
+                          AND a.status IN ('pendente', 'aprovado', 'confirmado')
+                          AND (a.tipo_pendencia IS NULL)
+                    """), {"tel": telefone_cliente, "ticket": ticket_informado}).mappings().fetchone()
+                    
+                    if not ag_encontrado:
+                        enviar_mensagem_whatsapp(
+                            numero_destino=telefone_cliente,
+                            texto=f"Não encontrei nenhum agendamento com o ticket *#{ticket_informado}* nos seus próximos compromissos. 🤔\n\nVerifique o número e tente novamente."
+                        )
+                        return JSONResponse(content={"status": "sucesso"}, status_code=200)
+                    
+                    # Salva o agendamento alvo na sessão
+                    dados_sessao["agendamento_id_alvo"] = ag_encontrado["id"]
+                    dados_sessao["ticket_alvo"] = ticket_informado
+                    
+                    data_fmt = ag_encontrado["data_agendamento"].strftime("%d/%m/%Y") if ag_encontrado["data_agendamento"] else "???"
+                    hora_fmt = ag_encontrado["horario_agendamento"].strftime("%H:%M") if ag_encontrado["horario_agendamento"] else "???"
+                    servico_fmt = ag_encontrado["servico"] or "Serviço"
+                    
+                    if tipo_solicitacao == "cancelamento":
+                        # Cria a pendência de cancelamento imediatamente
+                        cliente_id_row = db.execute(
+                            text("SELECT id FROM customers WHERE telefone_whatsapp = :tel"),
+                            {"tel": telefone_cliente}
+                        ).fetchone()
+                        if cliente_id_row:
+                            # Determina o próximo numero_ticket para esta pendência
+                            max_ticket = db.execute(
+                                text("SELECT COALESCE(MAX(numero_ticket), 0) FROM appointments")
+                            ).scalar()
+                            novo_ticket = (max_ticket or 0) + 1
+                            
+                            db.execute(text("""
+                                INSERT INTO appointments
+                                    (customer_id, service_id, data_agendamento, horario_agendamento,
+                                     status, origem, tipo_pendencia, numero_ticket)
+                                SELECT
+                                    customer_id, service_id, data_agendamento, horario_agendamento,
+                                    'pendente', 'whatsapp_lau', 'cancelamento', :novo_ticket
+                                FROM appointments
+                                WHERE id = :ag_id
+                            """), {"ag_id": ag_encontrado["id"], "novo_ticket": novo_ticket})
+                            db.commit()
+                        
+                        encerrar_sessao_cliente(db, telefone_cliente)
+                        enviar_mensagem_whatsapp(
+                            numero_destino=telefone_cliente,
+                            texto=(
+                                f"Solicitação de cancelamento registrada com sucesso! ✅\n\n"
+                                f"📋 *{servico_fmt}* — {data_fmt} às {hora_fmt}\n\n"
+                                f"O estabelecimento foi notificado e entrará em contato em breve. "
+                                f"Qualquer coisa, é só mandar um *Oi*! 👋"
+                            )
+                        )
+                        
+                        # Push notification ao lojista
+                        db.execute(text("SET search_path TO public"))
+                        merchant_alvo = db.query(Merchant).filter(
+                            Merchant.nome_do_schema == schema_alvo_seguro
+                        ).first()
+                        if merchant_alvo and merchant_alvo.push_token:
+                            from app.services.push_service import enviar_notificacao_push
+                            nome_cliente_push = ag_encontrado["cliente_nome"] or "Cliente"
+                            enviar_notificacao_push(
+                                push_token=merchant_alvo.push_token,
+                                titulo="Solicitação de Cancelamento 🔴",
+                                corpo=f"{nome_cliente_push} quer cancelar {servico_fmt} de {data_fmt} às {hora_fmt}.",
+                                dados={"tela": "pending"}
+                            )
+                        return JSONResponse(content={"status": "sucesso"}, status_code=200)
+                    
+                    else:  # reagendamento
+                        dados_sessao["state"] = "AGUARDANDO_NOVA_DATA_HORA"
+                        salvar_sessao_cliente(db, telefone_cliente, schema_alvo, dados_sessao)
+                        enviar_mensagem_whatsapp(
+                            numero_destino=telefone_cliente,
+                            texto=(
+                                f"Entendido! Vou solicitar o reagendamento do seu *{servico_fmt}* "
+                                f"que está marcado para {data_fmt} às {hora_fmt}.\n\n"
+                                f"📅 Qual seria a nova *data e horário* de sua preferência?"
+                            )
+                        )
+                        return JSONResponse(content={"status": "sucesso"}, status_code=200)
+
+                # ── Estado: Aguardando nova data/hora para reagendamento (via LLM) ──
+                if estado_atual == "AGUARDANDO_NOVA_DATA_HORA":
+                    # Usa o LLM apenas para extrair data e hora da mensagem do cliente
+                    historico_temp = [{"role": "user", "content": texto_cliente}]
+                    resposta_data_hora = await analisar_mensagem_com_ia(
+                        historico_temp,
+                        contexto_cliente="cliente_antigo",
+                        nome_cliente=None,
+                        servicos_disponiveis="",
+                        nome_loja=nome_loja
+                    )
+                    nova_data = resposta_data_hora.get("data")
+                    nova_hora = resposta_data_hora.get("hora")
+                    
+                    if not nova_data or not nova_hora:
+                        enviar_mensagem_whatsapp(
+                            numero_destino=telefone_cliente,
+                            texto="Não consegui identificar a data e horário. 😊 Por favor, informe no formato: *dia/mês às HH:MM* (ex: 25/07 às 14:30)."
+                        )
+                        return JSONResponse(content={"status": "sucesso"}, status_code=200)
+                    
+                    # Cria a pendência de reagendamento
+                    schema_alvo_seguro = validar_schema(str(schema_alvo))
+                    db.execute(text(f"SET search_path TO {schema_alvo_seguro}, public"))
+                    ag_id_alvo = dados_sessao.get("agendamento_id_alvo")
+                    
+                    if ag_id_alvo:
+                        ag_original = db.execute(
+                            text("SELECT * FROM appointments WHERE id = :id"),
+                            {"id": ag_id_alvo}
+                        ).mappings().fetchone()
+                        
+                        if ag_original:
+                            max_ticket = db.execute(
+                                text("SELECT COALESCE(MAX(numero_ticket), 0) FROM appointments")
+                            ).scalar()
+                            novo_ticket = (max_ticket or 0) + 1
+                            
+                            db.execute(text("""
+                                INSERT INTO appointments
+                                    (customer_id, service_id, data_agendamento, horario_agendamento,
+                                     status, origem, tipo_pendencia, reagendamento_data, reagendamento_hora,
+                                     numero_ticket)
+                                VALUES
+                                    (:c_id, :s_id, :data_orig, :hora_orig,
+                                     'pendente', 'whatsapp_lau', 'reagendamento', :reag_data, :reag_hora,
+                                     :novo_ticket)
+                            """), {
+                                "c_id": ag_original["customer_id"],
+                                "s_id": ag_original["service_id"],
+                                "data_orig": ag_original["data_agendamento"],
+                                "hora_orig": ag_original["horario_agendamento"],
+                                "reag_data": nova_data,
+                                "reag_hora": nova_hora,
+                                "novo_ticket": novo_ticket,
+                            })
+                            db.commit()
+                    
+                    # Formata para exibição
+                    try:
+                        nova_data_fmt = datetime.strptime(nova_data, "%Y-%m-%d").strftime("%d/%m/%Y")
+                    except (ValueError, TypeError):
+                        nova_data_fmt = nova_data
+                    
+                    encerrar_sessao_cliente(db, telefone_cliente)
+                    enviar_mensagem_whatsapp(
+                        numero_destino=telefone_cliente,
+                        texto=(
+                            f"Solicitação de reagendamento registrada! ✅\n\n"
+                            f"📅 Nova data solicitada: *{nova_data_fmt} às {nova_hora}*\n\n"
+                            f"O estabelecimento irá confirmar o novo horário em breve. "
+                            f"Qualquer coisa, é só mandar um *Oi*! 👋"
+                        )
+                    )
+                    
+                    # Push notification ao lojista
+                    db.execute(text("SET search_path TO public"))
+                    merchant_alvo = db.query(Merchant).filter(
+                        Merchant.nome_do_schema == schema_alvo_seguro
+                    ).first()
+                    if merchant_alvo and merchant_alvo.push_token:
+                        from app.services.push_service import enviar_notificacao_push
+                        db.execute(text(f"SET search_path TO {schema_alvo_seguro}, public"))
+                        nome_push_row = db.execute(
+                            text("SELECT nome FROM customers WHERE telefone_whatsapp = :tel"),
+                            {"tel": telefone_cliente}
+                        ).fetchone()
+                        nome_push = (nome_push_row[0] if nome_push_row else None) or "Cliente"
+                        enviar_notificacao_push(
+                            push_token=merchant_alvo.push_token,
+                            titulo="Solicitação de Reagendamento 🟡",
+                            corpo=f"{nome_push} quer reagendar para {nova_data_fmt} às {nova_hora}.",
+                            dados={"tela": "pending"}
+                        )
+                    return JSONResponse(content={"status": "sucesso"}, status_code=200)
                 
             # =========================================================
             # FLUXO LLM (Cliente já informou intenção e o roteamento foi feito)
@@ -407,30 +700,40 @@ async def receive_message(request: Request, db: Session = Depends(get_public_db)
                 db.execute(text(f"SET search_path TO {schema_alvo_seguro}, public"))
                 
                 query_consulta = text("""
-                    SELECT a.data_agendamento, a.horario_agendamento, a.status, s.nome AS servico
+                    SELECT a.id, a.numero_ticket, a.data_agendamento, a.horario_agendamento,
+                           a.status, s.nome AS servico
                     FROM appointments a
                     LEFT JOIN services s ON a.service_id = s.id
                     LEFT JOIN customers c ON a.customer_id = c.id
                     WHERE c.telefone_whatsapp = :tel
                       AND a.data_agendamento >= CURRENT_DATE
                       AND a.status IN ('pendente', 'aprovado', 'confirmado')
+                      AND (a.tipo_pendencia IS NULL)
                     ORDER BY a.data_agendamento, a.horario_agendamento
                 """)
                 
                 agendamentos_cliente = db.execute(query_consulta, {"tel": telefone_cliente}).mappings().fetchall()
                 
                 if agendamentos_cliente:
-                    linhas_msg = ["Aqui estão os seus próximos agendamentos:"]
+                    linhas_msg = ["Aqui estão os seus próximos agendamentos:\n"]
                     for ag in agendamentos_cliente:
                         data_str = ag["data_agendamento"].strftime("%d/%m/%Y") if ag["data_agendamento"] else "???"
                         hora_str = ag["horario_agendamento"].strftime("%H:%M") if ag["horario_agendamento"] else "???"
                         servico_nome = ag["servico"] or "Serviço não especificado"
                         status_str = ag["status"].capitalize()
-                        linhas_msg.append(f"Você tem um agendamento para {servico_nome} no dia {data_str} às {hora_str}. Status: {status_str}.")
-                    linhas_msg.append("\nPosso ajudar em algo mais?")
-                    msg_consulta = "\n".join(linhas_msg)
+                        ticket = ag["numero_ticket"] or "?"
+                        linhas_msg.append(
+                            f"🎫 Ticket *#{ticket}* — {servico_nome}\n"
+                            f"   📅 {data_str} às {hora_str} | {status_str}"
+                        )
+                    linhas_msg.append("\nGostaria de fazer alguma alteração em algum dos agendamentos?")
+                    msg_consulta = "\n\n".join(linhas_msg)
+                    
+                    # Salva estado para aguardar resposta do cliente
+                    dados_sessao["state"] = "AGUARDANDO_POS_CONSULTA"
+                    salvar_sessao_cliente(db, telefone_cliente, schema_alvo, dados_sessao)
                 else:
-                    msg_consulta = "Verifiquei aqui e você não tem nenhum agendamento futuro conosco. Deseja marcar um horário agora?"
+                    msg_consulta = "Verifiquei aqui e você não tem nenhum agendamento futuro conosco. Deseja marcar um horário agora? 😊"
                     
                 enviar_mensagem_whatsapp(numero_destino=telefone_cliente, texto=msg_consulta)
                 return JSONResponse(content={"status": "sucesso"}, status_code=200)

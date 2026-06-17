@@ -31,6 +31,8 @@ router = APIRouter(
 
 def _serializar_agendamento(row) -> dict:
     """Serializa uma row de agendamento para o formato JSON do app."""
+    reag_data = row["reagendamento_data"] if "reagendamento_data" in row.keys() else None
+    reag_hora = row["reagendamento_hora"] if "reagendamento_hora" in row.keys() else None
     return {
         "id": row["id"],
         "clienteNome": row["cliente_nome"] or "Cliente",
@@ -40,6 +42,10 @@ def _serializar_agendamento(row) -> dict:
         "hora": row["horario_agendamento"].strftime("%H:%M") if row["horario_agendamento"] else "--:--",
         "status": row["status"],
         "origem": (row["origem"] or "manual").lower(),
+        "numeroTicket": row["numero_ticket"] if "numero_ticket" in row.keys() else None,
+        "tipoPendencia": row["tipo_pendencia"] if "tipo_pendencia" in row.keys() else None,
+        "reagendamentoData": str(reag_data) if reag_data else None,
+        "reagendamentoHora": reag_hora.strftime("%H:%M") if reag_hora else None,
     }
 
 
@@ -134,7 +140,11 @@ def obter_agendamentos_pendentes(
             a.data_agendamento,
             a.horario_agendamento,
             a.status,
-            a.origem
+            a.origem,
+            a.numero_ticket,
+            a.tipo_pendencia,
+            a.reagendamento_data,
+            a.reagendamento_hora
         FROM appointments a
         LEFT JOIN customers c ON a.customer_id = c.id
         LEFT JOIN services s ON a.service_id = s.id
