@@ -4,9 +4,11 @@ import logging.config
 from contextlib import asynccontextmanager
 from datetime import datetime, timedelta
 
-from fastapi import FastAPI
+from fastapi import FastAPI, WebSocket, WebSocketDisconnect, Query
 from fastapi.middleware.cors import CORSMiddleware
 from app.routers import app_lojista, auth, admin, dashboards
+from app.services.websocket_manager import manager
+from app.services.auth_service import decodificar_token_jwt
 
 from app.database import engine, Base, SessionLocal
 
@@ -201,3 +203,46 @@ def home():
         "status": "online",
         "api": "API Central de Agendamento"
     }
+
+# =========================================================
+# WEBSOCKETS
+
+@app.websocket("/ws/notificacoes")
+async def websocket_notificacoes(websocket: WebSocket, token: str = Query(None)):
+    if not token:
+        await websocket.close(code=1008)
+        return
+
+    try:
+        # Decodifica o token para descobrir qual loja está conectando
+        payload = decodificar_token_jwt(token)
+        schema = payload.get("schema")
+        
+        # O administrador pode estar atuando como outra loja
+        acting_as = payload.get("acting_as")
+        if acting_as:
+            # Pra manter simples, nós mapearemos as conexões pelo "schema" associado
+            # àquele codigo_loja na DB. Porém, para evitar consulta ao banco no WS,
+            # usamos o próprio acting_as (codigo_loja) se ele existir, ou schema se não.
+            # No caso do AdminSwitch, auth_service.py usa "acting_as" = codigo_loja.
+            # Vou usar o schema original ou "sub_..." para fallbacks, ou buscar do DB.
+            pass
+
+    except Exception as e:
+        logger.error(f"WebSocket Token Inválido: {e}")
+        await websocket.close(code=1008)
+        return
+
+    # Usaremos o schema obtido do token. Se o usuário for lojista de verdade, o schema estará lá.
+    if not schema:
+        await websocket.close(code=1008)
+        return
+
+    await manager.connect(websocket, schema)
+    try:
+        while True:
+            # O cliente pode enviar ping/pongs ou mensagens, mas não esperamos processar
+            # comandos do cliente via WS. Apenas mantemos a conexão aberta.
+            data = await websocket.receive_text()
+    except WebSocketDisconnect:
+        manager.disconnect(websocket, schema)

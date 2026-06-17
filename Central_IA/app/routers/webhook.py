@@ -18,10 +18,19 @@ from app.services.whatsapp_service import (
 )
 from app.services.push_service import enviar_notificacao_push
 from app.services.session_service import get_sessao_cliente, salvar_sessao_cliente, encerrar_sessao_cliente
+from app.services.websocket_manager import manager
+import asyncio
 
 logger = logging.getLogger(__name__)
 
 router = APIRouter(tags=["Webhook"])
+
+def _notificar_atualizacao(schema: str):
+    try:
+        loop = asyncio.get_running_loop()
+        loop.create_task(manager.broadcast_to_schema(schema, {"type": "REFRESH_APPOINTMENTS"}))
+    except Exception as e:
+        logger.error(f"Erro ao disparar websocket: {e}")
 
 # =========================================================
 # DEDUPLICAÇÃO DE MENSAGENS (evita loop por retries da Meta)
@@ -472,6 +481,7 @@ async def receive_message(request: Request, db: Session = Depends(get_public_db)
                                 WHERE id = :ag_id
                             """), {"ag_id": ag_id_alvo, "motivo": motivo_texto})
                             db.commit()
+                            _notificar_atualizacao(schema_alvo_seguro)
 
                             # Push notification ao lojista
                             db.execute(text("SET search_path TO public"))
@@ -534,6 +544,7 @@ async def receive_message(request: Request, db: Session = Depends(get_public_db)
                                 WHERE id = :ag_id
                             """), {"ag_id": ag_id_alvo, "novo_ticket": novo_ticket, "motivo": motivo_texto})
                             db.commit()
+                            _notificar_atualizacao(schema_alvo_seguro)
                             db.execute(text("SET search_path TO public"))
                             merchant_alvo = db.query(Merchant).filter(
                                 Merchant.nome_do_schema == schema_alvo_seguro
@@ -694,6 +705,7 @@ async def receive_message(request: Request, db: Session = Depends(get_public_db)
                                 "reag_hora": nova_hora,
                             })
                             db.commit()
+                            _notificar_atualizacao(schema_alvo_seguro)
                     
                     # Formata para exibição
                     try:
@@ -1137,6 +1149,7 @@ async def receive_message(request: Request, db: Session = Depends(get_public_db)
                     hora_atual_obj += timedelta(minutes=dur)
 
                 db.commit()
+                _notificar_atualizacao(schema_alvo_seguro)
                 
                 encerrar_sessao_cliente(db, telefone_cliente)
                 

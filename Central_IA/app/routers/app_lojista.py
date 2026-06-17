@@ -6,9 +6,10 @@
 import logging
 import re
 import uuid
+import asyncio
 from datetime import date, datetime, timedelta
 from dateutil.relativedelta import relativedelta
-from fastapi import APIRouter, Depends, HTTPException
+from fastapi import APIRouter, Depends, HTTPException, BackgroundTasks
 from pydantic import BaseModel
 from sqlalchemy.orm import Session
 from sqlalchemy import text
@@ -18,6 +19,8 @@ from app.database import validar_schema
 from app.models import Merchant
 from app.services.auth_service import get_lojista_atual
 from app.services.whatsapp_service import enviar_mensagem_whatsapp
+from app.services.push_service import enviar_notificacao_push
+from app.services.websocket_manager import manager
 
 logger = logging.getLogger(__name__)
 
@@ -48,6 +51,12 @@ def _serializar_agendamento(row) -> dict:
         "reagendamentoHora": reag_hora.strftime("%H:%M") if reag_hora else None,
         "motivoCancelamento": row["motivo_cancelamento"] if "motivo_cancelamento" in row.keys() else None,
     }
+
+async def _broadcast_refresh(schema_name: str):
+    try:
+        await manager.broadcast_to_schema(schema_name, {"type": "REFRESH_APPOINTMENTS"})
+    except Exception as e:
+        logger.error("Erro no broadcast: %s", e)
 
 
 
@@ -227,6 +236,7 @@ class ConfirmarReagendamentoRequest(BaseModel):
 def confirmar_reagendamento(
     agendamento_id: int,
     body: ConfirmarReagendamentoRequest,
+    background_tasks: BackgroundTasks,
     db: Session = Depends(get_db),
     merchant: Merchant = Depends(get_lojista_atual),
 ):
@@ -268,6 +278,8 @@ def confirmar_reagendamento(
         db.rollback()
         raise HTTPException(status_code=500, detail=str(e))
 
+    background_tasks.add_task(_broadcast_refresh, merchant.schema_name)
+
     telefone = row["telefone_whatsapp"]
     if telefone:
         try:
@@ -285,7 +297,6 @@ def confirmar_reagendamento(
             logger.warning("Erro ao enviar WhatsApp de confirmação de reagendamento: %s", e)
 
     try:
-        from app.services.push_service import enviar_notificacao_push
         if merchant.push_token:
             enviar_notificacao_push(
                 push_token=str(merchant.push_token),
@@ -306,6 +317,7 @@ def confirmar_reagendamento(
 @router.put("/agendamentos/{agendamento_id}/recusar-reagendamento")
 def recusar_reagendamento(
     agendamento_id: int,
+    background_tasks: BackgroundTasks,
     db: Session = Depends(get_db),
     merchant: Merchant = Depends(get_lojista_atual),
 ):
@@ -328,6 +340,8 @@ def recusar_reagendamento(
         db.rollback()
         raise HTTPException(status_code=500, detail=str(e))
 
+    background_tasks.add_task(_broadcast_refresh, merchant.schema_name)
+
     telefone = row["telefone_whatsapp"]
     if telefone:
         try:
@@ -349,7 +363,6 @@ def recusar_reagendamento(
             logger.warning("Erro ao enviar WhatsApp de recusa de reagendamento: %s", e)
 
     try:
-        from app.services.push_service import enviar_notificacao_push
         if merchant.push_token:
             enviar_notificacao_push(
                 push_token=str(merchant.push_token),
@@ -370,6 +383,7 @@ def recusar_reagendamento(
 @router.put("/agendamentos/{agendamento_id}/aceitar-cancelamento")
 def aceitar_cancelamento(
     agendamento_id: int,
+    background_tasks: BackgroundTasks,
     db: Session = Depends(get_db),
     merchant: Merchant = Depends(get_lojista_atual),
 ):
@@ -403,6 +417,8 @@ def aceitar_cancelamento(
         db.rollback()
         raise HTTPException(status_code=500, detail=str(e))
 
+    background_tasks.add_task(_broadcast_refresh, merchant.schema_name)
+
     telefone = row["telefone_whatsapp"]
     if telefone:
         try:
@@ -425,7 +441,6 @@ def aceitar_cancelamento(
             logger.warning("Erro ao enviar WhatsApp de cancelamento: %s", e)
 
     try:
-        from app.services.push_service import enviar_notificacao_push
         if merchant.push_token:
             enviar_notificacao_push(
                 push_token=str(merchant.push_token),
@@ -469,9 +484,12 @@ def obter_datas_com_compromissos(
 # APROVAR AGENDAMENTO (pendente → aprovado) + WhatsApp
 # =========================================================
 
+from fastapi import BackgroundTasks
+
 @router.put("/agendamentos/{agendamento_id}/aprovar")
 def aprovar_agendamento(
     agendamento_id: int,
+    background_tasks: BackgroundTasks,
     db: Session = Depends(get_db),
     merchant: Merchant = Depends(get_lojista_atual),
 ):
@@ -513,6 +531,7 @@ def aprovar_agendamento(
         logger.error("Erro ao aprovar agendamento %s: %s", agendamento_id, e)
         raise HTTPException(status_code=500, detail="Falha ao atualizar o status do agendamento.")
 
+    background_tasks.add_task(_broadcast_refresh, merchant.schema_name)
     logger.info("Agendamento %s aprovado pelo lojista %s", agendamento_id, merchant.id)
 
     # Enviar confirmação via WhatsApp ao cliente
@@ -543,6 +562,7 @@ def aprovar_agendamento(
 @router.put("/agendamentos/{agendamento_id}/recusar")
 def recusar_agendamento(
     agendamento_id: int,
+    background_tasks: BackgroundTasks,
     db: Session = Depends(get_db),
     merchant: Merchant = Depends(get_lojista_atual),
 ):
@@ -583,6 +603,7 @@ def recusar_agendamento(
         logger.error("Erro ao recusar agendamento %s: %s", agendamento_id, e)
         raise HTTPException(status_code=500, detail="Falha ao atualizar o status do agendamento.")
 
+    background_tasks.add_task(_broadcast_refresh, merchant.schema_name)
     logger.info("Agendamento %s recusado pelo lojista %s", agendamento_id, merchant.id)
 
     # Enviar aviso via WhatsApp ao cliente
@@ -621,6 +642,7 @@ def recusar_agendamento(
 @router.put("/agendamentos/{agendamento_id}/cancelar")
 def cancelar_agendamento(
     agendamento_id: int,
+    background_tasks: BackgroundTasks,
     db: Session = Depends(get_db),
     merchant: Merchant = Depends(get_lojista_atual),
 ):
@@ -662,6 +684,7 @@ def cancelar_agendamento(
         logger.error("Erro ao cancelar agendamento %s: %s", agendamento_id, e)
         raise HTTPException(status_code=500, detail="Falha ao atualizar o status do agendamento.")
 
+    background_tasks.add_task(_broadcast_refresh, merchant.schema_name)
     logger.info("Agendamento %s cancelado pelo lojista %s", agendamento_id, merchant.id)
 
     # Enviar aviso via WhatsApp ao cliente
@@ -697,6 +720,7 @@ class RemanejamentoRequest(BaseModel):
 def remanejar_agendamento(
     agendamento_id: int,
     body: RemanejamentoRequest,
+    background_tasks: BackgroundTasks,
     db: Session = Depends(get_db),
     merchant: Merchant = Depends(get_lojista_atual),
 ):
@@ -757,6 +781,7 @@ def remanejar_agendamento(
         logger.error("Erro ao remanejar agendamento %s: %s", agendamento_id, e)
         raise HTTPException(status_code=500, detail="Falha ao atualizar o agendamento.")
 
+    background_tasks.add_task(_broadcast_refresh, merchant.schema_name)
     logger.info(
         "Agendamento %s remanejado pelo lojista %s: %s %s → %s %s",
         agendamento_id, merchant.id,
@@ -951,6 +976,7 @@ class AgendamentoManualRequest(BaseModel):
 @router.post("/agendamentos/manual")
 def criar_agendamento_manual(
     body: AgendamentoManualRequest,
+    background_tasks: BackgroundTasks,
     db: Session = Depends(get_db),
     merchant: Merchant = Depends(get_lojista_atual),
 ):
@@ -1054,6 +1080,7 @@ def criar_agendamento_manual(
             registros,
         )
         db.commit()
+        background_tasks.add_task(_broadcast_refresh, merchant.schema_name)
 
         total = len(datas)
         logger.info(
