@@ -198,3 +198,67 @@ async def analisar_mensagem_com_ia(
     except Exception as e:
         logger.error("OpenAI: erro inesperado: %s", e)
         return fallback
+
+
+# =========================================================
+# EXTRAÇÃO SIMPLES DE DATA E HORA
+# =========================================================
+async def extrair_data_hora_com_ia(texto_cliente: str, nome_loja: str) -> dict:
+    """
+    Função dedicada exclusivamente a extrair data e hora de uma string solta
+    (ex: "amanhã às 15h"). Ignora regras de nome ou serviço.
+    """
+    data_hora_atual = datetime.now().strftime("%d-%m-%Y %H:%M")
+    dias_semana_pt = ["segunda-feira", "terça-feira", "quarta-feira", "quinta-feira", "sexta-feira", "sábado", "domingo"]
+    hoje = datetime.now()
+    dia_semana_hoje = dias_semana_pt[hoje.weekday()]
+    proximos_dias = []
+    for i in range(14):
+        d = hoje + timedelta(days=i)
+        proximos_dias.append(f"  - {dias_semana_pt[d.weekday()]}: {d.strftime('%Y-%m-%d')}")
+    calendario_referencia = "\n".join(proximos_dias)
+
+    prompt_sistema = f"""Você é a Lau, assistente da loja '{nome_loja}'.
+    Sua ÚNICA função é extrair a data e o horário solicitados pelo cliente para reagendamento/cancelamento.
+    Agora é exatamente {data_hora_atual}. Hoje é {dia_semana_hoje}.
+
+    CALENDÁRIO DE REFERÊNCIA (próximos 14 dias):
+{calendario_referencia}
+
+    Regras de Interpretação:
+    - "hoje" → {hoje.strftime('%Y-%m-%d')}
+    - "amanhã" → {(hoje + timedelta(days=1)).strftime('%Y-%m-%d')}
+    - Nomes de dias da semana referem-se à PRÓXIMA ocorrência.
+
+    Formato de Saída (JSON Estrito):
+    {{
+        "data": "YYYY-MM-DD" ou null se não houver data explícita ou dedutível,
+        "hora": "HH:MM" ou null se não houver horário explícito
+    }}
+    Retorne APENAS o JSON, sem markdown.
+    """
+
+    messages_payload = cast(list[ChatCompletionMessageParam], [
+        {"role": "system", "content": prompt_sistema},
+        {"role": "user", "content": texto_cliente}
+    ])
+
+    fallback = {"data": None, "hora": None}
+
+    try:
+        response = cast(
+            ChatCompletion,
+            await client_ai.chat.completions.create(
+                model="gpt-4o-mini",
+                messages=messages_payload,
+                response_format={"type": "json_object"},
+                temperature=0.1,
+                stream=False,
+            )
+        )
+        conteudo = response.choices[0].message.content
+        if not conteudo: return fallback
+        return json.loads(conteudo)
+    except Exception as e:
+        logger.error("OpenAI erro na extração de data/hora: %s", e)
+        return fallback

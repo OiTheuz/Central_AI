@@ -10,7 +10,7 @@ from sqlalchemy import text
 from app.config import VERIFY_TOKEN
 from app.database import get_public_db, validar_schema
 from app.models import Merchant
-from app.services.openai_service import analisar_mensagem_com_ia
+from app.services.openai_service import analisar_mensagem_com_ia, extrair_data_hora_com_ia
 from app.services.whatsapp_service import (
     enviar_mensagem_whatsapp, 
     enviar_menu_intencao_whatsapp,
@@ -458,14 +458,7 @@ async def receive_message(request: Request, db: Session = Depends(get_public_db)
                 # ── Estado: Aguardando nova data/hora para reagendamento (via LLM) ──
                 if estado_atual == "AGUARDANDO_NOVA_DATA_HORA":
                     # Usa o LLM apenas para extrair data e hora da mensagem do cliente
-                    historico_temp = [{"role": "user", "content": texto_cliente}]
-                    resposta_data_hora = await analisar_mensagem_com_ia(
-                        historico_temp,
-                        contexto_cliente="cliente_antigo",
-                        nome_cliente=None,
-                        servicos_disponiveis="",
-                        nome_loja=nome_loja
-                    )
+                    resposta_data_hora = await extrair_data_hora_com_ia(texto_cliente, nome_loja)
                     nova_data = resposta_data_hora.get("data")
                     nova_hora = resposta_data_hora.get("hora")
                     
