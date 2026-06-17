@@ -278,7 +278,7 @@ def confirmar_reagendamento(
         db.rollback()
         raise HTTPException(status_code=500, detail=str(e))
 
-    background_tasks.add_task(_broadcast_refresh, merchant.schema_name)
+    background_tasks.add_task(_broadcast_refresh, merchant.nome_do_schema)
 
     telefone = row["telefone_whatsapp"]
     if telefone:
@@ -340,7 +340,7 @@ def recusar_reagendamento(
         db.rollback()
         raise HTTPException(status_code=500, detail=str(e))
 
-    background_tasks.add_task(_broadcast_refresh, merchant.schema_name)
+    background_tasks.add_task(_broadcast_refresh, merchant.nome_do_schema)
 
     telefone = row["telefone_whatsapp"]
     if telefone:
@@ -417,7 +417,7 @@ def aceitar_cancelamento(
         db.rollback()
         raise HTTPException(status_code=500, detail=str(e))
 
-    background_tasks.add_task(_broadcast_refresh, merchant.schema_name)
+    background_tasks.add_task(_broadcast_refresh, merchant.nome_do_schema)
 
     telefone = row["telefone_whatsapp"]
     if telefone:
@@ -781,7 +781,7 @@ def remanejar_agendamento(
         logger.error("Erro ao remanejar agendamento %s: %s", agendamento_id, e)
         raise HTTPException(status_code=500, detail="Falha ao atualizar o agendamento.")
 
-    background_tasks.add_task(_broadcast_refresh, merchant.schema_name)
+    background_tasks.add_task(_broadcast_refresh, merchant.nome_do_schema)
     logger.info(
         "Agendamento %s remanejado pelo lojista %s: %s %s → %s %s",
         agendamento_id, merchant.id,
@@ -1080,7 +1080,7 @@ def criar_agendamento_manual(
             registros,
         )
         db.commit()
-        background_tasks.add_task(_broadcast_refresh, merchant.schema_name)
+        background_tasks.add_task(_broadcast_refresh, merchant.nome_do_schema)
 
         total = len(datas)
         logger.info(
