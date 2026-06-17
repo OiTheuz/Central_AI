@@ -46,6 +46,7 @@ def _serializar_agendamento(row) -> dict:
         "tipoPendencia": row["tipo_pendencia"] if "tipo_pendencia" in row.keys() else None,
         "reagendamentoData": str(reag_data) if reag_data else None,
         "reagendamentoHora": reag_hora.strftime("%H:%M") if reag_hora else None,
+        "motivoCancelamento": row["motivo_cancelamento"] if "motivo_cancelamento" in row.keys() else None,
     }
 
 
@@ -103,7 +104,8 @@ def obter_agendamentos_hoje(
             a.numero_ticket,
             a.tipo_pendencia,
             a.reagendamento_data,
-            a.reagendamento_hora
+            a.reagendamento_hora,
+            a.motivo_cancelamento
         FROM appointments a
         LEFT JOIN customers c ON a.customer_id = c.id
         LEFT JOIN services s ON a.service_id = s.id
@@ -148,7 +150,8 @@ def obter_agendamentos_pendentes(
             a.numero_ticket,
             a.tipo_pendencia,
             a.reagendamento_data,
-            a.reagendamento_hora
+            a.reagendamento_hora,
+            a.motivo_cancelamento
         FROM appointments a
         LEFT JOIN customers c ON a.customer_id = c.id
         LEFT JOIN services s ON a.service_id = s.id
@@ -194,7 +197,8 @@ def obter_agendamentos_por_data(
             a.numero_ticket,
             a.tipo_pendencia,
             a.reagendamento_data,
-            a.reagendamento_hora
+            a.reagendamento_hora,
+            a.motivo_cancelamento
         FROM appointments a
         LEFT JOIN customers c ON a.customer_id = c.id
         LEFT JOIN services s ON a.service_id = s.id
@@ -208,6 +212,211 @@ def obter_agendamentos_por_data(
     agendamentos = [_serializar_agendamento(row) for row in resultados]
 
     return {"status": "sucesso", "total": len(agendamentos), "dados": agendamentos}
+
+
+# =========================================================
+# =========================================================
+# CONFIRMAR REAGENDAMENTO (lojista aceita e pode alterar data/hora)
+# =========================================================
+
+class ConfirmarReagendamentoRequest(BaseModel):
+    nova_data: str
+    nova_hora: str
+
+@router.put("/agendamentos/{agendamento_id}/confirmar-reagendamento")
+def confirmar_reagendamento(
+    agendamento_id: int,
+    body: ConfirmarReagendamentoRequest,
+    db: Session = Depends(get_db),
+    merchant: Merchant = Depends(get_lojista_atual),
+):
+    """Confirma um reagendamento: remove a pendência e notifica o cliente."""
+    row = db.execute(text("""
+        SELECT a.*, c.telefone_whatsapp, c.nome AS cliente_nome, s.nome AS servico_nome
+        FROM appointments a
+        LEFT JOIN customers c ON a.customer_id = c.id
+        LEFT JOIN services s ON a.service_id = s.id
+        WHERE a.id = :id AND a.tipo_pendencia = 'reagendamento' AND a.status = 'pendente'
+    """), {"id": agendamento_id}).mappings().first()
+
+    if not row:
+        raise HTTPException(status_code=404, detail="Pendência de reagendamento não encontrada.")
+
+    try:
+        from datetime import datetime as dt
+        nova_data_obj = dt.strptime(body.nova_data, "%Y-%m-%d").date()
+        nova_hora_obj = dt.strptime(body.nova_hora, "%H:%M").time()
+    except ValueError:
+        raise HTTPException(status_code=400, detail="Formato de data/hora inválido. Use YYYY-MM-DD e HH:MM.")
+
+    try:
+        db.execute(text("DELETE FROM appointments WHERE id = :id"), {"id": agendamento_id})
+        db.commit()
+    except Exception as e:
+        db.rollback()
+        raise HTTPException(status_code=500, detail=str(e))
+
+    telefone = row["telefone_whatsapp"]
+    if telefone:
+        try:
+            nome = row["cliente_nome"] or ""
+            servico = row["servico_nome"] or "serviço"
+            data_fmt = nova_data_obj.strftime("%d/%m/%Y")
+            hora_fmt = nova_hora_obj.strftime("%H:%M")
+            msg = (
+                f"Boa notícia{', ' + nome if nome and nome != 'Cliente' else ''}! ✅ "
+                f"Seu reagendamento para {servico} foi confirmado para o dia "
+                f"*{data_fmt} às {hora_fmt}*. Estamos te esperando! Até logo! 👋"
+            )
+            enviar_mensagem_whatsapp(numero_destino=telefone, texto=msg)
+        except Exception as e:
+            logger.warning("Erro ao enviar WhatsApp de confirmação de reagendamento: %s", e)
+
+    try:
+        from app.services.push_service import enviar_notificacao_push
+        if merchant.push_token:
+            enviar_notificacao_push(
+                push_token=merchant.push_token,
+                titulo="Reagendamento Confirmado ✅",
+                corpo=f"Reagendamento de {row.get('cliente_nome') or 'Cliente'} confirmado para {nova_data_obj.strftime('%d/%m/%Y')} às {nova_hora_obj.strftime('%H:%M')}.",
+                dados={"tela": "home"}
+            )
+    except Exception as e:
+        logger.warning("Erro ao enviar push de reagendamento: %s", e)
+
+    return {"status": "sucesso", "mensagem": "Reagendamento confirmado e cliente notificado!"}
+
+
+# =========================================================
+# RECUSAR REAGENDAMENTO
+# =========================================================
+
+@router.put("/agendamentos/{agendamento_id}/recusar-reagendamento")
+def recusar_reagendamento(
+    agendamento_id: int,
+    db: Session = Depends(get_db),
+    merchant: Merchant = Depends(get_lojista_atual),
+):
+    """Recusa um reagendamento: remove a pendência e avisa o cliente via WhatsApp."""
+    row = db.execute(text("""
+        SELECT a.*, c.telefone_whatsapp, c.nome AS cliente_nome, s.nome AS servico_nome
+        FROM appointments a
+        LEFT JOIN customers c ON a.customer_id = c.id
+        LEFT JOIN services s ON a.service_id = s.id
+        WHERE a.id = :id AND a.tipo_pendencia = 'reagendamento' AND a.status = 'pendente'
+    """), {"id": agendamento_id}).mappings().first()
+
+    if not row:
+        raise HTTPException(status_code=404, detail="Pendência de reagendamento não encontrada.")
+
+    try:
+        db.execute(text("DELETE FROM appointments WHERE id = :id"), {"id": agendamento_id})
+        db.commit()
+    except Exception as e:
+        db.rollback()
+        raise HTTPException(status_code=500, detail=str(e))
+
+    telefone = row["telefone_whatsapp"]
+    if telefone:
+        try:
+            nome = row["cliente_nome"] or ""
+            servico = row["servico_nome"] or "serviço"
+            reag_data = row.get("reagendamento_data")
+            reag_hora = row.get("reagendamento_hora")
+            data_fmt = reag_data.strftime("%d/%m/%Y") if reag_data else "??/??/????"
+            hora_fmt = reag_hora.strftime("%H:%M") if reag_hora else "??:??"
+            msg = (
+                f"Olá{', ' + nome if nome and nome != 'Cliente' else ''}! 😊 "
+                f"Infelizmente não foi possível realizar o reagendamento do seu {servico} para "
+                f"{data_fmt} às {hora_fmt}. "
+                f"Por favor, entre em contato conosco para encontrarmos a melhor solução. "
+                f"Qualquer dúvida, é só mandar um *Oi*! 👋"
+            )
+            enviar_mensagem_whatsapp(numero_destino=telefone, texto=msg)
+        except Exception as e:
+            logger.warning("Erro ao enviar WhatsApp de recusa de reagendamento: %s", e)
+
+    try:
+        from app.services.push_service import enviar_notificacao_push
+        if merchant.push_token:
+            enviar_notificacao_push(
+                push_token=merchant.push_token,
+                titulo="Reagendamento Recusado ❌",
+                corpo=f"Reagendamento de {row.get('cliente_nome') or 'Cliente'} recusado.",
+                dados={"tela": "home"}
+            )
+    except Exception as e:
+        logger.warning("Erro ao enviar push de recusa: %s", e)
+
+    return {"status": "sucesso", "mensagem": "Reagendamento recusado e cliente notificado."}
+
+
+# =========================================================
+# ACEITAR CANCELAMENTO
+# =========================================================
+
+@router.put("/agendamentos/{agendamento_id}/aceitar-cancelamento")
+def aceitar_cancelamento(
+    agendamento_id: int,
+    db: Session = Depends(get_db),
+    merchant: Merchant = Depends(get_lojista_atual),
+):
+    """Aceita um cancelamento: muda status para 'cancelado' e avisa o cliente via WhatsApp."""
+    row = db.execute(text("""
+        SELECT a.*, c.telefone_whatsapp, c.nome AS cliente_nome, s.nome AS servico_nome
+        FROM appointments a
+        LEFT JOIN customers c ON a.customer_id = c.id
+        LEFT JOIN services s ON a.service_id = s.id
+        WHERE a.id = :id AND a.tipo_pendencia = 'cancelamento' AND a.status = 'pendente'
+    """), {"id": agendamento_id}).mappings().first()
+
+    if not row:
+        raise HTTPException(status_code=404, detail="Pendência de cancelamento não encontrada.")
+
+    try:
+        db.execute(
+            text("UPDATE appointments SET status = 'cancelado' WHERE id = :id"),
+            {"id": agendamento_id}
+        )
+        db.commit()
+    except Exception as e:
+        db.rollback()
+        raise HTTPException(status_code=500, detail=str(e))
+
+    telefone = row["telefone_whatsapp"]
+    if telefone:
+        try:
+            nome = row["cliente_nome"] or ""
+            servico = row["servico_nome"] or "serviço"
+            data_orig = row.get("data_agendamento")
+            hora_orig = row.get("horario_agendamento")
+            data_fmt = data_orig.strftime("%d/%m/%Y") if data_orig else "??/??/????"
+            hora_fmt = hora_orig.strftime("%H:%M") if hora_orig else "??:??"
+            nome_loja = merchant.nome_loja or "o estabelecimento"
+            msg = (
+                f"Olá{', ' + nome if nome and nome != 'Cliente' else ''}! 😊 "
+                f"{nome_loja} recebeu sua solicitação de cancelamento do {servico} "
+                f"marcado para {data_fmt} às {hora_fmt} e está ciente. "
+                f"Sentiremos a sua falta! Quando quiser voltar, é só mandar um *Oi* "
+                f"e agendamos novamente. Até logo! 👋"
+            )
+            enviar_mensagem_whatsapp(numero_destino=telefone, texto=msg)
+        except Exception as e:
+            logger.warning("Erro ao enviar WhatsApp de cancelamento: %s", e)
+
+    try:
+        from app.services.push_service import enviar_notificacao_push
+        if merchant.push_token:
+            enviar_notificacao_push(
+                push_token=merchant.push_token,
+                titulo="Cancelamento Aceito ✅",
+                corpo=f"Cancelamento de {row.get('cliente_nome') or 'Cliente'} processado com sucesso.",
+                dados={"tela": "home"}
+            )
+    except Exception as e:
+        logger.warning("Erro ao enviar push de cancelamento: %s", e)
+
+    return {"status": "sucesso", "mensagem": "Cancelamento aceito e cliente notificado!"}
 
 
 # =========================================================

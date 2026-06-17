@@ -391,55 +391,25 @@ async def receive_message(request: Request, db: Session = Depends(get_public_db)
                     servico_fmt = ag_encontrado["servico"] or "Serviço"
                     
                     if tipo_solicitacao == "cancelamento":
-                        # Cria a pendência de cancelamento imediatamente
-                        cliente_id_row = db.execute(
-                            text("SELECT id FROM customers WHERE telefone_whatsapp = :tel"),
-                            {"tel": telefone_cliente}
-                        ).fetchone()
-                        if cliente_id_row:
-                            # Determina o próximo numero_ticket para esta pendência
-                            max_ticket = db.execute(
-                                text("SELECT COALESCE(MAX(numero_ticket), 0) FROM appointments")
-                            ).scalar()
-                            novo_ticket = (max_ticket or 0) + 1
-                            
-                            db.execute(text("""
-                                INSERT INTO appointments
-                                    (customer_id, service_id, data_agendamento, horario_agendamento,
-                                     status, origem, tipo_pendencia, numero_ticket)
-                                SELECT
-                                    customer_id, service_id, data_agendamento, horario_agendamento,
-                                    'pendente', 'whatsapp_lau', 'cancelamento', :novo_ticket
-                                FROM appointments
-                                WHERE id = :ag_id
-                            """), {"ag_id": ag_encontrado["id"], "novo_ticket": novo_ticket})
-                            db.commit()
-                        
-                        encerrar_sessao_cliente(db, telefone_cliente)
+                        # Pede motivo antes de criar a pendência
+                        dados_sessao["agendamento_id_alvo"] = ag_encontrado["id"]
+                        dados_sessao["ticket_alvo"] = ticket_informado
+                        dados_sessao["state"] = "AGUARDANDO_MOTIVO_CANCELAMENTO"
+                        salvar_sessao_cliente(db, telefone_cliente, schema_alvo, dados_sessao)
                         enviar_mensagem_whatsapp(
                             numero_destino=telefone_cliente,
                             texto=(
-                                f"Solicitação de cancelamento registrada com sucesso! ✅\n\n"
-                                f"📋 *{servico_fmt}* — {data_fmt} às {hora_fmt}\n\n"
-                                f"O estabelecimento foi notificado e entrará em contato em breve. "
-                                f"Qualquer coisa, é só mandar um *Oi*! 👋"
+                                f"Entendido! Para registrar o cancelamento do seu *{servico_fmt}* "
+                                f"marcado para {data_fmt} às {hora_fmt}, "
+                                f"precisamos do motivo.\n\n"
+                                f"Por favor, escolha uma das opções abaixo:\n\n"
+                                f"1️⃣ Compromisso de última hora\n"
+                                f"2️⃣ Problema de saúde\n"
+                                f"3️⃣ Mudança de planos\n"
+                                f"4️⃣ Não vou mais precisar do serviço\n"
+                                f"5️⃣ Outro (descreva brevemente)"
                             )
                         )
-                        
-                        # Push notification ao lojista
-                        db.execute(text("SET search_path TO public"))
-                        merchant_alvo = db.query(Merchant).filter(
-                            Merchant.nome_do_schema == schema_alvo_seguro
-                        ).first()
-                        if merchant_alvo and merchant_alvo.push_token:
-                            from app.services.push_service import enviar_notificacao_push
-                            nome_cliente_push = ag_encontrado["cliente_nome"] or "Cliente"
-                            enviar_notificacao_push(
-                                push_token=merchant_alvo.push_token,
-                                titulo="Solicitação de Cancelamento 🔴",
-                                corpo=f"{nome_cliente_push} quer cancelar {servico_fmt} de {data_fmt} às {hora_fmt}.",
-                                dados={"tela": "pending"}
-                            )
                         return JSONResponse(content={"status": "sucesso"}, status_code=200)
                     
                     else:  # reagendamento
@@ -455,7 +425,148 @@ async def receive_message(request: Request, db: Session = Depends(get_public_db)
                         )
                         return JSONResponse(content={"status": "sucesso"}, status_code=200)
 
-                # ── Estado: Aguardando nova data/hora para reagendamento (via LLM) ──
+                # ── Estado: Aguardando motivo do cancelamento ──
+                if estado_atual == "AGUARDANDO_MOTIVO_CANCELAMENTO":
+                    resposta_lower = texto_cliente.strip()
+                    motivos = {
+                        "1": "Compromisso de última hora",
+                        "2": "Problema de saúde",
+                        "3": "Mudança de planos",
+                        "4": "Não vou mais precisar do serviço",
+                    }
+                    motivo_texto = motivos.get(resposta_lower)
+                    if not motivo_texto:
+                        # Número 5 ou qualquer texto livre → usa o texto do cliente
+                        if resposta_lower == "5":
+                            dados_sessao["state"] = "AGUARDANDO_MOTIVO_LIVRE"
+                            salvar_sessao_cliente(db, telefone_cliente, schema_alvo, dados_sessao)
+                            enviar_mensagem_whatsapp(
+                                numero_destino=telefone_cliente,
+                                texto="Por favor, descreva brevemente o motivo do cancelamento:"
+                            )
+                            return JSONResponse(content={"status": "sucesso"}, status_code=200)
+                        else:
+                            # Texto livre direto — aceita como motivo
+                            motivo_texto = texto_cliente.strip()
+
+                    # Criar a pendência de cancelamento com o motivo
+                    schema_alvo_seguro = validar_schema(str(schema_alvo))
+                    db.execute(text(f"SET search_path TO {schema_alvo_seguro}, public"))
+                    ag_id_alvo = dados_sessao.get("agendamento_id_alvo")
+
+                    if ag_id_alvo:
+                        ag_ref = db.execute(
+                            text("SELECT * FROM appointments WHERE id = :id"),
+                            {"id": ag_id_alvo}
+                        ).mappings().fetchone()
+
+                        if ag_ref:
+                            max_ticket = db.execute(
+                                text("SELECT COALESCE(MAX(numero_ticket), 0) FROM appointments")
+                            ).scalar() or 0
+                            novo_ticket = max_ticket + 1
+
+                            db.execute(text("""
+                                INSERT INTO appointments
+                                    (customer_id, service_id, data_agendamento, horario_agendamento,
+                                     status, origem, tipo_pendencia, numero_ticket, motivo_cancelamento)
+                                SELECT
+                                    customer_id, service_id, data_agendamento, horario_agendamento,
+                                    'pendente', 'whatsapp_lau', 'cancelamento', :novo_ticket, :motivo
+                                FROM appointments
+                                WHERE id = :ag_id
+                            """), {"ag_id": ag_id_alvo, "novo_ticket": novo_ticket, "motivo": motivo_texto})
+                            db.commit()
+
+                            # Push notification ao lojista
+                            db.execute(text("SET search_path TO public"))
+                            merchant_alvo = db.query(Merchant).filter(
+                                Merchant.nome_do_schema == schema_alvo_seguro
+                            ).first()
+                            if merchant_alvo and merchant_alvo.push_token:
+                                nome_push_row = db.execute(
+                                    text(f"SELECT nome FROM {schema_alvo_seguro}.customers WHERE telefone_whatsapp = :tel"),
+                                    {"tel": telefone_cliente}
+                                ).fetchone()
+                                nome_push = (nome_push_row[0] if nome_push_row else None) or "Cliente"
+                                enviar_notificacao_push(
+                                    push_token=merchant_alvo.push_token,
+                                    titulo="Solicitação de Cancelamento 🔴",
+                                    corpo=f"{nome_push} quer cancelar um agendamento. Motivo: {motivo_texto}.",
+                                    dados={"tela": "pending"}
+                                )
+
+                    encerrar_sessao_cliente(db, telefone_cliente)
+                    enviar_mensagem_whatsapp(
+                        numero_destino=telefone_cliente,
+                        texto=(
+                            "Solicitação de cancelamento registrada com sucesso! ✅\n\n"
+                            "O estabelecimento foi notificado e está ciente da sua solicitação. "
+                            "Qualquer coisa, é só mandar um *Oi*! 👋"
+                        )
+                    )
+                    return JSONResponse(content={"status": "sucesso"}, status_code=200)
+
+                # ── Estado: Aguardando motivo livre do cancelamento ──
+                if estado_atual == "AGUARDANDO_MOTIVO_LIVRE":
+                    motivo_texto = texto_cliente.strip() or "Outro"
+                    # Redireciona para o estado de AGUARDANDO_MOTIVO_CANCELAMENTO com texto livre
+                    dados_sessao["state"] = "AGUARDANDO_MOTIVO_CANCELAMENTO"
+                    salvar_sessao_cliente(db, telefone_cliente, schema_alvo, dados_sessao)
+                    # Reprocessa como se o cliente tivesse enviado o motivo diretamente
+                    # Cria a pendência com o texto livre
+                    schema_alvo_seguro = validar_schema(str(schema_alvo))
+                    db.execute(text(f"SET search_path TO {schema_alvo_seguro}, public"))
+                    ag_id_alvo = dados_sessao.get("agendamento_id_alvo")
+                    if ag_id_alvo:
+                        ag_ref = db.execute(
+                            text("SELECT * FROM appointments WHERE id = :id"),
+                            {"id": ag_id_alvo}
+                        ).mappings().fetchone()
+                        if ag_ref:
+                            max_ticket = db.execute(
+                                text("SELECT COALESCE(MAX(numero_ticket), 0) FROM appointments")
+                            ).scalar() or 0
+                            novo_ticket = max_ticket + 1
+                            db.execute(text("""
+                                INSERT INTO appointments
+                                    (customer_id, service_id, data_agendamento, horario_agendamento,
+                                     status, origem, tipo_pendencia, numero_ticket, motivo_cancelamento)
+                                SELECT
+                                    customer_id, service_id, data_agendamento, horario_agendamento,
+                                    'pendente', 'whatsapp_lau', 'cancelamento', :novo_ticket, :motivo
+                                FROM appointments
+                                WHERE id = :ag_id
+                            """), {"ag_id": ag_id_alvo, "novo_ticket": novo_ticket, "motivo": motivo_texto})
+                            db.commit()
+                            db.execute(text("SET search_path TO public"))
+                            merchant_alvo = db.query(Merchant).filter(
+                                Merchant.nome_do_schema == schema_alvo_seguro
+                            ).first()
+                            if merchant_alvo and merchant_alvo.push_token:
+                                nome_push_row = db.execute(
+                                    text(f"SELECT nome FROM {schema_alvo_seguro}.customers WHERE telefone_whatsapp = :tel"),
+                                    {"tel": telefone_cliente}
+                                ).fetchone()
+                                nome_push = (nome_push_row[0] if nome_push_row else None) or "Cliente"
+                                enviar_notificacao_push(
+                                    push_token=merchant_alvo.push_token,
+                                    titulo="Solicitação de Cancelamento 🔴",
+                                    corpo=f"{nome_push} quer cancelar. Motivo: {motivo_texto}.",
+                                    dados={"tela": "pending"}
+                                )
+                    encerrar_sessao_cliente(db, telefone_cliente)
+                    enviar_mensagem_whatsapp(
+                        numero_destino=telefone_cliente,
+                        texto=(
+                            "Solicitação de cancelamento registrada com sucesso! ✅\n\n"
+                            "O estabelecimento foi notificado e está ciente da sua solicitação. "
+                            "Qualquer coisa, é só mandar um *Oi*! 👋"
+                        )
+                    )
+                    return JSONResponse(content={"status": "sucesso"}, status_code=200)
+
+                # ── Estado: Aguardando nova data/hora para reagendamento ──
                 if estado_atual == "AGUARDANDO_NOVA_DATA_HORA":
                     # Usa o LLM apenas para extrair data e hora da mensagem do cliente
                     resposta_data_hora = await extrair_data_hora_com_ia(texto_cliente, nome_loja)
@@ -468,9 +579,99 @@ async def receive_message(request: Request, db: Session = Depends(get_public_db)
                             texto="Não consegui identificar a data e horário. 😊 Por favor, informe no formato: *dia/mês às HH:MM* (ex: 25/07 às 14:30)."
                         )
                         return JSONResponse(content={"status": "sucesso"}, status_code=200)
-                    
-                    # Cria a pendência de reagendamento
+
+                    # ── Verificação de conflito para o novo horário ──
                     schema_alvo_seguro = validar_schema(str(schema_alvo))
+                    db.execute(text(f"SET search_path TO {schema_alvo_seguro}, public"))
+                    db.execute(text("SET search_path TO public"))
+                    merchant_config_reag = db.query(Merchant).filter(
+                        Merchant.nome_do_schema == schema_alvo_seguro
+                    ).first()
+                    db.execute(text(f"SET search_path TO {schema_alvo_seguro}, public"))
+
+                    duracao_reag = 30  # duração padrão
+                    ag_id_alvo_check = dados_sessao.get("agendamento_id_alvo")
+                    if ag_id_alvo_check:
+                        s_info = db.execute(text("""
+                            SELECT s.duracao_minutos FROM appointments a
+                            LEFT JOIN services s ON a.service_id = s.id
+                            WHERE a.id = :id
+                        """), {"id": ag_id_alvo_check}).fetchone()
+                        if s_info and s_info[0]:
+                            duracao_reag = int(s_info[0])
+
+                    permite_sobreposicao_reag = bool(
+                        merchant_config_reag.permitir_sobreposicao if merchant_config_reag else False
+                    )
+
+                    if not permite_sobreposicao_reag:
+                        hora_nova_obj = datetime.strptime(nova_hora, "%H:%M").time()
+                        fim_novo = (datetime.combine(datetime.today(), hora_nova_obj) + timedelta(minutes=duracao_reag)).time()
+                        ags_dia_reag = db.execute(text("""
+                            SELECT a.horario_agendamento, COALESCE(s.duracao_minutos, 30) AS dur
+                            FROM appointments a
+                            LEFT JOIN services s ON a.service_id = s.id
+                            WHERE a.data_agendamento = :data AND a.status NOT IN ('recusado', 'cancelado')
+                            ORDER BY a.horario_agendamento
+                        """), {"data": nova_data}).mappings().fetchall()
+
+                        conflito_reag = False
+                        for ag in ags_dia_reag:
+                            ag_ini = ag["horario_agendamento"]
+                            if isinstance(ag_ini, str):
+                                ag_ini = datetime.strptime(ag_ini, "%H:%M").time()
+                            ag_fim = (datetime.combine(datetime.today(), ag_ini) + timedelta(minutes=ag["dur"])).time()
+                            if hora_nova_obj < ag_fim and fim_novo > ag_ini:
+                                conflito_reag = True
+                                break
+
+                        if conflito_reag:
+                            horarios_ocup = []
+                            for ag in ags_dia_reag:
+                                ag_ini = ag["horario_agendamento"]
+                                if isinstance(ag_ini, str):
+                                    ag_ini = datetime.strptime(ag_ini, "%H:%M").time()
+                                ag_fim = (datetime.combine(datetime.today(), ag_ini) + timedelta(minutes=ag["dur"])).time()
+                                horarios_ocup.append((ag_ini, ag_fim))
+
+                            h_abre_r = merchant_config_reag.horario_abertura if merchant_config_reag else "08:00"
+                            h_fecha_r = merchant_config_reag.horario_fechamento if merchant_config_reag else "18:00"
+                            abertura_r = datetime.strptime(h_abre_r, "%H:%M").time()
+                            fechamento_r = datetime.strptime(h_fecha_r, "%H:%M").time()
+
+                            slots_antes, slots_depois = [], []
+                            cursor_r = datetime.combine(datetime.today(), abertura_r)
+                            fecha_r = datetime.combine(datetime.today(), fechamento_r)
+                            hora_nova_dt = datetime.combine(datetime.today(), hora_nova_obj)
+
+                            while cursor_r + timedelta(minutes=duracao_reag) <= fecha_r:
+                                s_ini = cursor_r.time()
+                                s_fim = (cursor_r + timedelta(minutes=duracao_reag)).time()
+                                livre = all(
+                                    not (s_ini < oc_fim and s_fim > oc_ini)
+                                    for oc_ini, oc_fim in horarios_ocup
+                                )
+                                if livre:
+                                    if cursor_r < hora_nova_dt:
+                                        slots_antes.append(s_ini.strftime("%H:%M"))
+                                    else:
+                                        slots_depois.append(s_ini.strftime("%H:%M"))
+                                cursor_r += timedelta(minutes=30)
+
+                            sugestao_antes = slots_antes[-1] if slots_antes else None
+                            sugestao_depois = slots_depois[0] if slots_depois else None
+                            sugestoes_reag = [s for s in [sugestao_antes, sugestao_depois] if s]
+
+                            msg_conflito_reag = f"Poxa, o horário das {nova_hora} já está ocupado nessa data. 😊 "
+                            if len(sugestoes_reag) == 2:
+                                msg_conflito_reag += f"Tenho disponibilidade às *{sugestoes_reag[0]}* ou às *{sugestoes_reag[1]}*. Qual você prefere?"
+                            elif len(sugestoes_reag) == 1:
+                                msg_conflito_reag += f"O horário mais próximo disponível é às *{sugestoes_reag[0]}*. Podemos reagendar para esse horário?"
+                            else:
+                                msg_conflito_reag += "Infelizmente não há mais horários disponíveis nesse dia. Que tal outra data?"
+
+                            enviar_mensagem_whatsapp(numero_destino=telefone_cliente, texto=msg_conflito_reag)
+                            return JSONResponse(content={"status": "sucesso"}, status_code=200)
                     db.execute(text(f"SET search_path TO {schema_alvo_seguro}, public"))
                     ag_id_alvo = dados_sessao.get("agendamento_id_alvo")
                     
