@@ -224,5 +224,7 @@ def admin_switch_store(
             "area_atuacao": nova_loja.area_atuacao,
             "telefone_contato": nova_loja.telefone_contato,
             "is_admin": merchant_autenticado.is_admin,
+            "tem_dashboard": True, # Admins always have dashboard
+            "pode_editar_servicos": True, # Admins always can edit services
         }
     }
