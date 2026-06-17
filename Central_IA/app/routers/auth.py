@@ -89,6 +89,7 @@ def login(body: LoginRequest, db: Session = Depends(get_public_db)):
             "telefone_contato": merchant.telefone_contato,
             "is_admin": merchant.is_admin,
             "tem_dashboard": getattr(merchant, 'tem_dashboard', False),
+            "pode_editar_servicos": getattr(merchant, 'pode_editar_servicos', True),
             "loja_pai_id": merchant.loja_pai_id,
         },
     }
@@ -107,6 +108,7 @@ def me(merchant: Merchant = Depends(get_lojista_atual)):
         "telefone_contato": merchant.telefone_contato,
         "is_admin": merchant.is_admin,
         "tem_dashboard": getattr(merchant, 'tem_dashboard', False),
+        "pode_editar_servicos": getattr(merchant, 'pode_editar_servicos', True),
     }
 
 

@@ -15,6 +15,7 @@ class Merchant(Base):
     area_atuacao = Column(String(100))
     is_admin = Column(Boolean, default=False, nullable=False, server_default="false")
     tem_dashboard = Column(Boolean, default=False, nullable=False, server_default="false")
+    pode_editar_servicos = Column(Boolean, default=True, nullable=False, server_default="true")
     loja_pai_id = Column(Integer, ForeignKey('merchant.id'), nullable=True)
 
 

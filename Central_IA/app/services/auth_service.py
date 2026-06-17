@@ -90,5 +90,10 @@ def get_lojista_atual(
             merchant.nome_loja = target_merchant.nome_loja
             merchant.area_atuacao = target_merchant.area_atuacao
             merchant.telefone_contato = target_merchant.telefone_contato
+    elif merchant.loja_pai_id:
+        schema = payload.get("schema")
+        if schema and schema != merchant.nome_do_schema:
+            db.expunge(merchant)
+            merchant.nome_do_schema = schema
 
     return merchant

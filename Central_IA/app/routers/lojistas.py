@@ -166,6 +166,7 @@ def criar_sub_usuario(
         senha_hash=hash_senha(dados.senha),
         is_admin=False,
         tem_dashboard=dados.tem_dashboard,
+        pode_editar_servicos=dados.pode_editar_servicos,
         loja_pai_id=lojista_id,             # ← vínculo com a loja pai (schema real)
     )
 

@@ -589,6 +589,9 @@ def criar_servico(
 ):
     """Cria um novo serviço no schema do lojista."""
 
+    if not merchant.pode_editar_servicos:
+        raise HTTPException(status_code=403, detail="Você não tem permissão para adicionar serviços.")
+
 
     if not body.nome.strip():
         raise HTTPException(status_code=400, detail="O nome do serviço é obrigatório.")
@@ -619,6 +622,9 @@ def atualizar_servico(
     merchant: Merchant = Depends(get_lojista_atual),
 ):
     """Atualiza um serviço existente."""
+
+    if not merchant.pode_editar_servicos:
+        raise HTTPException(status_code=403, detail="Você não tem permissão para editar serviços.")
 
 
     if not body.nome.strip():
@@ -655,6 +661,9 @@ def excluir_servico(
     merchant: Merchant = Depends(get_lojista_atual),
 ):
     """Exclui um serviço existente."""
+
+    if not merchant.pode_editar_servicos:
+        raise HTTPException(status_code=403, detail="Você não tem permissão para excluir serviços.")
 
 
     # Verifica se existe

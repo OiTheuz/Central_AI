@@ -16,6 +16,7 @@ class MerchantCreate(MerchantBase):
     senha: str
     is_admin: bool = False
     tem_dashboard: bool = False
+    pode_editar_servicos: bool = True
 
 
 class SubUsuarioCreate(BaseModel):
@@ -25,6 +26,7 @@ class SubUsuarioCreate(BaseModel):
     email: str
     senha: str
     tem_dashboard: bool = False
+    pode_editar_servicos: bool = True
 
 
 class MerchantUpdate(BaseModel):
@@ -32,6 +34,7 @@ class MerchantUpdate(BaseModel):
     tem_dashboard: Optional[bool] = None
     is_admin: Optional[bool] = None
     area_atuacao: Optional[str] = None
+    pode_editar_servicos: Optional[bool] = None
     telefone_contato: Optional[str] = None
     numero_whatsapp: Optional[str] = None
 
