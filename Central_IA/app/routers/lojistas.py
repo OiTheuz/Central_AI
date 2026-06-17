@@ -6,7 +6,8 @@ from sqlalchemy.orm import Session
 from app.database import get_public_db, validar_schema
 from app.models import Merchant
 from app.schemas import MerchantCreate, MerchantResponse
-from app.services.auth_service import get_lojista_atual
+from app.schemas.merchant import MerchantUpdate
+from app.services.auth_service import get_lojista_atual, hash_senha
 from app.services.schema_service import criar_novo_estabelecimento
 
 logger = logging.getLogger(__name__)
@@ -31,33 +32,31 @@ def criar_lojista(
 
     db_merchant = db.query(Merchant).filter(
         (Merchant.codigo_loja == merchant.codigo_loja) |
-        (Merchant.nome_do_schema == merchant.nome_do_schema)
+        (Merchant.nome_do_schema == merchant.nome_do_schema) |
+        (Merchant.email == merchant.email)
     ).first()
 
     if db_merchant:
         raise HTTPException(
             status_code=400,
-            detail="Lojista ou Schema já existe."
+            detail="Lojista, Schema ou E-mail já existe."
         )
 
-    novo_lojista = Merchant(**merchant.model_dump())
+    dados = merchant.model_dump(exclude={"senha"})
+    dados["senha_hash"] = hash_senha(merchant.senha)
+
+    novo_lojista = Merchant(**dados)
 
     db.add(novo_lojista)
     db.commit()
     db.refresh(novo_lojista)
 
     try:
-        # Usa validar_schema() centralizado (anti SQL injection)
         schema_nome = validar_schema(merchant.nome_do_schema)
-
-        # Usa schema_service para criar tabelas com estrutura consistente
-        # (appointments, customers, services — compatível com o webhook)
         criar_novo_estabelecimento(schema_nome, ["appointments", "customers", "services"])
-
         logger.info("Schema %s criado com sucesso para lojista %s", schema_nome, merchant.nome_loja)
 
     except ValueError as e:
-        # validar_schema levanta ValueError se inválido
         logger.error("Nome do schema inválido: %s", e)
         raise HTTPException(status_code=400, detail=str(e))
 
@@ -65,8 +64,7 @@ def criar_lojista(
         raise
 
     except Exception as e:
-        db.rollback()
-        logger.error("Erro ao criar schema: %s", e)
+        logger.warning("Schema pode já existir ou erro não fatal: %s", e)
 
     return novo_lojista
 
@@ -92,3 +90,32 @@ def listar_lojistas(
         .all()
 
     return lojistas
+
+# =========================================================
+# EDITAR PERMISSÕES DO LOJISTA (protegido — apenas admin)
+
+@router.patch("/lojistas/{lojista_id}", response_model=MerchantResponse)
+def editar_lojista(
+    lojista_id: int,
+    dados: MerchantUpdate,
+    db: Session = Depends(get_public_db),
+    admin: Merchant = Depends(get_lojista_atual),
+):
+    if not admin.is_admin:
+        raise HTTPException(
+            status_code=403,
+            detail="Apenas administradores podem editar lojistas.",
+        )
+
+    lojista = db.query(Merchant).filter(Merchant.id == lojista_id).first()
+    if not lojista:
+        raise HTTPException(status_code=404, detail="Lojista não encontrado.")
+
+    for campo, valor in dados.model_dump(exclude_unset=True).items():
+        setattr(lojista, campo, valor)
+
+    db.commit()
+    db.refresh(lojista)
+
+    logger.info("Lojista %s atualizado pelo admin %s", lojista_id, admin.id)
+    return lojista

@@ -81,6 +81,7 @@ def login(body: LoginRequest, db: Session = Depends(get_public_db)):
             "area_atuacao": merchant.area_atuacao,
             "telefone_contato": merchant.telefone_contato,
             "is_admin": merchant.is_admin,
+            "tem_dashboard": getattr(merchant, 'tem_dashboard', False),
         },
     }
 
@@ -96,6 +97,7 @@ def me(merchant: Merchant = Depends(get_lojista_atual)):
         "area_atuacao": merchant.area_atuacao,
         "telefone_contato": merchant.telefone_contato,
         "is_admin": merchant.is_admin,
+        "tem_dashboard": getattr(merchant, 'tem_dashboard', False),
     }
 
 
