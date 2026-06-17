@@ -86,6 +86,7 @@ def login(body: LoginRequest, db: Session = Depends(get_public_db)):
         "token": token,
         "lojista": {
             "id": merchant.id,
+            "nome_usuario": merchant.nome_usuario,
             "nome_loja": merchant.nome_loja,
             "codigo_loja": merchant.codigo_loja,
             "nome_do_schema": schema,
@@ -245,6 +246,7 @@ def admin_switch_store(
         "token": token,
         "lojista": {
             "id": merchant_autenticado.id, # Keep original ID
+            "nome_usuario": merchant_autenticado.nome_usuario,
             "nome_loja": nova_loja.nome_loja,
             "codigo_loja": nova_loja.codigo_loja,
             "nome_do_schema": nova_loja.nome_do_schema,
