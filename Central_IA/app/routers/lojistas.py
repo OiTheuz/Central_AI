@@ -158,6 +158,7 @@ def criar_sub_usuario(
 
     sub = Merchant(
         nome_loja=dados.nome_loja,
+        nome_usuario=dados.nome_usuario,
         codigo_loja=sub_codigo,
         nome_do_schema=sub_schema,          # ← schema único só para satisfazer constraint
         numero_whatsapp=None,

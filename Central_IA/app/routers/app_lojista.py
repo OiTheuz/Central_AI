@@ -531,7 +531,7 @@ def aprovar_agendamento(
         logger.error("Erro ao aprovar agendamento %s: %s", agendamento_id, e)
         raise HTTPException(status_code=500, detail="Falha ao atualizar o status do agendamento.")
 
-    background_tasks.add_task(_broadcast_refresh, merchant.schema_name)
+    background_tasks.add_task(_broadcast_refresh, merchant.nome_do_schema)
     logger.info("Agendamento %s aprovado pelo lojista %s", agendamento_id, merchant.id)
 
     # Enviar confirmação via WhatsApp ao cliente
@@ -603,7 +603,7 @@ def recusar_agendamento(
         logger.error("Erro ao recusar agendamento %s: %s", agendamento_id, e)
         raise HTTPException(status_code=500, detail="Falha ao atualizar o status do agendamento.")
 
-    background_tasks.add_task(_broadcast_refresh, merchant.schema_name)
+    background_tasks.add_task(_broadcast_refresh, merchant.nome_do_schema)
     logger.info("Agendamento %s recusado pelo lojista %s", agendamento_id, merchant.id)
 
     # Enviar aviso via WhatsApp ao cliente
@@ -684,7 +684,7 @@ def cancelar_agendamento(
         logger.error("Erro ao cancelar agendamento %s: %s", agendamento_id, e)
         raise HTTPException(status_code=500, detail="Falha ao atualizar o status do agendamento.")
 
-    background_tasks.add_task(_broadcast_refresh, merchant.schema_name)
+    background_tasks.add_task(_broadcast_refresh, merchant.nome_do_schema)
     logger.info("Agendamento %s cancelado pelo lojista %s", agendamento_id, merchant.id)
 
     # Enviar aviso via WhatsApp ao cliente

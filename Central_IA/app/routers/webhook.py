@@ -458,6 +458,9 @@ async def receive_message(request: Request, db: Session = Depends(get_public_db)
                             # Texto livre direto — aceita como motivo
                             motivo_texto = texto_cliente.strip()
 
+                    # Limpar a sessão PRIMEIRO para evitar loop infinito em caso de falha no banco
+                    encerrar_sessao_cliente(db, telefone_cliente)
+                    
                     # Criar a pendência de cancelamento com o motivo
                     schema_alvo_seguro = validar_schema(str(schema_alvo))
                     db.execute(text(f"SET search_path TO {schema_alvo_seguro}, public"))
@@ -501,13 +504,12 @@ async def receive_message(request: Request, db: Session = Depends(get_public_db)
                                     dados={"tela": "pending"}
                                 )
 
-                    encerrar_sessao_cliente(db, telefone_cliente)
                     enviar_mensagem_whatsapp(
                         numero_destino=telefone_cliente,
                         texto=(
                             "Solicitação de cancelamento registrada com sucesso! ✅\n\n"
                             "O estabelecimento foi notificado e está ciente da sua solicitação. "
-                            "Qualquer coisa, é só mandar um *Oi*! 👋"
+                            "Atendimento encerrado. Qualquer coisa, é só mandar um *Oi*! 👋"
                         )
                     )
                     return JSONResponse(content={"status": "sucesso"}, status_code=200)
@@ -515,10 +517,10 @@ async def receive_message(request: Request, db: Session = Depends(get_public_db)
                 # ── Estado: Aguardando motivo livre do cancelamento ──
                 if estado_atual == "AGUARDANDO_MOTIVO_LIVRE":
                     motivo_texto = texto_cliente.strip() or "Outro"
-                    # Redireciona para o estado de AGUARDANDO_MOTIVO_CANCELAMENTO com texto livre
-                    dados_sessao["state"] = "AGUARDANDO_MOTIVO_CANCELAMENTO"
-                    salvar_sessao_cliente(db, telefone_cliente, schema_alvo, dados_sessao)
-                    # Reprocessa como se o cliente tivesse enviado o motivo diretamente
+                    
+                    # Limpar a sessão PRIMEIRO para evitar loop infinito em caso de falha no banco
+                    encerrar_sessao_cliente(db, telefone_cliente)
+                    
                     # Cria a pendência com o texto livre
                     schema_alvo_seguro = validar_schema(str(schema_alvo))
                     db.execute(text(f"SET search_path TO {schema_alvo_seguro}, public"))
@@ -567,7 +569,7 @@ async def receive_message(request: Request, db: Session = Depends(get_public_db)
                         texto=(
                             "Solicitação de cancelamento registrada com sucesso! ✅\n\n"
                             "O estabelecimento foi notificado e está ciente da sua solicitação. "
-                            "Qualquer coisa, é só mandar um *Oi*! 👋"
+                            "Atendimento encerrado. Qualquer coisa, é só mandar um *Oi*! 👋"
                         )
                     )
                     return JSONResponse(content={"status": "sucesso"}, status_code=200)
