@@ -118,7 +118,7 @@ def migrar():
                 UPDATE "{schema_name}".appointments
                 SET numero_ticket = sub.rn
                 FROM (
-                    SELECT id, ROW_NUMBER() OVER (ORDER BY created_at ASC NULLS LAST, id ASC) AS rn
+                    SELECT id, ROW_NUMBER() OVER (ORDER BY data_agendamento ASC NULLS LAST, horario_agendamento ASC NULLS LAST, id ASC) AS rn
                     FROM "{schema_name}".appointments
                     WHERE numero_ticket IS NULL
                 ) sub
