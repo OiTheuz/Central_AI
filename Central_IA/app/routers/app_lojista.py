@@ -428,11 +428,13 @@ def aceitar_cancelamento(
             hora_orig = row.get("horario_agendamento")
             data_fmt = data_orig.strftime("%d/%m/%Y") if data_orig else "??/??/????"
             hora_fmt = hora_orig.strftime("%H:%M") if hora_orig else "??:??"
-            nome_loja = merchant.nome_loja or "o estabelecimento"
+            main_merchant = db.query(Merchant).filter(Merchant.nome_do_schema == merchant.nome_do_schema, Merchant.loja_pai_id == None).first()
+            nome_loja = main_merchant.nome_loja if main_merchant and main_merchant.nome_loja else (merchant.nome_loja or "o estabelecimento")
+            
             msg = (
                 f"Olá{', ' + nome if nome and nome != 'Cliente' else ''}! 😊 "
-                f"{nome_loja} recebeu sua solicitação de cancelamento do {servico} "
-                f"marcado para {data_fmt} às {hora_fmt} e está ciente. "
+                f"A *{nome_loja}* recebeu sua solicitação de cancelamento do *{servico}* "
+                f"marcado para {data_fmt} às {hora_fmt} e está ciente.\n\n"
                 f"Sentiremos a sua falta! Quando quiser voltar, é só mandar um *Oi* "
                 f"e agendamos novamente. Até logo! 👋"
             )
@@ -623,10 +625,13 @@ def recusar_agendamento(
             else:
                 contexto = ""
 
+            main_merchant = db.query(Merchant).filter(Merchant.nome_do_schema == merchant.nome_do_schema, Merchant.loja_pai_id == None).first()
+            nome_loja = main_merchant.nome_loja if main_merchant and main_merchant.nome_loja else (merchant.nome_loja or "o estabelecimento")
+            
             mensagem = (
-                f"Infelizmente, o estabelecimento precisou recusar a sua solicitação{contexto}. "
+                f"Infelizmente, a *{nome_loja}* precisou recusar a sua solicitação{contexto}. "
                 f"Mas você pode fazer um novo agendamento! "
-                f"É só mandar um 'Oi' para recomeçarmos. 😊"
+                f"É só mandar um *Oi* para recomeçarmos. 😊"
             )
             enviar_mensagem_whatsapp(numero_destino=telefone, texto=mensagem)
         except Exception as e:
@@ -693,12 +698,13 @@ def cancelar_agendamento(
         try:
             data_fmt = row["data_agendamento"].strftime("%d/%m/%Y") if row["data_agendamento"] else "data não informada"
             servico = row["servico_nome"] or "serviço"
-            nome_loja = merchant.nome_loja or "o estabelecimento"
+            main_merchant = db.query(Merchant).filter(Merchant.nome_do_schema == merchant.nome_do_schema, Merchant.loja_pai_id == None).first()
+            nome_loja = main_merchant.nome_loja if main_merchant and main_merchant.nome_loja else (merchant.nome_loja or "o estabelecimento")
 
             mensagem = (
-                f"Olá! Informamos que o estabelecimento *{nome_loja}* realizou o cancelamento "
-                f"do seu agendamento do serviço *{servico}* no dia *{data_fmt}*. "
-                f"Se desejar reagendar, é só mandar um 'Oi'! 😊"
+                f"Olá! Informamos que a *{nome_loja}* realizou o cancelamento "
+                f"do seu agendamento do serviço *{servico}* no dia *{data_fmt}*.\n\n"
+                f"Se desejar reagendar, é só mandar um *Oi*! 😊"
             )
             enviar_mensagem_whatsapp(numero_destino=telefone, texto=mensagem)
         except Exception as e:
@@ -800,13 +806,14 @@ def remanejar_agendamento(
     if telefone:
         try:
             servico = row["servico_nome"] or "serviço"
-            nome_loja = merchant.nome_loja or "o estabelecimento"
+            main_merchant = db.query(Merchant).filter(Merchant.nome_do_schema == merchant.nome_do_schema, Merchant.loja_pai_id == None).first()
+            nome_loja = main_merchant.nome_loja if main_merchant and main_merchant.nome_loja else (merchant.nome_loja or "o estabelecimento")
 
             mensagem = (
-                f"Olá! O estabelecimento *{nome_loja}* realizou uma alteração no seu agendamento "
+                f"Olá! A *{nome_loja}* realizou uma alteração no seu agendamento "
                 f"do serviço *{servico}*, passando do dia/horário "
                 f"*{data_antiga_fmt} às {hora_antiga_fmt}* "
-                f"para *{nova_data_fmt} às {body.nova_hora}*. "
+                f"para *{nova_data_fmt} às {body.nova_hora}*.\n\n"
                 f"Se tiver alguma dúvida, é só falar! 😊"
             )
             enviar_mensagem_whatsapp(numero_destino=telefone, texto=mensagem)

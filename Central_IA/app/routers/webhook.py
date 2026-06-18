@@ -506,9 +506,9 @@ async def receive_message(request: Request, db: Session = Depends(get_public_db)
                     enviar_mensagem_whatsapp(
                         numero_destino=telefone_cliente,
                         texto=(
-                            f"Solicitação de cancelamento registrada com sucesso! ✅\n\n"
-                            f"A *{nome_loja}* foi notificada e já está ciente da sua solicitação.\n\n"
-                            f"Agradecemos o contato e esperamos te ver em breve! Se precisar de mais alguma coisa depois, é só mandar um *Oi*. Até logo! 👋"
+                            f"Sua solicitação foi enviada para a *{nome_loja}*! ✅\n\n"
+                            f"Assim que confirmarem no aplicativo, te avisaremos por aqui. "
+                            f"Qualquer dúvida, é só mandar um *Oi*. Até logo! 👋"
                         )
                     )
                     return JSONResponse(content={"status": "sucesso"}, status_code=200)
@@ -566,9 +566,9 @@ async def receive_message(request: Request, db: Session = Depends(get_public_db)
                     enviar_mensagem_whatsapp(
                         numero_destino=telefone_cliente,
                         texto=(
-                            f"Solicitação de cancelamento registrada com sucesso! ✅\n\n"
-                            f"A *{nome_loja}* foi notificada e já está ciente da sua solicitação.\n\n"
-                            f"Agradecemos o contato e esperamos te ver em breve! Se precisar de mais alguma coisa depois, é só mandar um *Oi*. Até logo! 👋"
+                            f"Sua solicitação foi enviada para a *{nome_loja}*! ✅\n\n"
+                            f"Assim que confirmarem no aplicativo, te avisaremos por aqui. "
+                            f"Qualquer dúvida, é só mandar um *Oi*. Até logo! 👋"
                         )
                     )
                     return JSONResponse(content={"status": "sucesso"}, status_code=200)
