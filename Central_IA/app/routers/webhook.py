@@ -507,7 +507,7 @@ async def receive_message(request: Request, db: Session = Depends(get_public_db)
                         numero_destino=telefone_cliente,
                         texto=(
                             f"Sua solicitação foi enviada para a *{nome_loja}*! ✅\n\n"
-                            f"Assim que confirmarem no aplicativo, te avisaremos por aqui. "
+                            f"Assim que o cancelamento for confirmado, te avisaremos por aqui. "
                             f"Qualquer dúvida, é só mandar um *Oi*. Até logo! 👋"
                         )
                     )
@@ -567,7 +567,7 @@ async def receive_message(request: Request, db: Session = Depends(get_public_db)
                         numero_destino=telefone_cliente,
                         texto=(
                             f"Sua solicitação foi enviada para a *{nome_loja}*! ✅\n\n"
-                            f"Assim que confirmarem no aplicativo, te avisaremos por aqui. "
+                            f"Assim que o cancelamento for confirmado, te avisaremos por aqui. "
                             f"Qualquer dúvida, é só mandar um *Oi*. Até logo! 👋"
                         )
                     )
