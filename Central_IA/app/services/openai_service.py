@@ -72,6 +72,7 @@ async def analisar_mensagem_com_ia(
 
     Sua única função é extrair dados essenciais da mensagem do cliente e estruturar o JSON de resposta.
     PROIBIDO: Não gere nenhuma saudação amigável (como "Bom dia", "Olá", "Tudo bem?") por conta própria no campo 'mensagem_resposta'. A saudação já é tratada pelo sistema.
+    PROIBIDO: NUNCA use as palavras genéricas "estabelecimento" ou "lojista" nas suas respostas. Refira-se à loja sempre pelo seu nome oficial: "{nome_loja}".
 
     CONTEXTO DO CLIENTE: O cliente atual está classificado como '{contexto_cliente}'.
     NOME DO CLIENTE: '{nome_display or "desconhecido"}'.
@@ -234,8 +235,9 @@ async def extrair_data_hora_com_ia(texto_cliente: str, nome_loja: str) -> dict:
     - "amanhã" → {(hoje + timedelta(days=1)).strftime('%Y-%m-%d')}
     - Nomes de dias da semana referem-se à PRÓXIMA ocorrência.
     - O ANO ATUAL é {hoje.year}. Se o cliente não especificar o ano, assuma {hoje.year}.
-    - Se o cliente informar apenas dia e mês (ex: "25/01", "dia 15 de março"), use o ano {hoje.year}.
-    - REGRA CRÍTICA: É PROIBIDO retornar qualquer data anterior a {hoje.strftime('%Y-%m-%d')}. Se a data resultante for no passado, retorne null para o campo "data".
+    - Se o cliente informar apenas dia e mês (ex: "25/01", "dia 15 de março"): se a data resultante já passou no ano atual, assuma AUTOMATICAMENTE que ele está falando do ANO QUE VEM.
+    - Se o cliente informar APENAS O DIA (ex: "dia 10") e o dia 10 deste mês já passou, assuma AUTOMATICAMENTE o PRÓXIMO MÊS.
+    - REGRA CRÍTICA: É PROIBIDO retornar qualquer data anterior a {hoje.strftime('%Y-%m-%d')}. Se a data resultante (mesmo com ajustes) for no passado, retorne null para o campo "data".
 
     Formato de Saída (JSON Estrito):
     {{
