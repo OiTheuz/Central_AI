@@ -7,11 +7,11 @@ class Merchant(Base):
     __tablename__ = "merchant"
 
     id = Column(Integer, primary_key=True, index=True)
-    nome_loja = Column(String(255), unique=True, nullable=False)
+    nome_loja = Column(String(255), nullable=False)  # not unique: sub-users share the store name
     nome_usuario = Column(String(255), nullable=True)
     codigo_loja = Column(String(50), unique=True, index=True)
     telefone_contato = Column(String(50))
-    numero_whatsapp = Column(String(20), unique=True)
+    numero_whatsapp = Column(String(20), nullable=True)  # not unique: sub-users share None
     nome_do_schema = Column(String(50), unique=True, nullable=False)
     area_atuacao = Column(String(100))
     is_admin = Column(Boolean, default=False, nullable=False, server_default="false")

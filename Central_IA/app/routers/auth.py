@@ -82,12 +82,19 @@ def login(body: LoginRequest, db: Session = Depends(get_public_db)):
 
     logger.info("Login bem-sucedido: merchant_id=%s", merchant.id)
 
+    # Para sub-usuários, exibir o nome do estabelecimento pai no card
+    nome_loja_exibicao = merchant.nome_loja
+    if merchant.loja_pai_id:
+        loja_pai_exib = db.query(Merchant).filter(Merchant.id == merchant.loja_pai_id).first()
+        if loja_pai_exib:
+            nome_loja_exibicao = loja_pai_exib.nome_loja
+
     return {
         "token": token,
         "lojista": {
             "id": merchant.id,
             "nome_usuario": merchant.nome_usuario,
-            "nome_loja": merchant.nome_loja,
+            "nome_loja": nome_loja_exibicao,
             "codigo_loja": merchant.codigo_loja,
             "nome_do_schema": schema,
             "area_atuacao": merchant.area_atuacao,
