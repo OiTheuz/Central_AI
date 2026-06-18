@@ -141,8 +141,7 @@ def change_password(
     db: Session = Depends(get_public_db)
 ):
     """Permite ao usuário logado alterar sua própria senha."""
-    from app.services.auth_service import get_password_hash
-    merchant.senha_hash = get_password_hash(body.nova_senha)
+    merchant.senha_hash = hash_senha(body.nova_senha)  # type: ignore[assignment]
     db.commit()
     return {"status": "sucesso", "mensagem": "Senha alterada com sucesso!"}
 
