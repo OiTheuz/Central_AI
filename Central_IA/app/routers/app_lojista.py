@@ -1293,3 +1293,24 @@ def bloquear_horario(
     background_tasks.add_task(_broadcast_refresh, str(merchant.nome_do_schema))
     
     return {"status": "sucesso", "mensagem": "Horário bloqueado com sucesso."}
+
+
+class ChangePasswordRequestMobile(BaseModel):
+    nova_senha: str
+
+@router.post("/auth/change-password")
+def change_password_mobile(
+    body: ChangePasswordRequestMobile,
+    merchant: Merchant = Depends(get_lojista_atual)
+):
+    """Permite ao usuário logado alterar sua própria senha pelo app mobile."""
+    from app.services.auth_service import hash_senha
+    from app.database import SessionLocal
+    
+    with SessionLocal() as public_db:
+        pub_merchant = public_db.query(Merchant).filter(Merchant.id == merchant.id).first()
+        if pub_merchant:
+            pub_merchant.senha_hash = hash_senha(body.nova_senha)
+            public_db.commit()
+            
+    return {"status": "sucesso", "mensagem": "Senha alterada com sucesso!"}
