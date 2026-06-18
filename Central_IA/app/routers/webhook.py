@@ -1205,10 +1205,10 @@ async def receive_message(request: Request, db: Session = Depends(get_public_db)
                 )
                 mensagem_envio = (
                     f"Tudo certo, {nome_final}! Salvei a sua intenção de agendamento. "
-                    f"Aguarde um instante, o lojista já vai confirmar e eu te aviso aqui! ☺️"
+                    f"Aguarde um instante, a *{nome_loja}* já vai confirmar e eu te aviso aqui! ☺️"
                     if nome_final else
-                    "Tudo certo! Salvei a sua intenção de agendamento. "
-                    "Aguarde um instante, o lojista já vai confirmar e eu te aviso aqui! ☺️"
+                    f"Tudo certo! Salvei a sua intenção de agendamento. "
+                    f"Aguarde um instante, a *{nome_loja}* já vai confirmar e eu te aviso aqui! ☺️"
                 )
                 enviar_mensagem_whatsapp(numero_destino=telefone_cliente, texto=mensagem_envio)
                 
