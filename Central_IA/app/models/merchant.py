@@ -31,4 +31,9 @@ class Merchant(Base):
     permitir_sobreposicao = Column(Boolean, default=False, nullable=False, server_default="false")
     horario_abertura = Column(String(5), default="08:00", nullable=False, server_default="08:00")
     horario_fechamento = Column(String(5), default="18:00", nullable=False, server_default="18:00")
+    
+    # Bloqueios e Almoço
+    dias_fechados = Column(String(50), nullable=True)  # "0,6" onde 0=Segunda, 6=Domingo
+    horario_almoco_inicio = Column(String(5), nullable=True)
+    horario_almoco_fim = Column(String(5), nullable=True)
 

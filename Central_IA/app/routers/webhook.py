@@ -634,15 +634,40 @@ async def receive_message(request: Request, db: Session = Depends(get_public_db)
                             ORDER BY a.horario_agendamento
                         """), {"data": nova_data}).mappings().fetchall()
 
+                        dias_fechados = []
+                        almoco_inicio = None
+                        almoco_fim = None
+                        if merchant_config_reag:
+                            if merchant_config_reag.dias_fechados:
+                                dias_fechados = merchant_config_reag.dias_fechados.split(",")
+                            if merchant_config_reag.horario_almoco_inicio and merchant_config_reag.horario_almoco_fim:
+                                almoco_inicio = datetime.strptime(merchant_config_reag.horario_almoco_inicio, "%H:%M").time()
+                                almoco_fim = datetime.strptime(merchant_config_reag.horario_almoco_fim, "%H:%M").time()
+
+                        data_obj = datetime.strptime(nova_data, "%Y-%m-%d").date()
+                        if str(data_obj.weekday()) in dias_fechados:
+                            enviar_mensagem_whatsapp(
+                                numero_destino=telefone_cliente,
+                                texto="Infelizmente o estabelecimento está fechado neste dia da semana. Que tal reagendarmos para outro dia?"
+                            )
+                            return JSONResponse(content={"status": "sucesso"}, status_code=200)
+
+                        hora_nova_obj = datetime.strptime(nova_hora, "%H:%M").time()
+                        fim_novo = (datetime.combine(datetime.today(), hora_nova_obj) + timedelta(minutes=duracao_reag)).time()
+                        
                         conflito_reag = False
-                        for ag in ags_dia_reag:
-                            ag_ini = ag["horario_agendamento"]
-                            if isinstance(ag_ini, str):
-                                ag_ini = datetime.strptime(ag_ini, "%H:%M").time()
-                            ag_fim = (datetime.combine(datetime.today(), ag_ini) + timedelta(minutes=ag["dur"])).time()
-                            if hora_nova_obj < ag_fim and fim_novo > ag_ini:
-                                conflito_reag = True
-                                break
+                        if almoco_inicio and almoco_fim and (hora_nova_obj < almoco_fim and fim_novo > almoco_inicio):
+                            conflito_reag = True
+                        
+                        if not conflito_reag:
+                            for ag in ags_dia_reag:
+                                ag_ini = ag["horario_agendamento"]
+                                if isinstance(ag_ini, str):
+                                    ag_ini = datetime.strptime(ag_ini, "%H:%M").time()
+                                ag_fim = (datetime.combine(datetime.today(), ag_ini) + timedelta(minutes=ag["dur"])).time()
+                                if hora_nova_obj < ag_fim and fim_novo > ag_ini:
+                                    conflito_reag = True
+                                    break
 
                         if conflito_reag:
                             horarios_ocup = []
@@ -670,6 +695,10 @@ async def receive_message(request: Request, db: Session = Depends(get_public_db)
                                     not (s_ini < oc_fim and s_fim > oc_ini)
                                     for oc_ini, oc_fim in horarios_ocup
                                 )
+                                if livre and almoco_inicio and almoco_fim:
+                                    if s_ini < almoco_fim and s_fim > almoco_inicio:
+                                        livre = False
+                                
                                 if livre:
                                     if cursor_r < hora_nova_dt:
                                         slots_antes.append(s_ini.strftime("%H:%M"))
@@ -1089,17 +1118,45 @@ async def receive_message(request: Request, db: Session = Depends(get_public_db)
                     hora_pedida = datetime.strptime(hora, "%H:%M").time()
                     fim_pedido = (datetime.combine(datetime.today(), hora_pedida) + timedelta(minutes=duracao_serv)).time()
 
-                    conflito = False
-                    for ag in agendamentos_dia:
-                        ag_inicio = ag["horario_agendamento"]
-                        if isinstance(ag_inicio, str):
-                            ag_inicio = datetime.strptime(ag_inicio, "%H:%M").time()
-                        ag_fim = (datetime.combine(datetime.today(), ag_inicio) + timedelta(minutes=ag["dur"])).time()
+                    dias_fechados = []
+                    almoco_inicio = None
+                    almoco_fim = None
+                    if merchant_config:
+                        if merchant_config.dias_fechados:
+                            dias_fechados = merchant_config.dias_fechados.split(",")
+                        if merchant_config.horario_almoco_inicio and merchant_config.horario_almoco_fim:
+                            almoco_inicio = datetime.strptime(merchant_config.horario_almoco_inicio, "%H:%M").time()
+                            almoco_fim = datetime.strptime(merchant_config.horario_almoco_fim, "%H:%M").time()
 
-                        # Sobreposição: início_pedido < fim_existente AND fim_pedido > início_existente
-                        if hora_pedida < ag_fim and fim_pedido > ag_inicio:
-                            conflito = True
-                            break
+                    data_obj = datetime.strptime(data, "%Y-%m-%d").date()
+                    if str(data_obj.weekday()) in dias_fechados:
+                        # Limpar a hora e a data do estado para a IA capturar a nova escolha do cliente
+                        estado["data"] = None
+                        estado["hora"] = None
+                        dados_atualizados = dados_sessao.copy() if dados_sessao else {}
+                        dados_atualizados["estado"] = estado
+                        dados_atualizados["ja_saudou"] = True
+                        salvar_sessao_cliente(db, telefone_cliente, schema_alvo_seguro, dados_atualizados)
+                        enviar_mensagem_whatsapp(
+                            numero_destino=telefone_cliente,
+                            texto=f"{saudacao_fixa}Infelizmente estamos fechados neste dia da semana. Que tal agendar para outro dia?"
+                        )
+                        return JSONResponse(content={"status": "sucesso"}, status_code=200)
+
+                    conflito = False
+                    if almoco_inicio and almoco_fim and (hora_pedida < almoco_fim and fim_pedido > almoco_inicio):
+                        conflito = True
+                    if not conflito:
+                        for ag in agendamentos_dia:
+                            ag_inicio = ag["horario_agendamento"]
+                            if isinstance(ag_inicio, str):
+                                ag_inicio = datetime.strptime(ag_inicio, "%H:%M").time()
+                            ag_fim = (datetime.combine(datetime.today(), ag_inicio) + timedelta(minutes=ag["dur"])).time()
+
+                            # Sobreposição: início_pedido < fim_existente AND fim_pedido > início_existente
+                            if hora_pedida < ag_fim and fim_pedido > ag_inicio:
+                                conflito = True
+                                break
 
                     if conflito:
                         # Sugerir próximo horário livre
@@ -1133,6 +1190,10 @@ async def receive_message(request: Request, db: Session = Depends(get_public_db)
                                 if slot_inicio < oc_fim and slot_fim > oc_ini:
                                     livre = False
                                     break
+                            
+                            if livre and almoco_inicio and almoco_fim:
+                                if slot_inicio < almoco_fim and slot_fim > almoco_inicio:
+                                    livre = False
                             if livre:
                                 # Diferença absoluta em minutos
                                 diff = abs(
