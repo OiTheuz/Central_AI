@@ -2,6 +2,7 @@ import logging
 import re
 from collections import OrderedDict
 from datetime import datetime, time as time_type, timedelta
+from zoneinfo import ZoneInfo
 from fastapi import APIRouter, Depends, Request
 from fastapi.responses import JSONResponse, PlainTextResponse
 from sqlalchemy.orm import Session
@@ -86,7 +87,7 @@ def _encontrar_lojista(texto: str, lojistas: list[Merchant]) -> Merchant | None:
 # FUNÇÃO AUXILIAR: SAUDAÇÃO POR HORÁRIO
 # =========================================================
 def _saudacao_por_horario() -> str:
-    hora = datetime.now().hour
+    hora = datetime.now(ZoneInfo("America/Sao_Paulo")).hour
     if hora < 12:
         return "Bom dia"
     elif hora < 18:
@@ -226,10 +227,8 @@ async def receive_message(request: Request, db: Session = Depends(get_public_db)
                 # Estado Inicial: Cliente mandou primeira mensagem
                 if not sessao_atual:
                     texto_pergunta = (
-                        f"{saudacao}! 🌻 Que bom ter você por aqui.\n\n"
-                        f"Eu sou a Lau, a secretária virtual exclusiva da {nome_loja}. "
-                        f"Estou aqui para organizar o seu atendimento num piscar de olhos! \n\n"
-                        f"Você gostaria de agendar um horário ou consultar seus agendamentos?"
+                        f"{saudacao}! 😊 Sou a Lau, assistente da *{nome_loja}*.\n\n"
+                        f"Como posso te ajudar?"
                     )
                     enviar_menu_intencao_whatsapp(telefone_cliente, texto_pergunta)
                     salvar_sessao_cliente(db, telefone_cliente, schema_alvo, dados_sessao={"state": "AGUARDANDO_INTENCAO"})
@@ -253,7 +252,7 @@ async def receive_message(request: Request, db: Session = Depends(get_public_db)
                             try:
                                 servicos_rows = db.execute(text("SELECT id FROM services")).fetchall()
                                 if not servicos_rows:
-                                    enviar_mensagem_whatsapp(telefone_cliente, "Este estabelecimento ainda não possui serviços disponíveis no momento.")
+                                    enviar_mensagem_whatsapp(telefone_cliente, f"A *{nome_loja}* ainda não possui serviços disponíveis no momento.")
                                     return JSONResponse(content={"status": "recebido"}, status_code=200)
                                 
                                 # Forja a mensagem para que a IA inicie listando os serviços disponíveis
@@ -507,9 +506,9 @@ async def receive_message(request: Request, db: Session = Depends(get_public_db)
                     enviar_mensagem_whatsapp(
                         numero_destino=telefone_cliente,
                         texto=(
-                            "Solicitação de cancelamento registrada com sucesso! ✅\n\n"
-                            "O estabelecimento foi notificado e está ciente da sua solicitação. "
-                            "Atendimento encerrado. Qualquer coisa, é só mandar um *Oi*! 👋"
+                            f"Solicitação de cancelamento registrada com sucesso! ✅\n\n"
+                            f"A *{nome_loja}* foi notificada e já está ciente da sua solicitação. "
+                            f"Atendimento encerrado. Qualquer coisa, é só mandar um *Oi*! 👋"
                         )
                     )
                     return JSONResponse(content={"status": "sucesso"}, status_code=200)
@@ -567,9 +566,9 @@ async def receive_message(request: Request, db: Session = Depends(get_public_db)
                     enviar_mensagem_whatsapp(
                         numero_destino=telefone_cliente,
                         texto=(
-                            "Solicitação de cancelamento registrada com sucesso! ✅\n\n"
-                            "O estabelecimento foi notificado e está ciente da sua solicitação. "
-                            "Atendimento encerrado. Qualquer coisa, é só mandar um *Oi*! 👋"
+                            f"Solicitação de cancelamento registrada com sucesso! ✅\n\n"
+                            f"A *{nome_loja}* foi notificada e já está ciente da sua solicitação. "
+                            f"Atendimento encerrado. Qualquer coisa, é só mandar um *Oi*! 👋"
                         )
                     )
                     return JSONResponse(content={"status": "sucesso"}, status_code=200)
@@ -587,6 +586,18 @@ async def receive_message(request: Request, db: Session = Depends(get_public_db)
                             texto="Não consegui identificar a data e horário. 😊 Por favor, informe no formato: *dia/mês às HH:MM* (ex: 25/07 às 14:30)."
                         )
                         return JSONResponse(content={"status": "sucesso"}, status_code=200)
+
+                    # Validação: impedir reagendamento para data no passado
+                    try:
+                        nova_data_obj = datetime.strptime(nova_data, "%Y-%m-%d").date()
+                        if nova_data_obj < datetime.now(ZoneInfo("America/Sao_Paulo")).date():
+                            enviar_mensagem_whatsapp(
+                                numero_destino=telefone_cliente,
+                                texto="Não é possível reagendar para uma data que já passou. 😊 Por favor, informe uma data futura."
+                            )
+                            return JSONResponse(content={"status": "sucesso"}, status_code=200)
+                    except ValueError:
+                        pass
 
                     # ── Verificação de conflito para o novo horário ──
                     schema_alvo_seguro = validar_schema(str(schema_alvo))
@@ -721,7 +732,7 @@ async def receive_message(request: Request, db: Session = Depends(get_public_db)
                         texto=(
                             f"Solicitação de reagendamento registrada! ✅\n\n"
                             f"📅 Nova data solicitada: *{nova_data_fmt} às {nova_hora}*\n\n"
-                            f"O estabelecimento irá confirmar o novo horário em breve. "
+                            f"A *{nome_loja}* irá confirmar o novo horário em breve. "
                             f"Qualquer coisa, é só mandar um *Oi*! 👋"
                         )
                     )
@@ -732,7 +743,6 @@ async def receive_message(request: Request, db: Session = Depends(get_public_db)
                         Merchant.nome_do_schema == schema_alvo_seguro
                     ).first()
                     if merchant_alvo and merchant_alvo.push_token:
-                        from app.services.push_service import enviar_notificacao_push
                         db.execute(text(f"SET search_path TO {schema_alvo_seguro}, public"))
                         nome_push_row = db.execute(
                             text("SELECT nome FROM customers WHERE telefone_whatsapp = :tel"),
@@ -996,10 +1006,37 @@ async def receive_message(request: Request, db: Session = Depends(get_public_db)
                 nomes_nao_encontrados = []
                 
                 for s_nome in servicos_escolhidos:
+                    # Primeiro tenta match exato (case-insensitive)
                     s_db = db.execute(
                         text("SELECT id, nome, duracao_minutos FROM services WHERE nome ILIKE :nome LIMIT 1"),
-                        {"nome": f"%{s_nome}%"}
+                        {"nome": s_nome}
                     ).mappings().fetchone()
+                    
+                    if not s_db:
+                        # Se não houver match exato, busca parcial
+                        todos_matches = db.execute(
+                            text("SELECT id, nome, duracao_minutos FROM services WHERE nome ILIKE :nome"),
+                            {"nome": f"%{s_nome}%"}
+                        ).mappings().fetchall()
+                        
+                        if len(todos_matches) == 1:
+                            s_db = todos_matches[0]
+                        elif len(todos_matches) > 1:
+                            # Ambiguidade! Pede especificação ao cliente
+                            nomes_opcoes = [m["nome"] for m in todos_matches]
+                            lista_opcoes = "\n".join([f"• {n}" for n in nomes_opcoes])
+                            estado["servico"] = None
+                            dados_atualizados = dados_sessao.copy() if dados_sessao else {}
+                            dados_atualizados["historico"] = historico
+                            dados_atualizados["estado"] = estado
+                            dados_atualizados["ja_saudou"] = True
+                            salvar_sessao_cliente(db, telefone_cliente, schema_alvo_seguro, dados_atualizados)
+                            enviar_mensagem_whatsapp(
+                                numero_destino=telefone_cliente,
+                                texto=f"Encontrei mais de um serviço parecido com *{s_nome}*. Qual deles você deseja?\n\n{lista_opcoes}"
+                            )
+                            return JSONResponse(content={"status": "sucesso"}, status_code=200)
+                    
                     if s_db:
                         servicos_encontrados.append(s_db)
                     else:

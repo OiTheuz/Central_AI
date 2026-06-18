@@ -1,6 +1,7 @@
 import json
 import logging
 from datetime import datetime, timedelta
+from zoneinfo import ZoneInfo
 from typing import cast
 
 from openai import AsyncOpenAI, RateLimitError, APIStatusError, APIConnectionError
@@ -37,12 +38,13 @@ async def analisar_mensagem_com_ia(
     Retorna um dicionário com os campos extraídos pela IA, ou um fallback
     seguro em caso de erro de API ou JSON inválido.
     """
-    data_hora_atual = datetime.now().strftime("%d-%m-%Y %H:%M")
+    tz_br = ZoneInfo("America/Sao_Paulo")
+    data_hora_atual = datetime.now(tz_br).strftime("%d-%m-%Y %H:%M")
     nome_display = nome_cliente if nome_cliente and nome_cliente != "Cliente" else None
 
     # Gerar referência dos próximos 14 dias com nomes dos dias da semana em pt-BR
     dias_semana_pt = ["segunda-feira", "terça-feira", "quarta-feira", "quinta-feira", "sexta-feira", "sábado", "domingo"]
-    hoje = datetime.now()
+    hoje = datetime.now(tz_br)
     dia_semana_hoje = dias_semana_pt[hoje.weekday()]
     proximos_dias = []
     for i in range(14):
@@ -119,6 +121,7 @@ async def analisar_mensagem_com_ia(
     2. Formato de Data: Devolva SEMPRE no formato ISO YYYY-MM-DD (ex: 2026-05-25) para compatibilidade com o banco de dados. Se não identificado, use null.
     3. Formato de Hora: Devolva SEMPRE no padrão HH:MM (ex: 14:30). Se não identificado, use null.
     4. REGRA DE SERVIÇO: Se o cliente pedir um ou mais serviços, você DEVE retornar uma LISTA (array de strings) com os nomes exatos de cada serviço desejado dentre os SERVIÇOS DISPONÍVEIS. Se não houver correspondência possível na lista, retorne null.
+    4b. REGRA DE SERVIÇO AMBÍGUO: Se o cliente usar um termo genérico que corresponda a MAIS DE UM serviço disponível (ex: "massagem" quando há "Massagem Relaxante" e "Massagem Modeladora"), você DEVE perguntar qual dos serviços o cliente deseja, listando APENAS as opções correspondentes. NÃO escolha por ele. Retorne servico como null e peça especificação no campo 'mensagem_resposta'.
     5. REGRA DE NOME:
        - Se o nome do cliente for 'desconhecido', é OBRIGATÓRIO perguntar o nome ANTES de qualquer outra etapa, independentemente de ser cliente novo ou antigo.
        - PROIBIÇÃO: Se o nome for 'desconhecido', NÃO liste serviços, NÃO pergunte data/hora, NÃO faça nada além de perguntar o nome. A ETAPA 1 é bloqueante.
@@ -208,9 +211,10 @@ async def extrair_data_hora_com_ia(texto_cliente: str, nome_loja: str) -> dict:
     Função dedicada exclusivamente a extrair data e hora de uma string solta
     (ex: "amanhã às 15h"). Ignora regras de nome ou serviço.
     """
-    data_hora_atual = datetime.now().strftime("%d-%m-%Y %H:%M")
+    tz_br = ZoneInfo("America/Sao_Paulo")
+    data_hora_atual = datetime.now(tz_br).strftime("%d-%m-%Y %H:%M")
     dias_semana_pt = ["segunda-feira", "terça-feira", "quarta-feira", "quinta-feira", "sexta-feira", "sábado", "domingo"]
-    hoje = datetime.now()
+    hoje = datetime.now(tz_br)
     dia_semana_hoje = dias_semana_pt[hoje.weekday()]
     proximos_dias = []
     for i in range(14):
@@ -229,6 +233,9 @@ async def extrair_data_hora_com_ia(texto_cliente: str, nome_loja: str) -> dict:
     - "hoje" → {hoje.strftime('%Y-%m-%d')}
     - "amanhã" → {(hoje + timedelta(days=1)).strftime('%Y-%m-%d')}
     - Nomes de dias da semana referem-se à PRÓXIMA ocorrência.
+    - O ANO ATUAL é {hoje.year}. Se o cliente não especificar o ano, assuma {hoje.year}.
+    - Se o cliente informar apenas dia e mês (ex: "25/01", "dia 15 de março"), use o ano {hoje.year}.
+    - REGRA CRÍTICA: É PROIBIDO retornar qualquer data anterior a {hoje.strftime('%Y-%m-%d')}. Se a data resultante for no passado, retorne null para o campo "data".
 
     Formato de Saída (JSON Estrito):
     {{
