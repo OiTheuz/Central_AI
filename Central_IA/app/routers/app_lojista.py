@@ -1397,7 +1397,7 @@ def editar_cliente(
             """),
             {"nome": body.nome, "tel": tel_limpo, "dn": body.data_nascimento, "id": cliente_id}
         )
-        if result.rowcount == 0:
+        if getattr(result, "rowcount", 0) == 0:
             raise HTTPException(status_code=404, detail="Cliente não encontrado.")
             
         db.commit()
