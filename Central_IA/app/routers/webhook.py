@@ -956,7 +956,10 @@ async def receive_message(request: Request, db: Session = Depends(get_public_db)
             
             servicos_formatados = "\n".join(servicos_lista) if servicos_lista else ""
             
-            resposta_ia = await analisar_mensagem_com_ia(historico, contexto, nome_cliente, servicos_disponiveis=servicos_formatados, nome_loja=nome_loja)
+            data_nasc_db = cliente_db.get("data_nascimento") if cliente_db else None
+            dt_nascimento_conhecida = bool(data_nasc_db and data_nasc_db.strip())
+            
+            resposta_ia = await analisar_mensagem_com_ia(historico, contexto, nome_cliente, servicos_disponiveis=servicos_formatados, nome_loja=nome_loja, data_nascimento_conhecida=dt_nascimento_conhecida)
             
             texto_ia = resposta_ia.get("mensagem_resposta") or "Como posso te ajudar?"
 
@@ -1042,6 +1045,16 @@ async def receive_message(request: Request, db: Session = Depends(get_public_db)
                 db.commit()
                 nome_cliente = nome_extraido.strip()
                 logger.info("Nome do cliente actualizado: '%s' para tel %s", nome_cliente, telefone_cliente)
+
+            # Captura data de nascimento
+            data_nasc_extraida = resposta_ia.get("data_nascimento")
+            if data_nasc_extraida and not dt_nascimento_conhecida:
+                db.execute(
+                    text("UPDATE customers SET data_nascimento = :dn WHERE telefone_whatsapp = :tel"),
+                    {"dn": data_nasc_extraida.strip(), "tel": telefone_cliente}
+                )
+                db.commit()
+                logger.info("Data de nascimento atualizada: '%s' para tel %s", data_nasc_extraida, telefone_cliente)
 
             # Re-garante search_path antes de buscar o cliente atualizado
             db.execute(text(f"SET search_path TO {schema_alvo_seguro}, public"))

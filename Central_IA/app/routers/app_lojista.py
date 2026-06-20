@@ -1314,3 +1314,60 @@ def change_password_mobile(
             public_db.commit()
             
     return {"status": "sucesso", "mensagem": "Senha alterada com sucesso!"}
+
+# =========================================================
+# CLIENTES (Listagem e Cadastro)
+# =========================================================
+
+@router.get("/clientes")
+def listar_clientes(
+    db: Session = Depends(get_db),
+    merchant: Merchant = Depends(get_lojista_atual)
+):
+    """Retorna a lista de clientes cadastrados no schema do lojista."""
+    query = text("""
+        SELECT id, nome, telefone_whatsapp, ultima_interacao, data_nascimento
+        FROM customers
+        ORDER BY nome ASC
+    """)
+    resultados = db.execute(query).mappings().all()
+    clientes = [dict(row) for row in resultados]
+    
+    # Formata a data para JSON serializável
+    for c in clientes:
+        if c["ultima_interacao"]:
+            c["ultima_interacao"] = str(c["ultima_interacao"])
+            
+    return {"status": "sucesso", "dados": clientes}
+
+class ClienteRequest(BaseModel):
+    nome: str
+    telefone_whatsapp: str
+    data_nascimento: str | None = None
+
+@router.post("/clientes")
+def cadastrar_cliente(
+    body: ClienteRequest,
+    db: Session = Depends(get_db),
+    merchant: Merchant = Depends(get_lojista_atual)
+):
+    """Cadastra ou atualiza um cliente manualmente."""
+    try:
+        # Tira caracteres indesejados do telefone (para garantir padrão)
+        tel_limpo = ''.join(filter(str.isdigit, body.telefone_whatsapp))
+        
+        result = db.execute(
+            text("""
+                INSERT INTO customers (nome, telefone_whatsapp, data_nascimento)
+                VALUES (:nome, :tel, :dn)
+                ON CONFLICT (telefone_whatsapp) DO UPDATE 
+                    SET nome = EXCLUDED.nome, data_nascimento = COALESCE(EXCLUDED.data_nascimento, customers.data_nascimento)
+                RETURNING id
+            """),
+            {"nome": body.nome, "tel": tel_limpo, "dn": body.data_nascimento}
+        )
+        db.commit()
+        return {"status": "sucesso", "mensagem": "Cliente salvo com sucesso!"}
+    except Exception as e:
+        db.rollback()
+        raise HTTPException(status_code=500, detail=str(e))

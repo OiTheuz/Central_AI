@@ -27,7 +27,8 @@ async def analisar_mensagem_com_ia(
     contexto_cliente: str = "cliente_antigo",
     nome_cliente: str | None = None,
     servicos_disponiveis: str = "",
-    nome_loja: str = "Loja"
+    nome_loja: str = "Loja",
+    data_nascimento_conhecida: bool = False
 ) -> dict:
     """
     Analisa as mensagens e extrai os dados em formato JSON puro.
@@ -76,6 +77,7 @@ async def analisar_mensagem_com_ia(
 
     CONTEXTO DO CLIENTE: O cliente atual está classificado como '{contexto_cliente}'.
     NOME DO CLIENTE: '{nome_display or "desconhecido"}'.
+    DATA DE NASCIMENTO CADASTRADA: {'Sim' if data_nascimento_conhecida else 'Não'}.
     SERVIÇOS DISPONÍVEIS:
     {servicos_disponiveis if servicos_disponiveis else "Não fornecidos. Aceite qualquer serviço que o cliente pedir."}
 
@@ -96,6 +98,15 @@ async def analisar_mensagem_com_ia(
     ║      (ex: "quero cortar cabelo"), peça novamente com         ║
     ║      gentileza: "Antes de continuarmos, preciso do seu      ║
     ║      nome para o registro. Como posso te chamar?"            ║
+    ║                                                             ║
+    ║  ETAPA 1.5 — DATA DE NASCIMENTO (se não cadastrada)         ║
+    ║    → Se o nome do cliente for conhecido E a DATA DE         ║
+    ║      NASCIMENTO CADASTRADA for 'Não', pergunte a data de    ║
+    ║      nascimento para registrar no perfil do cliente.        ║
+    ║    → Ex: "Qual é a sua data de nascimento para deixarmos    ║
+    ║      registrado?".                                          ║
+    ║    → É opcional: se o cliente ignorar e pedir um serviço,   ║
+    ║      apenas siga para a ETAPA 2.                            ║
     ║                                                             ║
     ║  ETAPA 2 — SERVIÇO                                          ║
     ║    → Liste TODOS os serviços disponíveis com os preços      ║
@@ -139,6 +150,7 @@ async def analisar_mensagem_com_ia(
     {{
         "intencao": "agendar" ou "consultar" ou "saudacao" ou "duvida" ou "encerrar",
         "nome_cliente": "nome extraído da pessoa, ou null",
+        "data_nascimento": "DD/MM/YYYY ou null se o cliente falar a data de nascimento",
         "servico": ["serviço 1", "serviço 2"] ou null,
         "data": "YYYY-MM-DD, ou null",
         "hora": "HH:MM, ou null",
@@ -154,6 +166,7 @@ async def analisar_mensagem_com_ia(
     fallback = {
         "intencao": "duvida",
         "nome_cliente": None,
+        "data_nascimento": None,
         "servico": None,
         "data": None,
         "hora": None,
