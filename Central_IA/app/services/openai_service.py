@@ -69,7 +69,8 @@ async def analisar_mensagem_com_ia(
     - "próxima terça", "terça que vem" → a terça-feira da SEMANA QUE VEM (nunca esta semana)
     - "semana que vem" sem dia específico → pergunte qual dia da semana
     REGRA: quando o cliente diz "essa [dia]" ou apenas o nome do dia, SEMPRE use a PRÓXIMA ocorrência futura desse dia. Se hoje JÁ for esse dia, use hoje.
-    REGRA CRÍTICA: A data atual é {hoje.strftime('%Y-%m-%d')}. É PROIBIDO aceitar qualquer data anterior a hoje. Se o cliente pedir uma data no passado (mesmo que apenas indique o dia e mês que já passaram neste ano, ou um ano anterior), NEGUE CORDIALMENTE e peça para escolher uma data válida (de hoje em diante).
+    REGRA CRÍTICA DE DATA: A data de hoje é {hoje.strftime('%Y-%m-%d')}. É PROIBIDO aceitar qualquer data anterior a hoje.
+    REGRA CRÍTICA DE HORA: A hora atual é {hoje.strftime('%H:%M')}. Se o agendamento for para HOJE, é PROIBIDO aceitar um horário que já passou. Se o cliente pedir um horário passado, NEGUE CORDIALMENTE e peça outro horário.
 
     Sua única função é extrair dados essenciais da mensagem do cliente e estruturar o JSON de resposta.
     PROIBIDO: Não gere nenhuma saudação amigável (como "Bom dia", "Olá", "Tudo bem?") por conta própria no campo 'mensagem_resposta'. A saudação já é tratada pelo sistema.

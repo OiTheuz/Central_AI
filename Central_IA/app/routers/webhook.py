@@ -1124,7 +1124,10 @@ async def receive_message(request: Request, db: Session = Depends(get_public_db)
                 data_str = estado.get("data")
                 try:
                     data_obj = datetime.strptime(data_str, "%Y-%m-%d").date()
-                    if data_obj < datetime.now().date():
+                    agora = datetime.now()
+                    
+                    # Verifica data no passado
+                    if data_obj < agora.date():
                         # Limpar a data do estado para a IA perguntar novamente na próxima
                         estado["data"] = None
                         dados_atualizados = dados_sessao.copy() if dados_sessao else {}
@@ -1137,6 +1140,27 @@ async def receive_message(request: Request, db: Session = Depends(get_public_db)
                             texto=f"{saudacao_fixa}Poxa, não consigo agendar em datas que já passaram. Qual seria o dia ideal para você?"
                         )
                         return JSONResponse(content={"status": "sucesso"}, status_code=200)
+                    
+                    # Verifica hora no passado se for hoje
+                    if data_obj == agora.date() and estado.get("hora"):
+                        hora_str = estado.get("hora")
+                        try:
+                            hora_obj = datetime.strptime(hora_str, "%H:%M").time()
+                            if hora_obj < agora.time():
+                                estado["hora"] = None
+                                dados_atualizados = dados_sessao.copy() if dados_sessao else {}
+                                dados_atualizados["historico"] = historico
+                                dados_atualizados["estado"] = estado
+                                dados_atualizados["ja_saudou"] = True
+                                salvar_sessao_cliente(db, telefone_cliente, schema_alvo_seguro, dados_atualizados)
+                                enviar_mensagem_whatsapp(
+                                    numero_destino=telefone_cliente,
+                                    texto=f"{saudacao_fixa}Infelizmente esse horário já passou hoje! 😅 Qual seria o próximo horário ideal para você?"
+                                )
+                                return JSONResponse(content={"status": "sucesso"}, status_code=200)
+                        except ValueError:
+                            pass
+
                 except ValueError:
                     pass
 
