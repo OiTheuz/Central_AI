@@ -209,7 +209,7 @@ def home():
 # PÁGINAS PÚBLICAS
 # =========================================================
 
-@app.get("/privacidade", response_class=HTMLResponse)
+@app.get("/api/privacidade", response_class=HTMLResponse)
 def privacidade():
     html_content = """
     <!DOCTYPE html>
