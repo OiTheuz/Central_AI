@@ -801,13 +801,13 @@ async def receive_message(request: Request, db: Session = Depends(get_public_db)
                             if not slots_livres:
                                 enviar_mensagem_whatsapp(
                                     numero_destino=telefone_cliente,
-                                    texto=f"Infelizmente não há horários livres no dia {nova_data_obj.strftime('%d/%m')}. Que tal escolher outra data?"
+                                    texto=f"Infelizmente não há horários livres no dia {data_obj.strftime('%d/%m')}. Que tal escolher outra data?"
                                 )
                             else:
                                 sugestoes_livres = "*, *".join(slots_livres[:3])
                                 enviar_mensagem_whatsapp(
                                     numero_destino=telefone_cliente,
-                                    texto=f"Entendi que é para o dia {nova_data_obj.strftime('%d/%m')}. Quais destes horários você prefere? Temos livres: *{sugestoes_livres}*"
+                                    texto=f"Entendi que é para o dia {data_obj.strftime('%d/%m')}. Quais destes horários você prefere? Temos livres: *{sugestoes_livres}*"
                                 )
                             return JSONResponse(content={"status": "sucesso"}, status_code=200)
 
