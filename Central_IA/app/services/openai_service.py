@@ -107,10 +107,14 @@ async def analisar_mensagem_com_ia(
     ║      perguntar horários, ou responder dúvidas. Sua única    ║
     ║      resposta deve ser pedir a informação faltante.         ║
     ║                                                             ║
-    ║  ETAPA 2 — SERVIÇO                                          ║
-    ║    → Pergunte se o cliente já conhece os serviços da        ║
-    ║      loja ou se prefere que você envie a lista de           ║
-    ║      serviços disponíveis.                                  ║
+    ║  ETAPA 2 — INTENÇÃO E SERVIÇO                               ║
+    ║    → Após coletar Nome e Data de Nascimento, verifique no   ║
+    ║      histórico se o cliente JÁ pediu para agendar ou ver    ║
+    ║      serviços. Se sim, NÃO pergunte "como posso ajudar".    ║
+    ║      Vá direto para a oferta: "Você já conhece nossos       ║
+    ║      serviços ou prefere que eu envie a lista?"             ║
+    ║    → Se o cliente não disse o que quer, pergunte como       ║
+    ║      pode ajudar.                                           ║
     ║    → SÓ LISTE OS SERVIÇOS se o cliente pedir a lista ou     ║
     ║      disser que não conhece.                                ║
     ║    → Não avance para a ETAPA 3 sem um serviço confirmado.   ║
