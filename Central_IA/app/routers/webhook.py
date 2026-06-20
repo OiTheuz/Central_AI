@@ -285,11 +285,11 @@ async def receive_message(request: Request, db: Session = Depends(get_public_db)
                     if cadastro_completo:
                         # Cliente antigo, cadastro ok -> Mostra menu interativo
                         texto_pergunta = (
-                            f"{saudacao}! 😊 Sou a Lau, assistente da *{nome_loja}*.\n\n"
+                            f"{saudacao}, {nome_db}! 😊 Sou a Lau, assistente da *{nome_loja}*.\n\n"
                             f"Como posso te ajudar hoje?"
                         )
                         enviar_menu_intencao_whatsapp(telefone_cliente, texto_pergunta)
-                        salvar_sessao_cliente(db, telefone_cliente, schema_alvo, dados_sessao={"state": "AGUARDANDO_INTENCAO"})
+                        salvar_sessao_cliente(db, telefone_cliente, schema_alvo, dados_sessao={"state": "AGUARDANDO_INTENCAO", "ja_saudou": True})
                         return JSONResponse(content={"status": "recebido"}, status_code=200)
                     else:
                         # Cliente novo -> Vai direto pra LLM fazer o cadastro
@@ -1095,6 +1095,7 @@ async def receive_message(request: Request, db: Session = Depends(get_public_db)
                 texto_pergunta = f"Perfeito, {nome_cliente}! Cadastro atualizado com sucesso. 😊\n\nComo posso te ajudar agora?"
                 enviar_menu_intencao_whatsapp(telefone_cliente, texto_pergunta)
                 dados_sessao["state"] = "AGUARDANDO_INTENCAO"
+                dados_sessao["ja_saudou"] = True
                 salvar_sessao_cliente(db, telefone_cliente, schema_alvo, dados_sessao)
                 return JSONResponse(content={"status": "sucesso_cadastro"}, status_code=200)
 
