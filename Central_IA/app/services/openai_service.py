@@ -93,13 +93,14 @@ async def analisar_mensagem_com_ia(
     ║                                                             ║
     ║    1. Se NOME for 'desconhecido':                           ║
     ║       → Pergunte APENAS o nome.                             ║
-    ║       → Ex: "Para iniciarmos, como posso te chamar?"        ║
+    ║       → Ex: "Como posso te chamar?"                         ║
     ║       → PARE AQUI. Não liste serviços nem fale de horários. ║
     ║                                                             ║
     ║    2. Se NOME for conhecido E DATA DE NASCIMENTO for 'Não': ║
-    ║       → Pergunte APENAS a data de nascimento.               ║
-    ║       → Ex: "[Nome], qual a sua data de nascimento para     ║
-    ║         atualizarmos seu cadastro?"                         ║
+    ║       → Pergunte APENAS a data de nascimento de forma simpática.║
+    ║       → Ex: "Prazer em te conhecer, [Nome]! 🥰 Para         ║
+    ║         deixarmos seu cadastro prontinho aqui comigo,       ║
+    ║         qual a sua data de nascimento?"                     ║
     ║       → PARE AQUI. Não liste serviços nem fale de horários. ║
     ║                                                             ║
     ║    ⚠ PROIBIÇÃO: Se o nome for 'desconhecido' ou a data for  ║

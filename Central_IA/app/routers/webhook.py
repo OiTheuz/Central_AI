@@ -190,22 +190,78 @@ async def receive_message(request: Request, db: Session = Depends(get_public_db)
             nome_loja = lojista.nome_loja
 
             # =========================================================
+            # BUSCA OU CRIA O CLIENTE (Mover para o topo)
+            # =========================================================
+            schema_alvo_seguro = validar_schema(str(schema_alvo))
+            db.execute(text(f"SET search_path TO {schema_alvo_seguro}, public"))
+            
+            variantes = {telefone_cliente}
+            if telefone_cliente.startswith("55") and len(telefone_cliente) in [12, 13]:
+                ddd = telefone_cliente[2:4]
+                resto = telefone_cliente[4:]
+                if len(resto) == 8:
+                    variantes.add(f"55{ddd}9{resto}")
+                elif len(resto) == 9 and resto.startswith("9"):
+                    variantes.add(f"55{ddd}{resto[1:]}")
+            
+            variantes_list = list(variantes)
+            
+            cliente_db = db.execute(
+                text("SELECT * FROM customers WHERE telefone_whatsapp = ANY(:tels) ORDER BY id ASC LIMIT 1"),
+                {"tels": variantes_list}
+            ).mappings().fetchone()
+
+            if not cliente_db:
+                try:
+                    result = db.execute(
+                        text("""
+                            INSERT INTO customers (nome, telefone_whatsapp) 
+                            VALUES ('Cliente', :tel) 
+                            ON CONFLICT (telefone_whatsapp) DO UPDATE 
+                                SET telefone_whatsapp = EXCLUDED.telefone_whatsapp
+                            RETURNING *
+                        """),
+                        {"tel": telefone_cliente}
+                    )
+                    db.commit()
+                    cliente_db = result.mappings().fetchone()
+                except Exception as e:
+                    db.rollback()
+                    logger.error("Erro ao criar cliente novo %s: %s", telefone_cliente, e)
+
+                if not cliente_db:
+                    db.execute(text(f"SET search_path TO {schema_alvo_seguro}, public"))
+                    cliente_db = db.execute(
+                        text("SELECT * FROM customers WHERE telefone_whatsapp = ANY(:tels) ORDER BY id ASC LIMIT 1"),
+                        {"tels": variantes_list}
+                    ).mappings().fetchone()
+
+            if not cliente_db:
+                logger.error("CRÍTICO: impossível criar/encontrar cliente %s no schema %s", telefone_cliente, schema_alvo)
+                enviar_mensagem_whatsapp(
+                    numero_destino=telefone_cliente,
+                    texto="Desculpe, tive um problema técnico ao iniciar seu atendimento. Por favor, tente novamente em alguns instantes. 🙏"
+                )
+                return JSONResponse(content={"status": "erro_cliente"}, status_code=200)
+
+            # Verifica se o cadastro está completo (Nome e Data de Nascimento)
+            nome_db = cliente_db.get("nome")
+            data_nasc_db = cliente_db.get("data_nascimento")
+            cadastro_completo = bool(nome_db and nome_db.strip() not in ("Cliente", "") and data_nasc_db and data_nasc_db.strip())
+
+            # =========================================================
             # GERENCIAMENTO DE SESSÃO E TIMEOUT
             # =========================================================
             sessao_atual = get_sessao_cliente(db, telefone_cliente)
             
-            # Se o cliente mandou mensagem para uma loja diferente da que ele estava, reseta a sessão
             if sessao_atual and sessao_atual.loja_atual != schema_alvo:
-                logger.info("Cliente %s mudou da loja %s para a loja %s. Resetando sessão.", 
-                            telefone_cliente, sessao_atual.loja_atual, schema_alvo)
+                logger.info("Cliente mudou de loja. Resetando sessão.")
                 encerrar_sessao_cliente(db, telefone_cliente)
                 sessao_atual = None
 
             if sessao_atual:
                 ultima = sessao_atual.ultima_interacao
                 if ultima:
-                    # Garante comparação sempre entre datetimes sem timezone (naive)
-                    # para evitar TypeError entre offset-aware e offset-naive
                     ultima_naive = ultima.replace(tzinfo=None) if ultima.tzinfo else ultima
                     agora_naive = datetime.now()
                     if (agora_naive - ultima_naive) >= timedelta(hours=1):
@@ -220,22 +276,30 @@ async def receive_message(request: Request, db: Session = Depends(get_public_db)
             # MÁQUINA DE ESTADOS DO ATENDIMENTO INICIAL
             # =========================================================
             
-            # Intercepta se não for LLM_CONVERSATION
-            if not sessao_atual or estado_atual != "LLM_CONVERSATION":
+            # Se não há sessão, decide qual será o estado inicial baseado no cadastro
+            if not sessao_atual:
                 saudacao = _saudacao_por_horario()
-                
-                # Estado Inicial: Cliente mandou primeira mensagem
-                if not sessao_atual:
+                if cadastro_completo:
+                    # Cliente antigo, cadastro ok -> Mostra menu interativo
                     texto_pergunta = (
                         f"{saudacao}! 😊 Sou a Lau, assistente da *{nome_loja}*.\n\n"
-                        f"Como posso te ajudar?"
+                        f"Como posso te ajudar hoje?"
                     )
                     enviar_menu_intencao_whatsapp(telefone_cliente, texto_pergunta)
                     salvar_sessao_cliente(db, telefone_cliente, schema_alvo, dados_sessao={"state": "AGUARDANDO_INTENCAO"})
                     return JSONResponse(content={"status": "recebido"}, status_code=200)
+                else:
+                    # Cliente novo -> Vai direto pra LLM fazer o cadastro
+                    # Injetamos uma mensagem inicial amigável e pedimos o nome se faltar
+                    texto_ia = f"{saudacao}! 😊 Sou a Lau, assistente da *{nome_loja}*.\n\nPercebi que você ainda não tem um cadastro completo com a gente. Para começarmos, qual é o seu nome completo?"
+                    enviar_mensagem_whatsapp(numero_destino=telefone_cliente, texto=texto_ia)
+                    
+                    dados_sessao = {"state": "LLM_CONVERSATION", "historico": [{"role": "assistant", "content": texto_ia}], "estado": {}}
+                    salvar_sessao_cliente(db, telefone_cliente, schema_alvo, dados_sessao)
+                    return JSONResponse(content={"status": "recebido"}, status_code=200)
 
-                # Processar estados intermediários
-                if estado_atual == "AGUARDANDO_INTENCAO":
+            # Processar estados intermediários
+            if estado_atual == "AGUARDANDO_INTENCAO":
                     if texto_cliente in ["INTENT_AGENDAR", "INTENT_CONSULTAR"]:
                         dados_sessao["intencao"] = texto_cliente
                         dados_sessao["state"] = "LLM_CONVERSATION"
@@ -838,86 +902,16 @@ async def receive_message(request: Request, db: Session = Depends(get_public_db)
                     return JSONResponse(content={"status": "sucesso"}, status_code=200)
                 
             # =========================================================
-            # FLUXO LLM (Cliente já informou intenção e o roteamento foi feito)
+            # FLUXO LLM
             # =========================================================
             if not sessao_atual:
-                # Sessão desapareceu após a máquina de estados — não deveria acontecer.
-                # Responde 200 para a Meta não retentar (o cliente terá de recomeçar).
                 logger.error("Sessao desapareceu antes do fluxo LLM para %s", telefone_cliente)
                 return JSONResponse(content={"status": "erro_sessao"}, status_code=200)
 
-            # Puxa o nome da loja para context
-            db.execute(text("SET search_path TO public"))
-            lojista = db.query(Merchant).filter(Merchant.nome_do_schema == schema_alvo).first()
-            nome_loja = lojista.nome_loja if lojista else "Loja"
-
-            # Busca ou cria o cliente no schema correto — UPSERT robusto
-            schema_alvo_seguro = validar_schema(str(schema_alvo))
-            db.execute(text(f"SET search_path TO {schema_alvo_seguro}, public"))
-            
-            # Gera variantes de telefone (com 9 e sem 9) para evitar duplicidade
-            variantes = {telefone_cliente}
-            if telefone_cliente.startswith("55") and len(telefone_cliente) in [12, 13]:
-                ddd = telefone_cliente[2:4]
-                resto = telefone_cliente[4:]
-                if len(resto) == 8: # Sem o 9
-                    variantes.add(f"55{ddd}9{resto}")
-                elif len(resto) == 9 and resto.startswith("9"): # Com o 9
-                    variantes.add(f"55{ddd}{resto[1:]}")
-            
-            variantes_list = list(variantes)
-            
-            cliente_db = db.execute(
-                text("SELECT * FROM customers WHERE telefone_whatsapp = ANY(:tels) ORDER BY id ASC LIMIT 1"),
-                {"tels": variantes_list}
-            ).mappings().fetchone()
-
-            if not cliente_db:
-                try:
-                    # UPSERT: insere ou retorna o existente em caso de conflito
-                    result = db.execute(
-                        text("""
-                            INSERT INTO customers (nome, telefone_whatsapp) 
-                            VALUES ('Cliente', :tel) 
-                            ON CONFLICT (telefone_whatsapp) DO UPDATE 
-                                SET telefone_whatsapp = EXCLUDED.telefone_whatsapp
-                            RETURNING *
-                        """),
-                        {"tel": telefone_cliente}
-                    )
-                    db.commit()
-                    cliente_db = result.mappings().fetchone()
-                except Exception as e:
-                    db.rollback()
-                    logger.error("Erro ao criar cliente novo %s: %s", telefone_cliente, e)
-
-                # Fallback: tenta buscar novamente após possível conflito
-                if not cliente_db:
-                    db.execute(text(f"SET search_path TO {schema_alvo_seguro}, public"))
-                    cliente_db = db.execute(
-                        text("SELECT * FROM customers WHERE telefone_whatsapp = ANY(:tels) ORDER BY id ASC LIMIT 1"),
-                        {"tels": variantes_list}
-                    ).mappings().fetchone()
-
-
-            # Proteção final: se não conseguiu criar nem encontrar, responde ao cliente
-            if not cliente_db:
-                logger.error(
-                    "CRÍTICO: impossível criar/encontrar cliente %s no schema %s",
-                    telefone_cliente, schema_alvo
-                )
-                enviar_mensagem_whatsapp(
-                    numero_destino=telefone_cliente,
-                    texto="Desculpe, tive um problema técnico ao iniciar seu atendimento. Por favor, tente novamente em alguns instantes. 🙏"
-                )
-                return JSONResponse(content={"status": "erro_cliente"}, status_code=200)
-
-            # Re-garante search_path após possível rollback/commit da criação do cliente
+            # Re-garante search_path
             db.execute(text(f"SET search_path TO {schema_alvo_seguro}, public"))
 
-            # Contexto baseado na presença de nome REAL — não apenas na existência do registo.
-            # Se o cliente existir mas o nome ainda for o placeholder 'Cliente' (ou vazio),
-            # ele é tratado como 'cliente_novo' para a IA perguntar o nome corretamente.
+            # O cliente_db já foi buscado no topo do endpoint
             _nome_db = cliente_db.get("nome") if cliente_db else None
             tem_nome_real = bool(_nome_db and _nome_db.strip() and _nome_db.strip() not in ("Cliente", ""))
             contexto = "cliente_antigo" if tem_nome_real else "cliente_novo"
@@ -1039,6 +1033,40 @@ async def receive_message(request: Request, db: Session = Depends(get_public_db)
                     
                 enviar_mensagem_whatsapp(numero_destino=telefone_cliente, texto=msg_consulta)
                 return JSONResponse(content={"status": "sucesso"}, status_code=200)
+
+            # Captura nome — salva sempre que a IA extraiu um nome E o cliente ainda não tem nome real
+            nome_extraido = resposta_ia.get("nome_cliente")
+            nome_db_atual = cliente_db.get("nome") if cliente_db else None
+            nome_db_e_placeholder = not nome_db_atual or nome_db_atual.strip() in ("Cliente", "")
+            if nome_extraido and (not nome_cliente or nome_db_e_placeholder) and cliente_db:
+                db.execute(
+                    text("UPDATE customers SET nome = :nome WHERE id = :id"),
+                    {"nome": nome_extraido.strip(), "id": cliente_db["id"]}
+                )
+                db.commit()
+                nome_cliente = nome_extraido.strip()
+                logger.info("Nome do cliente actualizado: '%s' para tel %s", nome_cliente, telefone_cliente)
+
+            # Captura data de nascimento
+            data_nasc_extraida = resposta_ia.get("data_nascimento")
+            if data_nasc_extraida and not dt_nascimento_conhecida and cliente_db:
+                db.execute(
+                    text("UPDATE customers SET data_nascimento = :dn WHERE id = :id"),
+                    {"dn": data_nasc_extraida.strip(), "id": cliente_db["id"]}
+                )
+                db.commit()
+                logger.info("Data de nascimento atualizada: '%s' para tel %s", data_nasc_extraida, telefone_cliente)
+                
+            # Verifica se o cadastro ACABOU de ser completado
+            cadastro_agora_completo = bool(nome_cliente and nome_cliente.strip() not in ("Cliente", "") and data_nasc_extraida)
+            if cadastro_agora_completo and not dados_sessao.get("intencao"):
+                # O cadastro foi completado com sucesso e não há intenção registrada.
+                # Dispara o menu interativo e pausa a LLM.
+                texto_pergunta = f"Perfeito, {nome_cliente}! Cadastro atualizado com sucesso. 😊\n\nComo posso te ajudar agora?"
+                enviar_menu_intencao_whatsapp(telefone_cliente, texto_pergunta)
+                dados_sessao["state"] = "AGUARDANDO_INTENCAO"
+                salvar_sessao_cliente(db, telefone_cliente, schema_alvo, dados_sessao)
+                return JSONResponse(content={"status": "sucesso_cadastro"}, status_code=200)
 
             historico.append({"role": "assistant", "content": texto_ia})
 
