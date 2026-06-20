@@ -1342,8 +1342,21 @@ async def receive_message(request: Request, db: Session = Depends(get_public_db)
 
                     conflito = False
                     if almoco_inicio and almoco_fim and (hora_pedida < almoco_fim and fim_pedido > almoco_inicio):
-                        conflito = True
-                    if not conflito:
+                        # Conflito com horário de almoço
+                        estado["hora"] = None
+                        dados_atualizados = dados_sessao.copy() if dados_sessao else {}
+                        dados_atualizados["estado"] = estado
+                        dados_atualizados["ja_saudou"] = True
+                        salvar_sessao_cliente(db, telefone_cliente, schema_alvo_seguro, dados_atualizados)
+                        
+                        str_almoco = f"das {merchant_config.horario_almoco_inicio} às {merchant_config.horario_almoco_fim}"
+                        enviar_mensagem_whatsapp(
+                            numero_destino=telefone_cliente,
+                            texto=f"{saudacao_fixa}Neste horário nós estamos fechados para o nosso intervalo de almoço/pausa ({str_almoco}). Você poderia escolher um horário antes ou depois desse intervalo?"
+                        )
+                        return JSONResponse(content={"status": "sucesso"}, status_code=200)
+
+                    # Verificar conflito com agendamentos normais
                         for ag in agendamentos_dia:
                             ag_inicio = ag["horario_agendamento"]
                             if isinstance(ag_inicio, str):
