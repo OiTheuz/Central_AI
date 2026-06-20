@@ -1254,18 +1254,21 @@ def bloquear_horario(
             """)
         ).scalar()
 
-    # Busca ou cria um serviço padrão para bloqueio
+    # Cria ou busca um serviço de Bloqueio com a duração exata
+    nome_servico_bloqueio = f"Bloqueio {duracao} min"
     s_id = db.execute(
-        text("SELECT id FROM services WHERE nome = 'Bloqueio'"),
+        text("SELECT id FROM services WHERE nome = :nome"),
+        {"nome": nome_servico_bloqueio}
     ).scalar()
 
     if not s_id:
         s_id = db.execute(
             text("""
                 INSERT INTO services (nome, preco, duracao_minutos)
-                VALUES ('Bloqueio', 0, 30)
+                VALUES (:nome, 0, :dur)
                 RETURNING id
-            """)
+            """),
+            {"nome": nome_servico_bloqueio, "dur": duracao}
         ).scalar()
 
     max_ticket = db.execute(
@@ -1294,6 +1297,71 @@ def bloquear_horario(
     
     return {"status": "sucesso", "mensagem": "Horário bloqueado com sucesso."}
 
+@router.get("/agendamentos/bloqueios")
+def listar_bloqueios(
+    db: Session = Depends(get_db),
+    merchant: Merchant = Depends(get_lojista_atual),
+):
+    """Lista todos os bloqueios manuais futuros."""
+    try:
+        bloqueios = db.execute(text("""
+            SELECT a.id, a.data_agendamento, a.horario_agendamento, a.motivo_cancelamento as motivo, s.duracao_minutos
+            FROM appointments a
+            LEFT JOIN services s ON a.service_id = s.id
+            WHERE a.status = 'bloqueado' 
+              AND a.origem = 'manual'
+              AND a.data_agendamento >= CURRENT_DATE
+            ORDER BY a.data_agendamento ASC, a.horario_agendamento ASC
+        """)).mappings().fetchall()
+        
+        result = []
+        for b in bloqueios:
+            hora_str = str(b["horario_agendamento"])
+            if len(hora_str) > 5:
+                inicio_obj = datetime.strptime(hora_str, "%H:%M:%S")
+            else:
+                inicio_obj = datetime.strptime(hora_str, "%H:%M")
+                
+            dur_val = b["duracao_minutos"] or 30
+            fim_obj = inicio_obj + timedelta(minutes=dur_val)
+            
+            result.append({
+                "id": b["id"],
+                "data": str(b["data_agendamento"]),
+                "hora_inicio": inicio_obj.strftime("%H:%M"),
+                "hora_fim": fim_obj.strftime("%H:%M"),
+                "motivo": b["motivo"]
+            })
+            
+        return result
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
+
+@router.delete("/agendamentos/bloqueios/{bloqueio_id}")
+def remover_bloqueio(
+    bloqueio_id: int,
+    background_tasks: BackgroundTasks,
+    db: Session = Depends(get_db),
+    merchant: Merchant = Depends(get_lojista_atual),
+):
+    """Remove um bloqueio manual."""
+    try:
+        res = db.execute(text("""
+            DELETE FROM appointments 
+            WHERE id = :id AND status = 'bloqueado' AND origem = 'manual'
+        """), {"id": bloqueio_id})
+        
+        if getattr(res, "rowcount", 1) == 0:
+            raise HTTPException(status_code=404, detail="Bloqueio não encontrado.")
+            
+        db.commit()
+        background_tasks.add_task(_broadcast_refresh, str(merchant.nome_do_schema))
+        return {"status": "sucesso", "mensagem": "Bloqueio removido com sucesso."}
+    except HTTPException:
+        raise
+    except Exception as e:
+        db.rollback()
+        raise HTTPException(status_code=500, detail=str(e))
 
 class ChangePasswordRequestMobile(BaseModel):
     nova_senha: str

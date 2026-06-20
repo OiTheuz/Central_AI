@@ -991,8 +991,61 @@ async def receive_message(request: Request, db: Session = Depends(get_public_db)
             
             data_nasc_db = cliente_db.get("data_nascimento") if cliente_db else None
             dt_nascimento_conhecida = bool(data_nasc_db and data_nasc_db.strip())
+
+            # =========================================================
+            # BUSCA DE REGRAS E BLOQUEIOS
+            # =========================================================
+            db.execute(text("SET search_path TO public"))
+            merchant_config = db.query(Merchant).filter(Merchant.nome_do_schema == schema_alvo_seguro).first()
             
-            resposta_ia = await analisar_mensagem_com_ia(historico, contexto, nome_cliente, servicos_disponiveis=servicos_formatados, nome_loja=nome_loja, data_nascimento_conhecida=dt_nascimento_conhecida)
+            regras_texto = ""
+            if merchant_config:
+                h_abre = merchant_config.horario_abertura or "08:00"
+                h_fecha = merchant_config.horario_fechamento or "18:00"
+                regras_texto += f"Horário de funcionamento: das {h_abre} às {h_fecha}.\n"
+                
+                if merchant_config.dias_fechados:
+                    # Mapeamento de JS (0=Dom, 1=Seg) para nome
+                    dias_map = {"0": "Domingo", "1": "Segunda-feira", "2": "Terça-feira", "3": "Quarta-feira", "4": "Quinta-feira", "5": "Sexta-feira", "6": "Sábado"}
+                    dias_fechados_nomes = [dias_map[d.strip()] for d in merchant_config.dias_fechados.split(",") if d.strip() in dias_map]
+                    if dias_fechados_nomes:
+                        regras_texto += f"Dias fechados na semana: {', '.join(dias_fechados_nomes)}.\n"
+                
+                if merchant_config.horario_almoco_inicio and merchant_config.horario_almoco_fim:
+                    regras_texto += f"Horário de almoço/pausa (fechado): das {merchant_config.horario_almoco_inicio} às {merchant_config.horario_almoco_fim}.\n"
+            
+            # Voltar para schema alvo
+            db.execute(text(f"SET search_path TO {schema_alvo_seguro}, public"))
+            
+            bloqueios_manuais = db.execute(text("""
+                SELECT a.data_agendamento, a.horario_agendamento, s.duracao_minutos
+                FROM appointments a
+                LEFT JOIN services s ON a.service_id = s.id
+                WHERE a.status = 'bloqueado' AND a.origem = 'manual' AND a.data_agendamento >= CURRENT_DATE
+                ORDER BY a.data_agendamento ASC, a.horario_agendamento ASC
+            """)).mappings().fetchall()
+            
+            if bloqueios_manuais:
+                regras_texto += "Bloqueios avulsos ativos (dias e horários em que não é possível agendar):\n"
+                for b in bloqueios_manuais:
+                    hora_str = str(b["horario_agendamento"])
+                    if len(hora_str) > 5:
+                        inicio_obj = datetime.strptime(hora_str, "%H:%M:%S")
+                    else:
+                        inicio_obj = datetime.strptime(hora_str, "%H:%M")
+                    duracao = b["duracao_minutos"] or 30
+                    fim_obj = inicio_obj + timedelta(minutes=duracao)
+                    regras_texto += f"- Dia {b['data_agendamento']} das {inicio_obj.strftime('%H:%M')} às {fim_obj.strftime('%H:%M')}\n"
+            
+            resposta_ia = await analisar_mensagem_com_ia(
+                historico, 
+                contexto, 
+                nome_cliente, 
+                servicos_disponiveis=servicos_formatados, 
+                nome_loja=nome_loja, 
+                data_nascimento_conhecida=dt_nascimento_conhecida,
+                regras_agenda=regras_texto
+            )
             
             texto_ia = resposta_ia.get("mensagem_resposta")
             if not texto_ia:

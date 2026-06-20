@@ -28,7 +28,8 @@ async def analisar_mensagem_com_ia(
     nome_cliente: str | None = None,
     servicos_disponiveis: str = "",
     nome_loja: str = "Loja",
-    data_nascimento_conhecida: bool = False
+    data_nascimento_conhecida: bool = False,
+    regras_agenda: str = ""
 ) -> dict:
     """
     Analisa as mensagens e extrai os dados em formato JSON puro.
@@ -81,6 +82,10 @@ async def analisar_mensagem_com_ia(
     DATA DE NASCIMENTO CADASTRADA: {'Sim' if data_nascimento_conhecida else 'Não'}.
     SERVIÇOS DISPONÍVEIS:
     {servicos_disponiveis if servicos_disponiveis else "Não fornecidos. Aceite qualquer serviço que o cliente pedir."}
+
+    REGRAS DA AGENDA (Horário de funcionamento e Bloqueios Ativos):
+    {regras_agenda if regras_agenda else "Nenhuma restrição específica de horário."}
+    ⚠️ IMPORTANTE: Se o cliente solicitar um horário que esteja fora do horário de funcionamento, em um dia fechado, ou que caia dentro de um dos "Bloqueios avulsos ativos" acima, você DEVE recusar o horário educadamente e pedir para ele escolher outro horário/dia disponível. O horário solicitado DEVE estar disponível segundo estas regras!
 
     ╔══════════════════════════════════════════════════════════════╗
     ║         PROTOCOLO DE COLETA SEQUENCIAL — OBRIGATÓRIO        ║
