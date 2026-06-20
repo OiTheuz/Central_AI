@@ -105,12 +105,15 @@ async def analisar_mensagem_com_ia(
     ║      nascimento para registrar no perfil do cliente.        ║
     ║    → Ex: "Qual é a sua data de nascimento para deixarmos    ║
     ║      registrado?".                                          ║
-    ║    → É opcional: se o cliente ignorar e pedir um serviço,   ║
-    ║      apenas siga para a ETAPA 2.                            ║
+    ║    → É OBRIGATÓRIO: Não passe para a ETAPA 2 sem que o      ║
+    ║      cliente tenha informado a data de nascimento.          ║
     ║                                                             ║
     ║  ETAPA 2 — SERVIÇO                                          ║
-    ║    → Liste TODOS os serviços disponíveis com os preços      ║
-    ║      (sem a duração interna). Peça para o cliente escolher. ║
+    ║    → Pergunte se o cliente já conhece os serviços da        ║
+    ║      loja ou se prefere que você envie a lista de           ║
+    ║      serviços disponíveis.                                  ║
+    ║    → SÓ LISTE OS SERVIÇOS se o cliente pedir a lista ou     ║
+    ║      disser que não conhece.                                ║
     ║    → Não avance para a ETAPA 3 sem um serviço confirmado.   ║
     ║                                                             ║
     ║  ETAPA 3 — DATA E HORÁRIO                                   ║
@@ -141,7 +144,7 @@ async def analisar_mensagem_com_ia(
        - EXTRAÇÃO AUTOMÁTICA: Sempre que o cliente mencionar um nome próprio em qualquer mensagem (ex: "Meu nome é João", "sou o Carlos", "pode me chamar de Ana", ou simplesmente "Lucas"), extraia-o imediatamente e preencha o campo 'nome_cliente' no JSON. Nomes próprios geralmente começam com letra maiúscula e não são palavras comuns do dicionário.
        - Se o cliente disser apenas um nome próprio (ex: "João"), assuma que é o nome dele e extraia-o.
     6. Respostas Curtas e Personalizadas: Mantenha o campo 'mensagem_resposta' focado APENAS no dado que está faltando naquele momento. Não faça múltiplas perguntas ao mesmo tempo, exceto na ETAPA 3 onde data e hora são pedidos juntos.
-    7. LISTAGEM DE SERVIÇOS: Quando listar os serviços, copie a formatação exata do bloco SERVIÇOS DISPONÍVEIS (com os bullet points '•' e os preços). É obrigatório que cada serviço seja em um parágrafo separado (um por linha). É ESTRITAMENTE PROIBIDO exibir o bloco "[Duração interna: X]" para o cliente. Apenas informe a duração se o cliente perguntar diretamente.
+    7. LISTAGEM DE SERVIÇOS: Quando o cliente pedir a lista, copie a formatação exata do bloco SERVIÇOS DISPONÍVEIS (com os bullet points '•' e os preços). É obrigatório que cada serviço seja em um parágrafo separado (um por linha). É ESTRITAMENTE PROIBIDO exibir o bloco "[Duração interna: X]" para o cliente.
     8. ENCERRAMENTO: Retorne 'encerrar' APENAS se o cliente expressamente pedir para cancelar, desistir ou encerrar a conversa (ex: "deixa pra lá", "não quero mais", "cancelar", "obrigado, tchau"). Se o cliente enviar apenas o nome de uma loja, uma palavra solta ou uma saudação, assuma a intenção de 'saudacao' ou 'agendar', NUNCA 'encerrar'.
     9. DADOS COMPLETOS — SILÊNCIO OBRIGATÓRIO: Se nesta resposta você extraiu servico + data + hora (todos os três preenchidos), o campo 'mensagem_resposta' DEVE ser uma string VAZIA "". É TERMINANTEMENTE PROIBIDO gerar mensagens como "Estou coletando...", "Aguarde...", "Processando..." ou qualquer outra frase de transição. O sistema back-end detecta os dados completos e envia a confirmação automaticamente. Qualquer mensagem sua nesse momento seria duplicada e errada.
     10. INTENÇÃO: Se o cliente quiser marcar um horário, use "agendar". Se o cliente quiser saber seus horários marcados ou consultar agendamentos, use "consultar".
