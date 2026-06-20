@@ -215,10 +215,11 @@ async def receive_message(request: Request, db: Session = Depends(get_public_db)
                 try:
                     result = db.execute(
                         text("""
-                            INSERT INTO customers (nome, telefone_whatsapp) 
-                            VALUES ('Cliente', :tel) 
+                            INSERT INTO customers (nome, telefone_whatsapp, origem) 
+                            VALUES ('Cliente', :tel, 'WhatsApp (Lau)') 
                             ON CONFLICT (telefone_whatsapp) DO UPDATE 
-                                SET telefone_whatsapp = EXCLUDED.telefone_whatsapp
+                                SET telefone_whatsapp = EXCLUDED.telefone_whatsapp,
+                                    origem = EXCLUDED.origem
                             RETURNING *
                         """),
                         {"tel": telefone_cliente}

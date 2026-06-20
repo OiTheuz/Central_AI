@@ -1326,7 +1326,7 @@ def listar_clientes(
 ):
     """Retorna a lista de clientes cadastrados no schema do lojista."""
     query = text("""
-        SELECT id, nome, telefone_whatsapp, ultima_interacao, data_nascimento
+        SELECT id, nome, telefone_whatsapp, ultima_interacao, data_nascimento, origem
         FROM customers
         ORDER BY nome ASC
     """)
