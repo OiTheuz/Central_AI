@@ -303,12 +303,16 @@ async def receive_message(request: Request, db: Session = Depends(get_public_db)
 
                 # Processar estados intermediários
                 if estado_atual == "AGUARDANDO_INTENCAO":
-                    if texto_cliente in ["INTENT_AGENDAR", "INTENT_CONSULTAR"]:
-                        dados_sessao["intencao"] = texto_cliente
+                    # Suporte para IDs de botão e também para os textos dos botões (WhatsApp Web antigo)
+                    texto_lower = texto_cliente.lower().strip()
+                    if texto_cliente in ["INTENT_AGENDAR", "INTENT_CONSULTAR"] or texto_lower in ["realizar agendamento", "consultar status"]:
+                        intencao_final = "INTENT_AGENDAR" if "agendamento" in texto_lower or texto_cliente == "INTENT_AGENDAR" else "INTENT_CONSULTAR"
+                        
+                        dados_sessao["intencao"] = intencao_final
                         dados_sessao["state"] = "LLM_CONVERSATION"
                         salvar_sessao_cliente(db, telefone_cliente, schema_alvo, dados_sessao)
                         
-                        if texto_cliente == "INTENT_CONSULTAR":
+                        if intencao_final == "INTENT_CONSULTAR":
                             # Se quer consultar, não precisa de serviço. Passa direto pra IA
                             texto_cliente = "Gostaria de consultar o status dos meus agendamentos."
                             # Deixa cair pro fluxo LLM abaixo
@@ -990,7 +994,12 @@ async def receive_message(request: Request, db: Session = Depends(get_public_db)
             
             resposta_ia = await analisar_mensagem_com_ia(historico, contexto, nome_cliente, servicos_disponiveis=servicos_formatados, nome_loja=nome_loja, data_nascimento_conhecida=dt_nascimento_conhecida)
             
-            texto_ia = resposta_ia.get("mensagem_resposta") or "Como posso te ajudar?"
+            texto_ia = resposta_ia.get("mensagem_resposta")
+            if not texto_ia:
+                if dados_sessao.get("intencao") == "INTENT_AGENDAR":
+                    texto_ia = f"Aqui estão os serviços que temos:\n{servicos_formatados}\n\nQual deles você deseja?"
+                else:
+                    texto_ia = "Como posso te ajudar?"
 
             # =========================================================
             # ENCERRAMENTO DE ATENDIMENTO VOLUNTÁRIO
