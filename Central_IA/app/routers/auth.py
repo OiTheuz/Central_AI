@@ -102,6 +102,7 @@ def login(body: LoginRequest, db: Session = Depends(get_public_db)):
             "is_admin": merchant.is_admin,
             "tem_dashboard": getattr(merchant, 'tem_dashboard', False),
             "pode_editar_servicos": getattr(merchant, 'pode_editar_servicos', True),
+            "politica_aceita": getattr(merchant, 'politica_aceita', False),
             "loja_pai_id": merchant.loja_pai_id,
         },
     }
@@ -131,7 +132,19 @@ def me(
         "is_admin": merchant.is_admin,
         "tem_dashboard": getattr(merchant, 'tem_dashboard', False),
         "pode_editar_servicos": getattr(merchant, 'pode_editar_servicos', True),
+        "politica_aceita": getattr(merchant, 'politica_aceita', False),
     }
+
+
+@router.post("/aceitar-politica")
+def aceitar_politica(
+    merchant: Merchant = Depends(get_lojista_atual),
+    db: Session = Depends(get_public_db)
+):
+    """Marca a política de privacidade como aceita para o lojista."""
+    merchant.politica_aceita = True # type: ignore[assignment]
+    db.commit()
+    return {"status": "sucesso", "mensagem": "Política de privacidade aceita."}
 
 
 @router.post("/change-password")

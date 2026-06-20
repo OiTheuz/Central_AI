@@ -37,3 +37,6 @@ class Merchant(Base):
     horario_almoco_inicio = Column(String(5), nullable=True)
     horario_almoco_fim = Column(String(5), nullable=True)
 
+    # Termos e Política
+    politica_aceita = Column(Boolean, default=False, nullable=False, server_default="false")
+
