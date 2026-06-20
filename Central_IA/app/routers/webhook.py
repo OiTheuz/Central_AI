@@ -326,8 +326,8 @@ async def receive_message(request: Request, db: Session = Depends(get_public_db)
                                     enviar_mensagem_whatsapp(telefone_cliente, f"A *{nome_loja}* ainda não possui serviços disponíveis no momento.")
                                     return JSONResponse(content={"status": "recebido"}, status_code=200)
                                 
-                                # Forja a mensagem para que a IA inicie listando os serviços disponíveis
-                                texto_cliente = "Quero fazer um agendamento. Pode me listar quais serviços vocês têm disponíveis?"
+                                # Forja a mensagem para que a IA saiba a intenção
+                                texto_cliente = "Quero fazer um agendamento."
                                 # Deixa cair pro fluxo LLM abaixo
                             except Exception as e:
                                 logger.error("Erro ao buscar serviços: %s", e)
@@ -983,9 +983,8 @@ async def receive_message(request: Request, db: Session = Depends(get_public_db)
                     except (ValueError, TypeError):
                         preco_str = "Preço a consultar"
                         
-                    duracao_str = f"{duracao} min" if duracao else "Duração variável"
-                    # Passamos a duração separadamente para a IA saber, mas instruímos ela a não mostrar
-                    servicos_lista.append(f"• {nome} ({preco_str}) [Duração interna: {duracao_str}]")
+                    # Remove a duração para evitar que a IA informe sem ser solicitada
+                    servicos_lista.append(f"• {nome} ({preco_str})")
             
             servicos_formatados = "\n".join(servicos_lista) if servicos_lista else ""
             
@@ -997,7 +996,7 @@ async def receive_message(request: Request, db: Session = Depends(get_public_db)
             texto_ia = resposta_ia.get("mensagem_resposta")
             if not texto_ia:
                 if dados_sessao.get("intencao") == "INTENT_AGENDAR":
-                    texto_ia = f"Aqui estão os serviços que temos:\n{servicos_formatados}\n\nQual deles você deseja?"
+                    texto_ia = "Você já conhece nossos serviços ou prefere que eu envie a lista?"
                 else:
                     texto_ia = "Como posso te ajudar?"
 

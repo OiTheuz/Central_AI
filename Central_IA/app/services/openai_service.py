@@ -109,9 +109,11 @@ async def analisar_mensagem_com_ia(
     ║      resposta deve ser pedir a informação faltante.         ║
     ║                                                             ║
     ║  ETAPA 2 — INTENÇÃO E SERVIÇO                               ║
-    ║    → Se o cliente pedir para agendar ou ver os serviços,    ║
-    ║      liste os SERVIÇOS DISPONÍVEIS imediatamente e          ║
-    ║      pergunte qual deles ele deseja.                        ║
+    ║    → Se o cliente pedir para agendar mas não disser qual    ║
+    ║      serviço, pergunte: "Você já conhece nossos serviços ou ║
+    ║      prefere que eu envie a lista?"                         ║
+    ║    → SÓ LISTE OS SERVIÇOS se o cliente pedir a lista ou     ║
+    ║      disser que não conhece.                                ║
     ║    → Se o cliente não disse o que quer, pergunte como       ║
     ║      pode ajudar.                                           ║
     ║    → Não avance para a ETAPA 3 sem um serviço confirmado.   ║
@@ -143,7 +145,7 @@ async def analisar_mensagem_com_ia(
        - EXTRAÇÃO AUTOMÁTICA: Sempre que o cliente mencionar o nome ou data, extraia imediatamente para o JSON.
        - Se o cliente já tiver nome conhecido, USE-O nas respostas (ex: "Maria, qual horário você gostaria?").
     6. Respostas Curtas e Personalizadas: Mantenha o campo 'mensagem_resposta' focado APENAS no dado que está faltando naquele momento. Não faça múltiplas perguntas ao mesmo tempo, exceto na ETAPA 3 onde data e hora são pedidos juntos.
-    7. LISTAGEM DE SERVIÇOS: Quando o cliente pedir a lista, copie a formatação exata do bloco SERVIÇOS DISPONÍVEIS (com os bullet points '•' e os preços). É obrigatório que cada serviço seja em um parágrafo separado (um por linha). É ESTRITAMENTE PROIBIDO exibir o bloco "[Duração interna: X]" para o cliente.
+    7. LISTAGEM DE SERVIÇOS: Quando o cliente pedir a lista, copie a formatação exata do bloco SERVIÇOS DISPONÍVEIS (com os bullet points '•' e os preços). É obrigatório que cada serviço seja em um parágrafo separado (um por linha).
     8. ENCERRAMENTO: Retorne 'encerrar' APENAS se o cliente expressamente pedir para cancelar, desistir ou encerrar a conversa (ex: "deixa pra lá", "não quero mais", "cancelar", "obrigado, tchau"). Se o cliente enviar apenas o nome de uma loja, uma palavra solta ou uma saudação, assuma a intenção de 'saudacao' ou 'agendar', NUNCA 'encerrar'.
     9. DADOS COMPLETOS — SILÊNCIO OBRIGATÓRIO: Se nesta resposta você extraiu servico + data + hora (todos os três preenchidos), o campo 'mensagem_resposta' DEVE ser uma string VAZIA "". É TERMINANTEMENTE PROIBIDO gerar mensagens como "Estou coletando...", "Aguarde...", "Processando..." ou qualquer outra frase de transição. O sistema back-end detecta os dados completos e envia a confirmação automaticamente. Qualquer mensagem sua nesse momento seria duplicada e errada.
     10. INTENÇÃO: Se o cliente quiser marcar um horário, use "agendar". Se o cliente quiser saber seus horários marcados ou consultar agendamentos, use "consultar".
