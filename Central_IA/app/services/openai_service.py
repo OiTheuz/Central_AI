@@ -128,7 +128,8 @@ async def analisar_mensagem_com_ia(
 
     REGRAS DE OURO DA LAU:
     1. Se o cliente informar o serviço, data ou horário, extraia-os imediatamente.
-    2. Formato de Data: Devolva SEMPRE no formato ISO YYYY-MM-DD (ex: 2026-05-25) para compatibilidade com o banco de dados. Se não identificado, use null.
+    2. Formato de Data (Agendamento): Devolva SEMPRE no formato ISO YYYY-MM-DD (ex: 2026-05-25) para compatibilidade com o banco de dados. Se não identificado, use null.
+    2b. Formato de Data (Nascimento): Se o cliente informar a data de nascimento de qualquer jeito (ex: "10 de maio", "10/05/98"), converta SEMPRE para o formato completo DD/MM/YYYY (ex: 10/05/1998). Se ele não disser o ano, converta para DD/MM/YYYY usando um ano padrão como 2000 ou pergunte o ano. O padrão retornado no JSON deve ser obrigatoriamente DD/MM/YYYY.
     3. Formato de Hora: Devolva SEMPRE no padrão HH:MM (ex: 14:30). Se não identificado, use null.
     4. REGRA DE SERVIÇO: Se o cliente pedir um ou mais serviços, você DEVE retornar uma LISTA (array de strings) com os nomes exatos de cada serviço desejado dentre os SERVIÇOS DISPONÍVEIS. Se não houver correspondência possível na lista, retorne null.
     4b. REGRA DE SERVIÇO AMBÍGUO: Se o cliente usar um termo genérico que corresponda a MAIS DE UM serviço disponível (ex: "massagem" quando há "Massagem Relaxante" e "Massagem Modeladora"), você DEVE perguntar qual dos serviços o cliente deseja, listando APENAS as opções correspondentes. NÃO escolha por ele. Retorne servico como null e peça especificação no campo 'mensagem_resposta'.
