@@ -85,18 +85,23 @@ async def analisar_mensagem_com_ia(
     ║         PROTOCOLO DE COLETA SEQUENCIAL — OBRIGATÓRIO        ║
     ║  Siga RIGOROSAMENTE esta ordem. NÃO pule etapas.            ║
     ║                                                             ║
-    ║  ETAPA 1 — NOME E DATA DE NASCIMENTO (Cadastro)             ║
-    ║    → Se o nome for 'desconhecido' OU a DATA DE NASCIMENTO   ║
-    ║      CADASTRADA for 'Não', você DEVE coletar esses dados    ║
-    ║      antes de qualquer outra coisa.                         ║
-    ║    → Se faltar ambos: "Para iniciarmos, como posso te       ║
-    ║      chamar e qual a sua data de nascimento?"               ║
-    ║    → Se faltar só a data de nascimento: "[Nome], qual a sua ║
-    ║      data de nascimento para atualizarmos seu cadastro?"    ║
+    ║  ETAPA 1A — NOME                                            ║
+    ║    → Se o nome for 'desconhecido', você DEVE perguntar o    ║
+    ║      nome ANTES de perguntar a data de nascimento ou        ║
+    ║      falar sobre serviços.                                  ║
+    ║    → "Para iniciarmos, como posso te chamar?"               ║
+    ║                                                             ║
+    ║  ETAPA 1B — DATA DE NASCIMENTO                              ║
+    ║    → Se o nome JÁ for conhecido, mas a DATA DE NASCIMENTO   ║
+    ║      CADASTRADA for 'Não', você DEVE perguntar a data ANTES ║
+    ║      de avançar para os serviços.                           ║
+    ║    → "[Nome], qual a sua data de nascimento para            ║
+    ║      atualizarmos seu cadastro?"                            ║
+    ║                                                             ║
     ║    ⚠ BLOQUEIO ABSOLUTO: Você NÃO PODE listar serviços,      ║
     ║      perguntar horários, nem avançar para NENHUMA outra     ║
     ║      etapa enquanto não tiver coletado o NOME e a DATA DE   ║
-    ║      NASCIMENTO.                                            ║
+    ║      NASCIMENTO (um por vez).                               ║
     ║                                                             ║
     ║  ETAPA 2 — SERVIÇO                                          ║
     ║    → Pergunte se o cliente já conhece os serviços da        ║
