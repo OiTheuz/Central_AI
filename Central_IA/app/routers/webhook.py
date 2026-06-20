@@ -667,6 +667,22 @@ async def receive_message(request: Request, db: Session = Depends(get_public_db)
                         )
                         return JSONResponse(content={"status": "sucesso"}, status_code=200)
 
+                    if nova_data and not nova_hora:
+                        dados_sessao["nova_data_parcial"] = nova_data
+                        salvar_sessao_cliente(db, telefone_cliente, schema_alvo, dados_sessao)
+                        enviar_mensagem_whatsapp(
+                            numero_destino=telefone_cliente,
+                            texto="Entendi a data. Para qual horário você gostaria de reagendar?"
+                        )
+                        return JSONResponse(content={"status": "sucesso"}, status_code=200)
+
+                    if not nova_data and nova_hora:
+                        enviar_mensagem_whatsapp(
+                            numero_destino=telefone_cliente,
+                            texto="Entendi o horário. Mas para qual data (dia) você gostaria de reagendar?"
+                        )
+                        return JSONResponse(content={"status": "sucesso"}, status_code=200)
+
                     # Validação: impedir reagendamento para data no passado
                     if nova_data:
                         try:
