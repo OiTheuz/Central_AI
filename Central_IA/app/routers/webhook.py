@@ -683,6 +683,9 @@ async def receive_message(request: Request, db: Session = Depends(get_public_db)
                         )
                         return JSONResponse(content={"status": "sucesso"}, status_code=200)
 
+                    if not isinstance(nova_data, str) or not isinstance(nova_hora, str):
+                        return JSONResponse(content={"status": "erro_tipo"}, status_code=200)
+
                     # Validação: impedir reagendamento para data no passado
                     if nova_data:
                         try:
@@ -724,9 +727,6 @@ async def receive_message(request: Request, db: Session = Depends(get_public_db)
                     )
 
                     if not permite_sobreposicao_reag:
-                        if not isinstance(nova_hora, str) or not isinstance(nova_data, str):
-                            return JSONResponse(content={"status": "erro_tipo"}, status_code=200)
-                            
                         hora_nova_obj = datetime.strptime(nova_hora, "%H:%M").time()
                         fim_novo = (datetime.combine(datetime.today(), hora_nova_obj) + timedelta(minutes=duracao_reag)).time()
                         ags_dia_reag = db.execute(text("""
