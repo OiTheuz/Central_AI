@@ -5,6 +5,7 @@ from contextlib import asynccontextmanager
 from datetime import datetime, timedelta
 
 from fastapi import FastAPI, WebSocket, WebSocketDisconnect, Query
+from fastapi.responses import HTMLResponse
 from fastapi.middleware.cors import CORSMiddleware
 from app.routers import app_lojista, auth, admin, dashboards
 from app.services.websocket_manager import manager
@@ -203,6 +204,53 @@ def home():
         "status": "online",
         "api": "API Central de Agendamento"
     }
+
+# =========================================================
+# PÁGINAS PÚBLICAS
+# =========================================================
+
+@app.get("/privacidade", response_class=HTMLResponse)
+def privacidade():
+    html_content = """
+    <!DOCTYPE html>
+    <html lang="pt-BR">
+    <head>
+        <meta charset="UTF-8">
+        <meta name="viewport" content="width=device-width, initial-scale=1.0">
+        <title>Política de Privacidade</title>
+        <style>
+            body { font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; line-height: 1.6; padding: 30px; max-width: 800px; margin: auto; color: #333; }
+            h1 { color: #2c3e50; text-align: center; margin-bottom: 40px; }
+            h2 { color: #34495e; margin-top: 30px; border-bottom: 2px solid #ecf0f1; padding-bottom: 10px; }
+            p { margin-bottom: 15px; text-align: justify; }
+            .container { background: #fff; padding: 40px; border-radius: 8px; box-shadow: 0 4px 6px rgba(0,0,0,0.1); }
+            body { background: #f9f9f9; }
+        </style>
+    </head>
+    <body>
+        <div class="container">
+            <h1>Termos e Política de Privacidade</h1>
+            <p>Bem-vindo à Central IA! Para continuarmos garantindo a melhor experiência e segurança, apresentamos a nossa Política de Privacidade.</p>
+            
+            <h2>1. Coleta de Dados</h2>
+            <p>Coletamos informações necessárias para o funcionamento do agendamento via WhatsApp, incluindo números de telefone dos clientes e o histórico das conversas para que a Inteligência Artificial possa atuar de forma eficiente no atendimento e marcação de horários.</p>
+
+            <h2>2. Responsabilidade do Lojista</h2>
+            <p>Os lojistas que utilizam a nossa plataforma são responsáveis por informar aos seus respectivos clientes que os dados e conversas gerados através do canal de WhatsApp integrado são processados por sistemas de Inteligência Artificial, com o objetivo exclusivo de organizar e realizar agendamentos.</p>
+
+            <h2>3. Segurança e Armazenamento</h2>
+            <p>A proteção da sua privacidade é nossa prioridade. Armazenamos e protegemos as informações em bancos de dados isolados e seguros. O conteúdo das mensagens e os dados dos clientes finais são utilizados unicamente para o propósito contratado e, em hipótese alguma, são comercializados, compartilhados ou cedidos a terceiros para outros fins.</p>
+
+            <h2>4. Aceite dos Termos</h2>
+            <p>Ao utilizar o nosso aplicativo e os nossos serviços de Inteligência Artificial, o lojista concorda expressamente com o processamento dos dados conforme estipulado nesta política e confirma estar ciente da sua responsabilidade perante a LGPD e demais legislações aplicáveis no uso da ferramenta.</p>
+            
+            <hr style="margin-top:40px; border: 0; border-top: 1px solid #ecf0f1;">
+            <p style="font-size: 13px; color: #7f8c8d; text-align: center;">Última atualização: Junho de 2026</p>
+        </div>
+    </body>
+    </html>
+    """
+    return HTMLResponse(content=html_content, status_code=200)
 
 # =========================================================
 # WEBSOCKETS
