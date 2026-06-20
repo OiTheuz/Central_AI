@@ -1320,7 +1320,13 @@ async def receive_message(request: Request, db: Session = Depends(get_public_db)
                             almoco_fim = datetime.strptime(merchant_config.horario_almoco_fim, "%H:%M").time()
 
                     data_obj = datetime.strptime(data, "%Y-%m-%d").date()
-                    if str(data_obj.weekday()) in dias_fechados:
+                    
+                    # Python weekday: 0=Seg, ..., 6=Dom
+                    # Banco (JS): 0=Dom, 1=Seg, ..., 6=Sab
+                    wd_python = data_obj.weekday()
+                    dia_db = "0" if wd_python == 6 else str(wd_python + 1)
+
+                    if dia_db in dias_fechados:
                         # Limpar a hora e a data do estado para a IA capturar a nova escolha do cliente
                         estado["data"] = None
                         estado["hora"] = None
