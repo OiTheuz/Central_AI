@@ -1407,3 +1407,31 @@ def editar_cliente(
         if "unique constraint" in str(e).lower() or "duplicate key" in str(e).lower():
             raise HTTPException(status_code=400, detail="Este telefone já está cadastrado para outro cliente.")
         raise HTTPException(status_code=500, detail=str(e))
+
+@router.delete("/clientes/{cliente_id}")
+def excluir_cliente(
+    cliente_id: int,
+    db: Session = Depends(get_db),
+    merchant: Merchant = Depends(get_lojista_atual)
+):
+    """Exclui um cliente existente."""
+    try:
+        # Verifica se o cliente tem agendamentos (opcional: ou deletar em cascata)
+        # Vamos deletar os agendamentos associados ou apenas o cliente
+        # Como o on delete cascade não está claro, vamos tentar apenas deletar o cliente
+        # e se der erro de foreign key, avisamos.
+        
+        result = db.execute(
+            text("DELETE FROM customers WHERE id = :id"),
+            {"id": cliente_id}
+        )
+        if getattr(result, "rowcount", 0) == 0:
+            raise HTTPException(status_code=404, detail="Cliente não encontrado.")
+            
+        db.commit()
+        return {"status": "sucesso", "mensagem": "Cliente excluído com sucesso!"}
+    except Exception as e:
+        db.rollback()
+        if "foreign key constraint" in str(e).lower():
+            raise HTTPException(status_code=400, detail="Não é possível excluir este cliente pois ele possui agendamentos associados.")
+        raise HTTPException(status_code=500, detail=str(e))
