@@ -86,10 +86,9 @@ async def analisar_mensagem_com_ia(
     ║  Siga RIGOROSAMENTE esta ordem. NÃO pule etapas.            ║
     ║                                                             ║
     ║  ETAPA 1 — IDENTIFICAÇÃO (BLOQUEANTE)                       ║
-    ║    A coleta de NOME e DATA DE NASCIMENTO é OBRIGATÓRIA      ║
-    ║    e deve ser feita ANTES de enviar qualquer lista de       ║
-    ║    serviços ou falar de agendamentos. Faça UMA pergunta     ║
-    ║    por vez.                                                 ║
+    ║    Se o cliente NÃO for conhecido ou a data NÃO estiver     ║
+    ║    cadastrada, a coleta é OBRIGATÓRIA antes de agendar.     ║
+    ║    Faça UMA pergunta por vez.                               ║
     ║                                                             ║
     ║    1. Se NOME for 'desconhecido':                           ║
     ║       → Pergunte APENAS o nome.                             ║
@@ -110,8 +109,8 @@ async def analisar_mensagem_com_ia(
     ║                                                             ║
     ║  ETAPA 2 — INTENÇÃO E SERVIÇO                               ║
     ║    → Se o cliente pedir para agendar mas não disser qual    ║
-    ║      serviço, pergunte: "Você já conhece nossos serviços ou ║
-    ║      prefere que eu envie a lista?"                         ║
+    ║      serviço, pergunte EXATAMENTE: "Você já conhece nossos  ║
+    ║      serviços ou prefere que eu envie a lista?"             ║
     ║    → SÓ LISTE OS SERVIÇOS se o cliente pedir a lista ou     ║
     ║      disser que não conhece.                                ║
     ║    → Se o cliente não disse o que quer, pergunte como       ║
@@ -141,7 +140,8 @@ async def analisar_mensagem_com_ia(
     4. REGRA DE SERVIÇO: Se o cliente pedir um ou mais serviços, você DEVE retornar uma LISTA (array de strings) com os nomes exatos de cada serviço desejado dentre os SERVIÇOS DISPONÍVEIS. Se não houver correspondência possível na lista, retorne null.
     4b. REGRA DE SERVIÇO AMBÍGUO: Se o cliente usar um termo genérico que corresponda a MAIS DE UM serviço disponível (ex: "massagem" quando há "Massagem Relaxante" e "Massagem Modeladora"), você DEVE perguntar qual dos serviços o cliente deseja, listando APENAS as opções correspondentes. NÃO escolha por ele. Retorne servico como null e peça especificação no campo 'mensagem_resposta'.
     5. REGRA DE NOME E NASCIMENTO:
-       - Se nome ou data de nascimento faltarem, a ETAPA 1 é bloqueante.
+       - Se o nome for 'desconhecido' ou a data cadastrada for 'Não', a ETAPA 1 é bloqueante.
+       - Se já estiverem cadastrados, avance para a próxima etapa.
        - EXTRAÇÃO AUTOMÁTICA: Sempre que o cliente mencionar o nome ou data, extraia imediatamente para o JSON.
        - Se o cliente já tiver nome conhecido, USE-O nas respostas (ex: "Maria, qual horário você gostaria?").
     6. Respostas Curtas e Personalizadas: Mantenha o campo 'mensagem_resposta' focado APENAS no dado que está faltando naquele momento. Não faça múltiplas perguntas ao mesmo tempo, exceto na ETAPA 3 onde data e hora são pedidos juntos.
