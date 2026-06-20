@@ -1050,10 +1050,10 @@ async def receive_message(request: Request, db: Session = Depends(get_public_db)
             nome_extraido = resposta_ia.get("nome_cliente")
             nome_db_atual = cliente_db.get("nome") if cliente_db else None
             nome_db_e_placeholder = not nome_db_atual or nome_db_atual.strip() in ("Cliente", "")
-            if nome_extraido and (not nome_cliente or nome_db_e_placeholder):
+            if nome_extraido and (not nome_cliente or nome_db_e_placeholder) and cliente_db:
                 db.execute(
-                    text("UPDATE customers SET nome = :nome WHERE telefone_whatsapp = :tel"),
-                    {"nome": nome_extraido.strip(), "tel": telefone_cliente}
+                    text("UPDATE customers SET nome = :nome WHERE id = :id"),
+                    {"nome": nome_extraido.strip(), "id": cliente_db["id"]}
                 )
                 db.commit()
                 nome_cliente = nome_extraido.strip()
@@ -1061,10 +1061,10 @@ async def receive_message(request: Request, db: Session = Depends(get_public_db)
 
             # Captura data de nascimento
             data_nasc_extraida = resposta_ia.get("data_nascimento")
-            if data_nasc_extraida and not dt_nascimento_conhecida:
+            if data_nasc_extraida and not dt_nascimento_conhecida and cliente_db:
                 db.execute(
-                    text("UPDATE customers SET data_nascimento = :dn WHERE telefone_whatsapp = :tel"),
-                    {"dn": data_nasc_extraida.strip(), "tel": telefone_cliente}
+                    text("UPDATE customers SET data_nascimento = :dn WHERE id = :id"),
+                    {"dn": data_nasc_extraida.strip(), "id": cliente_db["id"]}
                 )
                 db.commit()
                 logger.info("Data de nascimento atualizada: '%s' para tel %s", data_nasc_extraida, telefone_cliente)
