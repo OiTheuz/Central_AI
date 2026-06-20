@@ -855,9 +855,21 @@ async def receive_message(request: Request, db: Session = Depends(get_public_db)
             schema_alvo_seguro = validar_schema(str(schema_alvo))
             db.execute(text(f"SET search_path TO {schema_alvo_seguro}, public"))
             
+            # Gera variantes de telefone (com 9 e sem 9) para evitar duplicidade
+            variantes = {telefone_cliente}
+            if telefone_cliente.startswith("55") and len(telefone_cliente) in [12, 13]:
+                ddd = telefone_cliente[2:4]
+                resto = telefone_cliente[4:]
+                if len(resto) == 8: # Sem o 9
+                    variantes.add(f"55{ddd}9{resto}")
+                elif len(resto) == 9 and resto.startswith("9"): # Com o 9
+                    variantes.add(f"55{ddd}{resto[1:]}")
+            
+            variantes_list = list(variantes)
+            
             cliente_db = db.execute(
-                text("SELECT * FROM customers WHERE telefone_whatsapp = :tel"),
-                {"tel": telefone_cliente}
+                text("SELECT * FROM customers WHERE telefone_whatsapp = ANY(:tels) ORDER BY id ASC LIMIT 1"),
+                {"tels": variantes_list}
             ).mappings().fetchone()
 
             if not cliente_db:
@@ -883,9 +895,10 @@ async def receive_message(request: Request, db: Session = Depends(get_public_db)
                 if not cliente_db:
                     db.execute(text(f"SET search_path TO {schema_alvo_seguro}, public"))
                     cliente_db = db.execute(
-                        text("SELECT * FROM customers WHERE telefone_whatsapp = :tel"),
-                        {"tel": telefone_cliente}
+                        text("SELECT * FROM customers WHERE telefone_whatsapp = ANY(:tels) ORDER BY id ASC LIMIT 1"),
+                        {"tels": variantes_list}
                     ).mappings().fetchone()
+
 
             # Proteção final: se não conseguiu criar nem encontrar, responde ao cliente
             if not cliente_db:

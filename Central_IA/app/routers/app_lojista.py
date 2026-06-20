@@ -1356,6 +1356,10 @@ def cadastrar_cliente(
         # Tira caracteres indesejados do telefone (para garantir padrão)
         tel_limpo = ''.join(filter(str.isdigit, body.telefone_whatsapp))
         
+        # Padronização de número brasileiro (se não tiver 55 na frente)
+        if len(tel_limpo) in [10, 11] and not tel_limpo.startswith("55"):
+            tel_limpo = "55" + tel_limpo
+            
         result = db.execute(
             text("""
                 INSERT INTO customers (nome, telefone_whatsapp, data_nascimento)

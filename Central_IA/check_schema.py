@@ -1,17 +1,12 @@
-from app.database import engine
-from sqlalchemy import text
+import sqlite3
+import os
+from sqlalchemy import create_engine, inspect
 
-def check():
-    with engine.connect() as conn:
-        res = conn.execute(text("""
-            SELECT conname, pg_get_constraintdef(c.oid)
-            FROM pg_constraint c
-            JOIN pg_namespace n ON n.oid = c.connamespace
-            WHERE n.nspname = 'moura_schema' AND c.contype IN ('u', 'p')
-        """))
-        print("Constraints in moura_schema:")
-        for r in res.fetchall():
-            print(r)
+# URL from config or hardcoded for test
+DATABASE_URL = "postgresql://postgres:postgres@localhost:5432/central_ia"
+engine = create_engine(DATABASE_URL)
 
-if __name__ == "__main__":
-    check()
+inspector = inspect(engine)
+columns = inspector.get_columns('appointments', schema='jessiely_moura')
+for c in columns:
+    print(c['name'], c['type'], c['nullable'], c.get('default'))
