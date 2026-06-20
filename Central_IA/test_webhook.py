@@ -1,42 +1,54 @@
-import asyncio
-from app.routers.webhook import processar_mensagem
-from app.database import engine
-from sqlalchemy.orm import Session
+import requests
+import json
 
-async def test_webhook():
-    payload = {
-        "object": "whatsapp_business_account",
-        "entry": [
-            {
-                "id": "123",
-                "changes": [
-                    {
-                        "value": {
-                            "messaging_product": "whatsapp",
-                            "metadata": {"display_phone_number": "123", "phone_number_id": "123"},
-                            "contacts": [{"profile": {"name": "Test User"}, "wa_id": "554187450272"}],
-                            "messages": [
-                                {
-                                    "from": "554187450272",
-                                    "id": "wamid.XYZ123",
-                                    "timestamp": "1234567890",
-                                    "type": "text",
-                                    "text": {"body": "Oi"}
-                                }
-                            ]
+url = "http://187.77.42.116:8000/api/webhook"
+payload = {
+    "object": "whatsapp_business_account",
+    "entry": [
+        {
+            "id": "123456",
+            "changes": [
+                {
+                    "value": {
+                        "messaging_product": "whatsapp",
+                        "metadata": {
+                            "display_phone_number": "5511999999999",
+                            "phone_number_id": "5511999999999"
                         },
-                        "field": "messages"
-                    }
-                ]
-            }
-        ]
-    }
-    with Session(engine) as db:
-        try:
-            await processar_mensagem(payload, db)
-            print("Sucesso!")
-        except Exception as e:
-            print("ERRO:", repr(e))
+                        "contacts": [
+                            {
+                                "profile": {
+                                    "name": "Matheus"
+                                },
+                                "wa_id": "5511999998888"
+                            }
+                        ],
+                        "messages": [
+                            {
+                                "from": "5511999998888",
+                                "id": "wamid.123",
+                                "timestamp": "1620000000",
+                                "text": {
+                                    "body": "Oi"
+                                },
+                                "type": "text"
+                            }
+                        ]
+                    },
+                    "field": "messages"
+                }
+            ]
+        }
+    ]
+}
 
-if __name__ == "__main__":
-    asyncio.run(test_webhook())
+headers = {
+    "Content-Type": "application/json"
+}
+
+try:
+    response = requests.post(url, json=payload, headers=headers)
+    print("Status Code:", response.status_code)
+    print("Response JSON:", response.json())
+except Exception as e:
+    print("Error:", e)

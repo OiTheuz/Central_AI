@@ -273,33 +273,36 @@ async def receive_message(request: Request, db: Session = Depends(get_public_db)
             estado_atual = dados_sessao.get("state")
             
             # =========================================================
-            # MÁQUINA DE ESTADOS DO ATENDIMENTO INICIAL
+            # MÁQUINA DE ESTADOS DO ATENDIMENTO INICIAL E INTERMEDIÁRIO
             # =========================================================
             
-            # Se não há sessão, decide qual será o estado inicial baseado no cadastro
-            if not sessao_atual:
-                saudacao = _saudacao_por_horario()
-                if cadastro_completo:
-                    # Cliente antigo, cadastro ok -> Mostra menu interativo
-                    texto_pergunta = (
-                        f"{saudacao}! 😊 Sou a Lau, assistente da *{nome_loja}*.\n\n"
-                        f"Como posso te ajudar hoje?"
-                    )
-                    enviar_menu_intencao_whatsapp(telefone_cliente, texto_pergunta)
-                    salvar_sessao_cliente(db, telefone_cliente, schema_alvo, dados_sessao={"state": "AGUARDANDO_INTENCAO"})
-                    return JSONResponse(content={"status": "recebido"}, status_code=200)
-                else:
-                    # Cliente novo -> Vai direto pra LLM fazer o cadastro
-                    # Injetamos uma mensagem inicial amigável e pedimos o nome se faltar
-                    texto_ia = f"{saudacao}! 😊 Sou a Lau, assistente da *{nome_loja}*.\n\nPercebi que você ainda não tem um cadastro completo com a gente. Para começarmos, qual é o seu nome completo?"
-                    enviar_mensagem_whatsapp(numero_destino=telefone_cliente, texto=texto_ia)
-                    
-                    dados_sessao = {"state": "LLM_CONVERSATION", "historico": [{"role": "assistant", "content": texto_ia}], "estado": {}}
-                    salvar_sessao_cliente(db, telefone_cliente, schema_alvo, dados_sessao)
-                    return JSONResponse(content={"status": "recebido"}, status_code=200)
+            # Intercepta as mensagens que são de estados fixos ou da primeira mensagem
+            if not sessao_atual or estado_atual != "LLM_CONVERSATION":
+                
+                # Se não há sessão, decide qual será o estado inicial baseado no cadastro
+                if not sessao_atual:
+                    saudacao = _saudacao_por_horario()
+                    if cadastro_completo:
+                        # Cliente antigo, cadastro ok -> Mostra menu interativo
+                        texto_pergunta = (
+                            f"{saudacao}! 😊 Sou a Lau, assistente da *{nome_loja}*.\n\n"
+                            f"Como posso te ajudar hoje?"
+                        )
+                        enviar_menu_intencao_whatsapp(telefone_cliente, texto_pergunta)
+                        salvar_sessao_cliente(db, telefone_cliente, schema_alvo, dados_sessao={"state": "AGUARDANDO_INTENCAO"})
+                        return JSONResponse(content={"status": "recebido"}, status_code=200)
+                    else:
+                        # Cliente novo -> Vai direto pra LLM fazer o cadastro
+                        # Injetamos uma mensagem inicial amigável e pedimos o nome se faltar
+                        texto_ia = f"{saudacao}! 😊 Sou a Lau, assistente da *{nome_loja}*.\n\nPercebi que você ainda não tem um cadastro completo com a gente. Para começarmos, qual é o seu nome completo?"
+                        enviar_mensagem_whatsapp(numero_destino=telefone_cliente, texto=texto_ia)
+                        
+                        dados_sessao = {"state": "LLM_CONVERSATION", "historico": [{"role": "assistant", "content": texto_ia}], "estado": {}}
+                        salvar_sessao_cliente(db, telefone_cliente, schema_alvo, dados_sessao)
+                        return JSONResponse(content={"status": "recebido"}, status_code=200)
 
-            # Processar estados intermediários
-            if estado_atual == "AGUARDANDO_INTENCAO":
+                # Processar estados intermediários
+                if estado_atual == "AGUARDANDO_INTENCAO":
                     if texto_cliente in ["INTENT_AGENDAR", "INTENT_CONSULTAR"]:
                         dados_sessao["intencao"] = texto_cliente
                         dados_sessao["state"] = "LLM_CONVERSATION"
@@ -1074,29 +1077,6 @@ async def receive_message(request: Request, db: Session = Depends(get_public_db)
             if resposta_ia.get("data"): estado["data"] = resposta_ia.get("data")
             if resposta_ia.get("hora"): estado["hora"] = resposta_ia.get("hora")
             
-            # Captura nome — salva sempre que a IA extraiu um nome E o cliente ainda não tem nome real
-            nome_extraido = resposta_ia.get("nome_cliente")
-            nome_db_atual = cliente_db.get("nome") if cliente_db else None
-            nome_db_e_placeholder = not nome_db_atual or nome_db_atual.strip() in ("Cliente", "")
-            if nome_extraido and (not nome_cliente or nome_db_e_placeholder) and cliente_db:
-                db.execute(
-                    text("UPDATE customers SET nome = :nome WHERE id = :id"),
-                    {"nome": nome_extraido.strip(), "id": cliente_db["id"]}
-                )
-                db.commit()
-                nome_cliente = nome_extraido.strip()
-                logger.info("Nome do cliente actualizado: '%s' para tel %s", nome_cliente, telefone_cliente)
-
-            # Captura data de nascimento
-            data_nasc_extraida = resposta_ia.get("data_nascimento")
-            if data_nasc_extraida and not dt_nascimento_conhecida and cliente_db:
-                db.execute(
-                    text("UPDATE customers SET data_nascimento = :dn WHERE id = :id"),
-                    {"dn": data_nasc_extraida.strip(), "id": cliente_db["id"]}
-                )
-                db.commit()
-                logger.info("Data de nascimento atualizada: '%s' para tel %s", data_nasc_extraida, telefone_cliente)
-
             # Re-garante search_path antes de buscar o cliente atualizado
             db.execute(text(f"SET search_path TO {schema_alvo_seguro}, public"))
             cliente = db.execute(
