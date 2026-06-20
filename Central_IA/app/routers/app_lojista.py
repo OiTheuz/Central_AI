@@ -1375,3 +1375,35 @@ def cadastrar_cliente(
     except Exception as e:
         db.rollback()
         raise HTTPException(status_code=500, detail=str(e))
+
+@router.put("/clientes/{cliente_id}")
+def editar_cliente(
+    cliente_id: int,
+    body: ClienteRequest,
+    db: Session = Depends(get_db),
+    merchant: Merchant = Depends(get_lojista_atual)
+):
+    """Edita as informações de um cliente existente."""
+    try:
+        tel_limpo = ''.join(filter(str.isdigit, body.telefone_whatsapp))
+        if len(tel_limpo) in [10, 11] and not tel_limpo.startswith("55"):
+            tel_limpo = "55" + tel_limpo
+            
+        result = db.execute(
+            text("""
+                UPDATE customers 
+                SET nome = :nome, telefone_whatsapp = :tel, data_nascimento = :dn
+                WHERE id = :id
+            """),
+            {"nome": body.nome, "tel": tel_limpo, "dn": body.data_nascimento, "id": cliente_id}
+        )
+        if result.rowcount == 0:
+            raise HTTPException(status_code=404, detail="Cliente não encontrado.")
+            
+        db.commit()
+        return {"status": "sucesso", "mensagem": "Cliente atualizado com sucesso!"}
+    except Exception as e:
+        db.rollback()
+        if "unique constraint" in str(e).lower() or "duplicate key" in str(e).lower():
+            raise HTTPException(status_code=400, detail="Este telefone já está cadastrado para outro cliente.")
+        raise HTTPException(status_code=500, detail=str(e))
