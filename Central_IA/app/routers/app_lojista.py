@@ -1527,3 +1527,74 @@ def excluir_cliente(
         if "foreign key constraint" in str(e).lower():
             raise HTTPException(status_code=400, detail="Não é possível excluir este cliente pois ele possui agendamentos associados.")
         raise HTTPException(status_code=500, detail=str(e))
+
+# =========================================================
+# INSIGHTS DO CLIENTE (CRM)
+# =========================================================
+
+@router.get("/clientes/{cliente_id}/insights")
+def obter_insights_cliente(
+    cliente_id: int,
+    db: Session = Depends(get_db),
+    merchant: Merchant = Depends(get_lojista_atual)
+):
+    """
+    Retorna os insights do cliente para o painel de CRM.
+    - Dias desde a última visita
+    - Serviço mais agendado
+    - Total gasto (Lifetime Value)
+    """
+    try:
+        # 1. Serviço mais agendado e Total Gasto
+        query_stats = text("""
+            SELECT 
+                s.nome as servico_favorito,
+                COUNT(a.id) as qtd_servico,
+                SUM(
+                    CASE
+                        WHEN COALESCE(a.is_paid_in_package, false) = true THEN 0
+                        WHEN a.valor_cobrado IS NOT NULL THEN a.valor_cobrado
+                        ELSE COALESCE(s.preco, 0)
+                    END
+                ) as total_gasto
+            FROM appointments a
+            LEFT JOIN services s ON a.service_id = s.id
+            WHERE a.customer_id = :cliente_id
+              AND a.status IN ('concluido', 'aprovado', 'confirmado')
+            GROUP BY s.id, s.nome
+            ORDER BY qtd_servico DESC
+        """)
+        stats_rows = db.execute(query_stats, {"cliente_id": cliente_id}).mappings().all()
+        
+        servico_favorito = "Nenhum"
+        total_gasto = 0.0
+        
+        if stats_rows:
+            servico_favorito = stats_rows[0]["servico_favorito"] or "Desconhecido"
+            # Soma o total_gasto de TODOS os serviços
+            total_gasto = sum([float(r["total_gasto"] or 0) for r in stats_rows])
+
+        # 2. Última visita
+        query_ultima = text("""
+            SELECT MAX(data_agendamento) as ultima_visita
+            FROM appointments
+            WHERE customer_id = :cliente_id
+              AND status IN ('concluido', 'aprovado', 'confirmado')
+              AND data_agendamento <= CURRENT_DATE
+        """)
+        ultima_row = db.execute(query_ultima, {"cliente_id": cliente_id}).mappings().first()
+        
+        dias_sem_visita = None
+        if ultima_row and ultima_row["ultima_visita"]:
+            delta = date.today() - ultima_row["ultima_visita"]
+            dias_sem_visita = delta.days
+            
+        return {
+            "status": "sucesso",
+            "dias_desde_ultimo_agendamento": dias_sem_visita,
+            "servico_mais_agendado": servico_favorito,
+            "total_gasto": total_gasto
+        }
+        
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
