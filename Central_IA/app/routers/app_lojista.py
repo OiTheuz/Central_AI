@@ -1147,10 +1147,34 @@ def obter_metricas_hoje(
           AND a.status IN ('aprovado', 'confirmado')
     """), {"hoje": date.today()}).scalar() or 0
 
+    # Próximo aniversariante
+    # Compara a string MM-DD da data de nascimento com a data atual.
+    # Boolean false (ainda não passou) vem antes de true (já passou) no ORDER BY do Postgres.
+    aniversariante_row = db.execute(text("""
+        SELECT id, nome, data_nascimento, 
+               (SUBSTRING(data_nascimento, 6, 5) = TO_CHAR(CURRENT_DATE, 'MM-DD')) as is_hoje
+        FROM customers
+        WHERE data_nascimento IS NOT NULL AND data_nascimento != '' AND LENGTH(data_nascimento) = 10
+        ORDER BY
+          SUBSTRING(data_nascimento, 6, 5) < TO_CHAR(CURRENT_DATE, 'MM-DD'),
+          SUBSTRING(data_nascimento, 6, 5)
+        LIMIT 1
+    """)).mappings().first()
+
+    proximo_aniversariante = None
+    if aniversariante_row:
+        proximo_aniversariante = {
+            "id": aniversariante_row["id"],
+            "nome": aniversariante_row["nome"],
+            "data_nascimento": aniversariante_row["data_nascimento"],
+            "is_hoje": bool(aniversariante_row["is_hoje"])
+        }
+
     return {
         "status": "sucesso",
         "atendimentosHoje": contagem,
         "ganhosPrevistos": float(ganhos),
+        "proximo_aniversariante": proximo_aniversariante
     }
 
 
