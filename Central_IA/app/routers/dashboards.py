@@ -438,3 +438,41 @@ def obter_faturamento_vs_custos(
         dados.append({"label": ma, "faturamento": 0.0, "custos": 0.0})
         
     return {"status": "sucesso", "dados": dados}
+
+
+# =========================================================
+# 9. PRÓXIMOS ANIVERSARIANTES
+# =========================================================
+
+@router.get("/proximos-aniversariantes")
+def obter_proximos_aniversariantes(
+    db: Session = Depends(get_db),
+    merchant: Merchant = Depends(get_lojista_atual),
+):
+    """
+    Retorna os 3 próximos clientes a fazerem aniversário, 
+    independentemente do filtro global de datas do dashboard.
+    """
+    query = text("""
+        SELECT id, nome, data_nascimento, 
+               (SUBSTRING(data_nascimento, 6, 5) = TO_CHAR(CURRENT_DATE, 'MM-DD')) as is_hoje
+        FROM customers
+        WHERE data_nascimento IS NOT NULL AND data_nascimento != '' AND LENGTH(data_nascimento) = 10
+        ORDER BY
+          SUBSTRING(data_nascimento, 6, 5) < TO_CHAR(CURRENT_DATE, 'MM-DD'),
+          SUBSTRING(data_nascimento, 6, 5)
+        LIMIT 3
+    """)
+
+    rows = db.execute(query).mappings().all()
+    
+    dados = []
+    for r in rows:
+        dados.append({
+            "id": r["id"],
+            "nome": r["nome"],
+            "data_nascimento": r["data_nascimento"],
+            "is_hoje": bool(r["is_hoje"])
+        })
+
+    return {"status": "sucesso", "dados": dados}
