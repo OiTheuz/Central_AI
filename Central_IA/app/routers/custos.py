@@ -104,17 +104,26 @@ def registrar_custo(
 
 @router.get("/por-categoria", response_model=List[CategoriaComCustos])
 def listar_custos_agrupados(
+    data_inicio: Optional[str] = None,
+    data_fim: Optional[str] = None,
     mes: Optional[int] = None,
     ano: Optional[int] = None,
     db: Session = Depends(get_db),
     merchant: Merchant = Depends(get_lojista_atual),
 ):
-    """Retorna as categorias e todos os custos dentro delas no mês/ano"""
+    """Retorna as categorias e todos os custos dentro delas no período"""
     
     cat_query = text("SELECT * FROM categorias_custo ORDER BY nome")
     categorias = db.execute(cat_query).mappings().all()
     
-    if mes and ano:
+    if data_inicio and data_fim:
+        custo_query = text("""
+            SELECT * FROM custos 
+            WHERE data >= :data_inicio AND data <= :data_fim
+            ORDER BY data DESC
+        """)
+        custos = db.execute(custo_query, {"data_inicio": data_inicio, "data_fim": data_fim}).mappings().all()
+    elif mes and ano:
         custo_query = text("""
             SELECT * FROM custos 
             WHERE EXTRACT(MONTH FROM data) = :mes AND EXTRACT(YEAR FROM data) = :ano
@@ -134,3 +143,23 @@ def listar_custos_agrupados(
         resultado.append(cat_dict)
         
     return resultado
+
+@router.delete("/{custo_id}")
+def remover_custo(
+    custo_id: int,
+    db: Session = Depends(get_db),
+    merchant: Merchant = Depends(get_lojista_atual),
+):
+    """Remove um custo."""
+    query = text("DELETE FROM custos WHERE id = :id RETURNING id")
+    try:
+        res = db.execute(query, {"id": custo_id}).fetchone()
+        if not res:
+            raise HTTPException(status_code=404, detail="Custo não encontrado.")
+        db.commit()
+        return {"status": "sucesso", "mensagem": "Custo excluído."}
+    except HTTPException:
+        raise
+    except Exception as e:
+        db.rollback()
+        raise HTTPException(status_code=400, detail=str(e))
