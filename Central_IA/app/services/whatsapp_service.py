@@ -9,7 +9,7 @@ logger = logging.getLogger(__name__)
 # Variável de contexto para armazenar o ID do telefone da requisição atual
 current_phone_id: contextvars.ContextVar[str] = contextvars.ContextVar("current_phone_id", default="")
 
-def get_phone_id(passed_id: str = None) -> str:
+def get_phone_id(passed_id: str | None = None) -> str:
     if passed_id:
         return passed_id
     ctx_id = current_phone_id.get()
@@ -25,7 +25,7 @@ GRAPH_API_VERSION = "v21.0"
 # =========================================================
 # ENVIAR MENSAGEM VIA WHATSAPP (API Meta)
 
-def enviar_mensagem_whatsapp(numero_destino: str, texto: str, phone_number_id: str = None) -> dict | None:
+def enviar_mensagem_whatsapp(numero_destino: str, texto: str, phone_number_id: str | None = None) -> dict | None:
     """
     Envia uma mensagem de texto via API do WhatsApp Business da Meta.
     Retorna o JSON de resposta da API ou None em caso de falha.
@@ -70,7 +70,7 @@ def enviar_mensagem_whatsapp(numero_destino: str, texto: str, phone_number_id: s
         logger.error("WhatsApp: falha inesperada ao enviar para %s: %s", numero_destino, e)
         return None
 
-def enviar_menu_lojas_whatsapp(numero_destino: str, texto: str, lojas: list, phone_number_id: str = None) -> dict | None:
+def enviar_menu_lojas_whatsapp(numero_destino: str, texto: str, lojas: list, phone_number_id: str | None = None) -> dict | None:
     """
     Envia uma mensagem interativa de lista com as lojas disponíveis.
     """
@@ -137,7 +137,7 @@ def enviar_menu_lojas_whatsapp(numero_destino: str, texto: str, lojas: list, pho
         logger.error("WhatsApp: falha ao enviar menu para %s: %s", numero_destino, e)
         return None
 
-def enviar_menu_intencao_whatsapp(numero_destino: str, texto: str, phone_number_id: str = None) -> dict | None:
+def enviar_menu_intencao_whatsapp(numero_destino: str, texto: str, phone_number_id: str | None = None) -> dict | None:
     """
     Envia uma mensagem interativa perguntando a intenção do cliente:
     Agendar ou Consultar Status.
@@ -202,7 +202,7 @@ def enviar_menu_intencao_whatsapp(numero_destino: str, texto: str, phone_number_
         logger.error("WhatsApp: falha ao enviar menu intenção para %s: %s", numero_destino, e)
         return None
 
-def enviar_menu_servicos_whatsapp(numero_destino: str, texto: str, servicos: list, phone_number_id: str = None) -> dict | None:
+def enviar_menu_servicos_whatsapp(numero_destino: str, texto: str, servicos: list, phone_number_id: str | None = None) -> dict | None:
     """
     Envia uma mensagem interativa de lista com os serviços disponíveis.
     """
