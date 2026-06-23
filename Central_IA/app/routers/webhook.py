@@ -168,21 +168,29 @@ async def receive_message(request: Request, db: Session = Depends(get_public_db)
             logger.info("Mensagem recebida de %s: %s", telefone_cliente, texto_cliente[:80])
 
             # =========================================================
-            # ROTEAMENTO WHITE-LABEL (Por Número de Destino)
+            # ROTEAMENTO WHITE-LABEL (Por Número de Destino ou ID)
             # =========================================================
-            numero_destino = value.get("metadata", {}).get("display_phone_number")
-            if not numero_destino:
-                logger.error("Payload não contém metadata.display_phone_number. Impossível rotear.")
+            metadata = value.get("metadata", {})
+            display_phone = metadata.get("display_phone_number")
+            phone_id = metadata.get("phone_number_id")
+            
+            if not display_phone and not phone_id:
+                logger.error("Payload não contém metadata de destino. Impossível rotear.")
                 return JSONResponse(content={"status": "erro_roteamento"}, status_code=200)
             
-            # Limpa qualquer formatação que a Meta possa mandar (+, espaços)
-            numero_destino_limpo = re.sub(r'\D', '', str(numero_destino))
+            # Limpa formatação (+, espaços)
+            display_limpo = re.sub(r'\D', '', str(display_phone)) if display_phone else ""
+            phone_id_limpo = re.sub(r'\D', '', str(phone_id)) if phone_id else ""
             
             db.execute(text("SET search_path TO public"))
-            lojista = db.query(Merchant).filter(Merchant.numero_whatsapp == numero_destino_limpo).first()
+            lojista = None
+            if display_limpo:
+                lojista = db.query(Merchant).filter(Merchant.numero_whatsapp == display_limpo).first()
+            if not lojista and phone_id_limpo:
+                lojista = db.query(Merchant).filter(Merchant.numero_whatsapp == phone_id_limpo).first()
             
             if not lojista:
-                logger.warning("Mensagem recebida para número não registrado: %s", numero_destino_limpo)
+                logger.warning("Mensagem recebida para número/ID não registrado: %s / %s", display_limpo, phone_id_limpo)
                 # Responde 200 para que a Meta não fique retentando indefinidamente
                 return JSONResponse(content={"status": "numero_nao_registrado"}, status_code=200)
             
@@ -1178,7 +1186,7 @@ async def receive_message(request: Request, db: Session = Depends(get_public_db)
                 data_str = estado.get("data")
                 try:
                     data_obj = datetime.strptime(data_str, "%Y-%m-%d").date()
-                    agora = datetime.now()
+                    agora = datetime.now(ZoneInfo("America/Sao_Paulo"))
                     
                     # Verifica data no passado
                     if data_obj < agora.date():
