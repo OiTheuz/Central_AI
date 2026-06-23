@@ -197,6 +197,9 @@ def enviar_menu_intencao_whatsapp(numero_destino: str, texto: str, phone_number_
 
     try:
         response = requests.post(url, headers=headers, json=data, timeout=10)
+        logger.info("WhatsApp (Menu Intenção) → %s | status=%s (Phone ID: %s)", numero_destino, response.status_code, PHONE_NUMBER_ID)
+        if not response.ok:
+            logger.warning("WhatsApp API erro (Menu Intenção): %s", response.text)
         return response.json()
     except Exception as e:
         logger.error("WhatsApp: falha ao enviar menu intenção para %s: %s", numero_destino, e)
@@ -260,6 +263,9 @@ def enviar_menu_servicos_whatsapp(numero_destino: str, texto: str, servicos: lis
 
     try:
         response = requests.post(url, headers=headers, json=data, timeout=10)
+        logger.info("WhatsApp (Menu Serviços) → %s | status=%s (Phone ID: %s)", numero_destino, response.status_code, PHONE_NUMBER_ID)
+        if not response.ok:
+            logger.warning("WhatsApp API erro (Menu Serviços): %s", response.text)
         return response.json()
     except Exception as e:
         logger.error("WhatsApp: falha ao enviar menu de serviços para %s: %s", numero_destino, e)
