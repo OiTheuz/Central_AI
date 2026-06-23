@@ -115,12 +115,11 @@ async def analisar_mensagem_com_ia(
     ║                                                             ║
     ║  ETAPA 2 — INTENÇÃO E SERVIÇO                               ║
     ║    → Se o cliente pedir para agendar mas não disser qual    ║
-    ║      serviço, pergunte EXATAMENTE: "Você já conhece nossos  ║
-    ║      serviços ou prefere que eu envie a lista?"             ║
+    ║      serviço, é ESTRITAMENTE OBRIGATÓRIO que o campo        ║
+    ║      'mensagem_resposta' contenha EXATAMENTE esta frase:    ║
+    ║      "Você já conhece nossos serviços ou prefere que eu envie a lista?" ║
     ║    → SÓ LISTE OS SERVIÇOS se o cliente pedir a lista ou     ║
     ║      disser que não conhece.                                ║
-    ║    → Se o cliente não disse o que quer, pergunte como       ║
-    ║      pode ajudar.                                           ║
     ║    → Não avance para a ETAPA 3 sem um serviço confirmado.   ║
     ║                                                             ║
     ║  ETAPA 3 — DATA E HORÁRIO                                   ║
