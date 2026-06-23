@@ -181,6 +181,12 @@ async def receive_message(request: Request, db: Session = Depends(get_public_db)
             # Limpa formatação (+, espaços)
             display_limpo = re.sub(r'\D', '', str(display_phone)) if display_phone else ""
             phone_id_limpo = re.sub(r'\D', '', str(phone_id)) if phone_id else ""
+
+            from app.services.whatsapp_service import current_phone_id
+            if phone_id_limpo:
+                current_phone_id.set(phone_id_limpo)
+            elif display_limpo:
+                current_phone_id.set(display_limpo)
             
             db.execute(text("SET search_path TO public"))
             lojista = None
