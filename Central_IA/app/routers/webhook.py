@@ -303,7 +303,7 @@ async def receive_message(request: Request, db: Session = Depends(get_public_db)
                             f"{saudacao}, {nome_db}! 😊 Sou a Lau, assistente da *{nome_loja}*.\n\n"
                             f"Como posso te ajudar hoje?"
                         )
-                        enviar_menu_intencao_whatsapp(telefone_cliente, texto_pergunta)
+                        enviar_menu_intencao_whatsapp(telefone_cliente, texto_pergunta, nome_loja=nome_loja)
                         salvar_sessao_cliente(db, telefone_cliente, schema_alvo, dados_sessao={"state": "AGUARDANDO_INTENCAO", "ja_saudou": True})
                         return JSONResponse(content={"status": "recebido"}, status_code=200)
                     else:
@@ -349,7 +349,7 @@ async def receive_message(request: Request, db: Session = Depends(get_public_db)
                                 enviar_mensagem_whatsapp(telefone_cliente, "Ocorreu um erro ao buscar os serviços.")
                                 return JSONResponse(content={"status": "recebido"}, status_code=200)
                     else:
-                        enviar_menu_intencao_whatsapp(telefone_cliente, "Por favor, selecione uma das opções abaixo usando os botões:")
+                        enviar_menu_intencao_whatsapp(telefone_cliente, "Por favor, selecione uma das opções abaixo usando os botões:", nome_loja=nome_loja)
                         return JSONResponse(content={"status": "recebido"}, status_code=200)
 
                 # ── Estado: Aguardando resposta pós-consulta (quer fazer alteração?) ──
@@ -1161,7 +1161,7 @@ async def receive_message(request: Request, db: Session = Depends(get_public_db)
                 # O cadastro foi completado com sucesso e não há intenção registrada.
                 # Dispara o menu interativo e pausa a LLM.
                 texto_pergunta = f"Perfeito, {nome_cliente}! Cadastro atualizado com sucesso. 😊\n\nComo posso te ajudar agora?"
-                enviar_menu_intencao_whatsapp(telefone_cliente, texto_pergunta)
+                enviar_menu_intencao_whatsapp(telefone_cliente, texto_pergunta, nome_loja=nome_loja)
                 dados_sessao["state"] = "AGUARDANDO_INTENCAO"
                 dados_sessao["ja_saudou"] = True
                 salvar_sessao_cliente(db, telefone_cliente, schema_alvo, dados_sessao)

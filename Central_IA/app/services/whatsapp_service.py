@@ -137,7 +137,7 @@ def enviar_menu_lojas_whatsapp(numero_destino: str, texto: str, lojas: list, pho
         logger.error("WhatsApp: falha ao enviar menu para %s: %s", numero_destino, e)
         return None
 
-def enviar_menu_intencao_whatsapp(numero_destino: str, texto: str, phone_number_id: str | None = None) -> dict | None:
+def enviar_menu_intencao_whatsapp(numero_destino: str, texto: str, phone_number_id: str | None = None, nome_loja: str = "Central") -> dict | None:
     """
     Envia uma mensagem interativa perguntando a intenção do cliente:
     Agendar ou Consultar Status.
@@ -155,6 +155,8 @@ def enviar_menu_intencao_whatsapp(numero_destino: str, texto: str, phone_number_
         "Content-Type": "application/json"
     }
 
+    titulo_header = f"Atendimento {nome_loja} ✨"
+
     data = {
         "messaging_product": "whatsapp",
         "recipient_type": "individual",
@@ -164,7 +166,7 @@ def enviar_menu_intencao_whatsapp(numero_destino: str, texto: str, phone_number_
             "type": "list",
             "header": {
                 "type": "text",
-                "text": "Atendimento Lau 🤖"
+                "text": titulo_header[:60]  # Limite da Meta é 60 chars
             },
             "body": {
                 "text": texto
