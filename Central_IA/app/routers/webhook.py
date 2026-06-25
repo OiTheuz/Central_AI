@@ -558,6 +558,7 @@ async def receive_message(request: Request, db: Session = Depends(get_public_db)
                     ag_id_alvo = dados_sessao.get("agendamento_id_alvo")
 
                     if ag_id_alvo:
+                        db.execute(text(f"SET search_path TO {schema_alvo_seguro}, public"))
                         ag_ref = db.execute(
                             text("SELECT * FROM appointments WHERE id = :id"),
                             {"id": ag_id_alvo}
@@ -623,6 +624,7 @@ async def receive_message(request: Request, db: Session = Depends(get_public_db)
                         
                     ag_id_alvo = dados_sessao.get("agendamento_id_alvo")
                     if ag_id_alvo:
+                        db.execute(text(f"SET search_path TO {schema_alvo_seguro}, public"))
                         ag_ref = db.execute(
                             text("SELECT * FROM appointments WHERE id = :id"),
                             {"id": ag_id_alvo}
@@ -880,6 +882,7 @@ async def receive_message(request: Request, db: Session = Depends(get_public_db)
                     ag_id_alvo = dados_sessao.get("agendamento_id_alvo")
                     
                     if ag_id_alvo:
+                        db.execute(text(f"SET search_path TO {schema_alvo_seguro}, public"))
                         ag_original = db.execute(
                             text("SELECT * FROM appointments WHERE id = :id"),
                             {"id": ag_id_alvo}
