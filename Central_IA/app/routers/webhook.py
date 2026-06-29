@@ -560,19 +560,19 @@ async def receive_message(request: Request, db: Session = Depends(get_public_db)
                     if ag_id_alvo:
                         db.execute(text(f"SET search_path TO {schema_alvo_seguro}, public"))
                         ag_ref = db.execute(
-                            text("SELECT * FROM appointments WHERE id = :id"),
+                            text(f"SELECT * FROM {schema_alvo_seguro}.appointments WHERE id = :id"),
                             {"id": ag_id_alvo}
                         ).mappings().fetchone()
 
                         if ag_ref:
-                            db.execute(text("""
-                                INSERT INTO appointments
+                            db.execute(text(f"""
+                                INSERT INTO {schema_alvo_seguro}.appointments
                                     (customer_id, service_id, data_agendamento, horario_agendamento,
                                      status, origem, tipo_pendencia, numero_ticket, motivo_cancelamento)
                                 SELECT
                                     customer_id, service_id, data_agendamento, horario_agendamento,
                                     'pendente', 'whatsapp_lau', 'cancelamento', numero_ticket, :motivo
-                                FROM appointments
+                                FROM {schema_alvo_seguro}.appointments
                                 WHERE id = :ag_id
                             """), {"ag_id": ag_id_alvo, "motivo": motivo_texto})
                             db.commit()
@@ -626,7 +626,7 @@ async def receive_message(request: Request, db: Session = Depends(get_public_db)
                     if ag_id_alvo:
                         db.execute(text(f"SET search_path TO {schema_alvo_seguro}, public"))
                         ag_ref = db.execute(
-                            text("SELECT * FROM appointments WHERE id = :id"),
+                            text(f"SELECT * FROM {schema_alvo_seguro}.appointments WHERE id = :id"),
                             {"id": ag_id_alvo}
                         ).mappings().fetchone()
                         if ag_ref:
@@ -634,14 +634,14 @@ async def receive_message(request: Request, db: Session = Depends(get_public_db)
                                 text("SELECT COALESCE(MAX(numero_ticket), 0) FROM appointments")
                             ).scalar() or 0
                             novo_ticket = max_ticket + 1
-                            db.execute(text("""
-                                INSERT INTO appointments
+                            db.execute(text(f"""
+                                INSERT INTO {schema_alvo_seguro}.appointments
                                     (customer_id, service_id, data_agendamento, horario_agendamento,
                                      status, origem, tipo_pendencia, numero_ticket, motivo_cancelamento)
                                 SELECT
                                     customer_id, service_id, data_agendamento, horario_agendamento,
                                     'pendente', 'whatsapp_lau', 'cancelamento', :novo_ticket, :motivo
-                                FROM appointments
+                                FROM {schema_alvo_seguro}.appointments
                                 WHERE id = :ag_id
                             """), {"ag_id": ag_id_alvo, "novo_ticket": novo_ticket, "motivo": motivo_texto})
                             db.commit()
@@ -884,13 +884,13 @@ async def receive_message(request: Request, db: Session = Depends(get_public_db)
                     if ag_id_alvo:
                         db.execute(text(f"SET search_path TO {schema_alvo_seguro}, public"))
                         ag_original = db.execute(
-                            text("SELECT * FROM appointments WHERE id = :id"),
+                            text(f"SELECT * FROM {schema_alvo_seguro}.appointments WHERE id = :id"),
                             {"id": ag_id_alvo}
                         ).mappings().fetchone()
                         
                         if ag_original:
-                            db.execute(text("""
-                                INSERT INTO appointments
+                            db.execute(text(f"""
+                                INSERT INTO {schema_alvo_seguro}.appointments
                                     (customer_id, service_id, data_agendamento, horario_agendamento,
                                      status, origem, tipo_pendencia, reagendamento_data, reagendamento_hora,
                                      numero_ticket)
@@ -898,7 +898,7 @@ async def receive_message(request: Request, db: Session = Depends(get_public_db)
                                     customer_id, service_id, data_agendamento, horario_agendamento,
                                     'pendente', 'whatsapp_lau', 'reagendamento', :reag_data, :reag_hora,
                                     numero_ticket
-                                FROM appointments
+                                FROM {schema_alvo_seguro}.appointments
                                 WHERE id = :ag_id
                             """), {
                                 "ag_id": ag_original["id"],
@@ -1467,8 +1467,8 @@ async def receive_message(request: Request, db: Session = Depends(get_public_db)
                     s_id = s_db.get("id")
                     hora_str = hora_atual_obj.strftime("%H:%M")
                     
-                    db.execute(text("""
-                        INSERT INTO appointments (customer_id, service_id, data_agendamento, horario_agendamento, status, origem, numero_ticket) 
+                    db.execute(text(f"""
+                        INSERT INTO {schema_alvo_seguro}.appointments (customer_id, service_id, data_agendamento, horario_agendamento, status, origem, numero_ticket) 
                         VALUES (:c_id, :s_id, :data, :hora, 'pendente', 'whatsapp_lau', :numero_ticket)
                     """), {"c_id": cliente.get("id"), "s_id": s_id, "data": data, "hora": hora_str, "numero_ticket": max_ticket + i + 1})
                     
