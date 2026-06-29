@@ -7,9 +7,11 @@ import logging
 import re
 import uuid
 import asyncio
+import os
+import shutil
 from datetime import date, datetime, timedelta
 from dateutil.relativedelta import relativedelta
-from fastapi import APIRouter, Depends, HTTPException, BackgroundTasks
+from fastapi import APIRouter, Depends, HTTPException, BackgroundTasks, UploadFile, File
 from pydantic import BaseModel
 from sqlalchemy.orm import Session
 from sqlalchemy import text
@@ -1607,3 +1609,44 @@ def obter_insights_cliente(
         
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
+
+# =========================================================
+# UPLOAD FOTO DE PERFIL
+# =========================================================
+@router.post("/lojista/foto")
+async def upload_foto_perfil(
+    foto: UploadFile = File(...),
+    db: Session = Depends(get_db),
+    merchant: Merchant = Depends(get_lojista_atual)
+):
+    """Faz upload da foto de perfil do lojista e atualiza no banco de dados."""
+    if not foto.content_type.startswith("image/"):
+        raise HTTPException(status_code=400, detail="O arquivo enviado não é uma imagem.")
+    
+    # Gera um nome de arquivo único
+    extensao = foto.filename.split(".")[-1] if "." in foto.filename else "jpg"
+    novo_nome = f"{merchant.id}_{uuid.uuid4().hex}.{extensao}"
+    caminho_relativo = f"uploads/{novo_nome}"
+    
+    try:
+        # Salva o arquivo na pasta uploads
+        with open(caminho_relativo, "wb") as buffer:
+            shutil.copyfileobj(foto.file, buffer)
+            
+        # A URL pública será /uploads/nome_do_arquivo
+        foto_url = f"/{caminho_relativo}"
+        
+        # Salva no banco de dados
+        db.execute(
+            text("UPDATE merchant SET foto_perfil = :foto_url WHERE id = :m_id"),
+            {"foto_url": foto_url, "m_id": merchant.id}
+        )
+        db.commit()
+        
+        return {"status": "sucesso", "foto_perfil": foto_url}
+        
+    except Exception as e:
+        db.rollback()
+        logger.error("Erro ao fazer upload da foto: %s", e)
+        raise HTTPException(status_code=500, detail="Erro interno ao salvar a imagem.")
+

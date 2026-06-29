@@ -170,6 +170,13 @@ Base.metadata.create_all(bind=engine)
 
 app = FastAPI(title="API Central de Agendamento", lifespan=lifespan)
 
+import os
+from fastapi.staticfiles import StaticFiles
+
+# Create uploads directory if it doesn't exist
+os.makedirs("uploads", exist_ok=True)
+app.mount("/uploads", StaticFiles(directory="uploads"), name="uploads")
+
 # =========================================================
 # CORS — permite o app mobile/web acessar a API
 # ⚠️ Em produção, substitua ["*"] pelos domínios reais:

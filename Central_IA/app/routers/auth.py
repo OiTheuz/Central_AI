@@ -104,6 +104,7 @@ def login(body: LoginRequest, db: Session = Depends(get_public_db)):
             "pode_editar_servicos": getattr(merchant, 'pode_editar_servicos', True),
             "politica_aceita": getattr(merchant, 'politica_aceita', False),
             "loja_pai_id": merchant.loja_pai_id,
+            "foto_perfil": getattr(merchant, 'foto_perfil', None),
         },
     }
 
@@ -133,6 +134,7 @@ def me(
         "tem_dashboard": getattr(merchant, 'tem_dashboard', False),
         "pode_editar_servicos": getattr(merchant, 'pode_editar_servicos', True),
         "politica_aceita": getattr(merchant, 'politica_aceita', False),
+        "foto_perfil": getattr(merchant, 'foto_perfil', None),
     }
 
 

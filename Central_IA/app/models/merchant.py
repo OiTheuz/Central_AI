@@ -14,6 +14,7 @@ class Merchant(Base):
     numero_whatsapp = Column(String(20), nullable=True)  # not unique: sub-users share None
     nome_do_schema = Column(String(50), unique=True, nullable=False)
     area_atuacao = Column(String(100))
+    foto_perfil = Column(String(500), nullable=True)
     is_admin = Column(Boolean, default=False, nullable=False, server_default="false")
     tem_dashboard = Column(Boolean, default=False, nullable=False, server_default="false")
     pode_editar_servicos = Column(Boolean, default=True, nullable=False, server_default="true")
