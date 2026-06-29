@@ -292,7 +292,7 @@ def confirmar_reagendamento(
                 f"Seu reagendamento para {servico} foi confirmado para o dia "
                 f"*{data_fmt} às {hora_fmt}*. Estamos te esperando! Até logo! 👋"
             )
-            enviar_mensagem_whatsapp(numero_destino=telefone, texto=msg, phone_number_id=merchant.numero_whatsapp)
+            enviar_mensagem_whatsapp(numero_destino=telefone, texto=msg, phone_number_id=str(merchant.numero_whatsapp) if merchant.numero_whatsapp else None)
         except Exception as e:
             logger.warning("Erro ao enviar WhatsApp de confirmação de reagendamento: %s", e)
 
@@ -358,7 +358,7 @@ def recusar_reagendamento(
                 f"Por favor, entre em contato conosco para encontrarmos a melhor solução. "
                 f"Qualquer dúvida, é só mandar um *Oi*! 👋"
             )
-            enviar_mensagem_whatsapp(numero_destino=telefone, texto=msg, phone_number_id=merchant.numero_whatsapp)
+            enviar_mensagem_whatsapp(numero_destino=telefone, texto=msg, phone_number_id=str(merchant.numero_whatsapp) if merchant.numero_whatsapp else None)
         except Exception as e:
             logger.warning("Erro ao enviar WhatsApp de recusa de reagendamento: %s", e)
 
@@ -438,7 +438,7 @@ def aceitar_cancelamento(
                 f"Sentiremos a sua falta! Quando quiser voltar, é só mandar um *Oi* "
                 f"e agendamos novamente. Até logo! 👋"
             )
-            enviar_mensagem_whatsapp(numero_destino=telefone, texto=msg, phone_number_id=merchant.numero_whatsapp)
+            enviar_mensagem_whatsapp(numero_destino=telefone, texto=msg, phone_number_id=str(merchant.numero_whatsapp) if merchant.numero_whatsapp else None)
         except Exception as e:
             logger.warning("Erro ao enviar WhatsApp de cancelamento: %s", e)
 
@@ -550,7 +550,7 @@ def aprovar_agendamento(
             else:
                 mensagem = f"Tudo certo! ✅ O seu agendamento para {servico} foi confirmadíssimo para o dia {data_fmt} às {hora_fmt}. Estamos te esperando! Até logo! 👋"
                 
-            enviar_mensagem_whatsapp(numero_destino=telefone, texto=mensagem, phone_number_id=merchant.numero_whatsapp)
+            enviar_mensagem_whatsapp(numero_destino=telefone, texto=mensagem, phone_number_id=str(merchant.numero_whatsapp) if merchant.numero_whatsapp else None)
         except Exception as e:
             logger.warning("Erro ao enviar WhatsApp de aprovação: %s", e)
 
@@ -633,7 +633,7 @@ def recusar_agendamento(
                 f"Mas você pode fazer um novo agendamento! "
                 f"É só mandar um *Oi* para recomeçarmos. 😊"
             )
-            enviar_mensagem_whatsapp(numero_destino=telefone, texto=mensagem, phone_number_id=merchant.numero_whatsapp)
+            enviar_mensagem_whatsapp(numero_destino=telefone, texto=mensagem, phone_number_id=str(merchant.numero_whatsapp) if merchant.numero_whatsapp else None)
         except Exception as e:
             logger.warning("Erro ao enviar WhatsApp de recusa: %s", e)
 
@@ -706,7 +706,7 @@ def cancelar_agendamento(
                 f"do seu agendamento do serviço *{servico}* no dia *{data_fmt}*.\n\n"
                 f"Se desejar reagendar, é só mandar um *Oi*! 😊"
             )
-            enviar_mensagem_whatsapp(numero_destino=telefone, texto=mensagem, phone_number_id=merchant.numero_whatsapp)
+            enviar_mensagem_whatsapp(numero_destino=telefone, texto=mensagem, phone_number_id=str(merchant.numero_whatsapp) if merchant.numero_whatsapp else None)
         except Exception as e:
             logger.warning("Erro ao enviar WhatsApp de cancelamento: %s", e)
 
@@ -816,7 +816,7 @@ def remanejar_agendamento(
                 f"para *{nova_data_fmt} às {body.nova_hora}*.\n\n"
                 f"Se tiver alguma dúvida, é só falar! 😊"
             )
-            enviar_mensagem_whatsapp(numero_destino=telefone, texto=mensagem, phone_number_id=merchant.numero_whatsapp)
+            enviar_mensagem_whatsapp(numero_destino=telefone, texto=mensagem, phone_number_id=str(merchant.numero_whatsapp) if merchant.numero_whatsapp else None)
         except Exception as e:
             logger.warning("Erro ao enviar WhatsApp de remanejamento: %s", e)
 
