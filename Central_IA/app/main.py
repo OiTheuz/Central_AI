@@ -203,7 +203,14 @@ app.include_router(dashboards.router)  # /api/dashboards/...
 app.include_router(custos.router)
 
 # =========================================================
-# HEALTH CHECK
+# HEALTH CHECK E ARQUIVOS ESTÁTICOS
+
+from fastapi.staticfiles import StaticFiles
+import os
+
+# Certifica-se de que a pasta uploads existe para evitar erro no mount
+os.makedirs("uploads", exist_ok=True)
+app.mount("/uploads", StaticFiles(directory="uploads"), name="uploads")
 
 @app.get("/")
 def home():
