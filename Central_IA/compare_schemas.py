@@ -63,14 +63,14 @@ def compare_schemas(schema_origem="jessiely_moura", schema_destino="moura_schema
                 comandos_sql.append(f"ALTER TABLE {schema_destino}.{tabela} ADD COLUMN IF NOT EXISTS {coluna} {tipo_sql} NULL;")
                 
     if not comandos_sql:
-        print(f"\\nO schema '{schema_destino}' já está 100% IGUAL ao '{schema_origem}'!")
+        print(f"\nO schema '{schema_destino}' já está 100% IGUAL ao '{schema_origem}'!")
     else:
-        print("\\n=== ENCONTRAMOS DIFERENÇAS! Rode estes comandos no banco de dados para igualar: ===\\n")
-        print("sudo -u postgres psql -d central_agendamento_db -c \\"")
+        print("\n=== ENCONTRAMOS DIFERENÇAS! Rode estes comandos no banco de dados para igualar: ===\n")
+        print('sudo -u postgres psql -d central_agendamento_db -c "')
         for cmd in comandos_sql:
             print(f"  {cmd}")
-        print("\\"")
-        print("\\n==================================================================================")
+        print('"')
+        print("\n==================================================================================")
 
 if __name__ == "__main__":
     compare_schemas()
