@@ -1,0 +1,39 @@
+Código já guardado e enviado (commit e push concluídos)! 🚀
+
+Para atualizares a VPS, basta copiares o bloco de código abaixo e colares diretamente no terminal do teu servidor (tudo de uma vez). Este comando vai entrar na pasta correta, fazer o download das alterações, instalar dependências (se houver), reiniciar o serviço e mostrar-te o estado para confirmar que ficou tudo verde (ativo):
+
+```bash
+cd /var/www/central_ai && git pull origin main && source venv/bin/activate && pip install -r requirements.txt && sudo systemctl restart central_ai && sudo systemctl status central_ai --no-pager
+```
+
+Se o estado aparecer como `active (running)`, significa que a nova versão (com as correções de fuso horário, a query do próximo aniversariante e a blindagem no roteamento via ID/número do Meta) já está oficialmente em produção!
+---
+Descoberto o mistério! 🕵️‍♂️
+
+**O que aconteceu:**
+Como o nosso sistema foi inicialmente desenhado para um único número, ele estava a ler o `META_PHONE_ID` fixo do ficheiro `.env` sempre que a IA precisava de enviar uma resposta. 
+Quando mandaste mensagem para o **novo número**, o sistema recebeu a mensagem perfeitamente (e o roteamento funcionou), mas na hora de a IA te responder, ela tentou responder usando a identidade do **número antigo** (porque era o que estava no `.env`)! O Meta barrou a mensagem porque as mensagens de resposta têm de sair do mesmo número que as recebeu.
+
+**A Solução Mestra:**
+Acabei de recriar a arquitetura de envios do WhatsApp (`whatsapp_service.py`). Implementei um sistema de variáveis de contexto (`contextvars`) assíncronas.
+A partir de agora, o webhook "lê" em que número a mensagem chegou, guarda essa informação na memória daquela requisição específica, e quando a IA for responder, o sistema obriga-a a usar exatamente o mesmo **Phone ID** que recebeu a mensagem.
+Isto significa que agora podes ligar 10, 50 ou 100 números de WhatsApp diferentes ao mesmo sistema, e ele saberá sempre responder pelo número correto automaticamente, sem precisares de mexer no `.env`!
+
+Já fiz o commit e enviei para o GitHub! Como já tens o SSH aberto aí, basta rodares este comando novamente para puxar a correção:
+
+```bash
+cd /var/www/central_ai && git pull origin main && sudo systemctl restart central_ai
+```
+
+Testa mandar um "Oi" novamente no número novo e a IA já te vai responder perfeitamente a partir dele! 😉
+---
+Tudo enviado e árvore de ficheiros limpa! ✨
+
+Para atualizar a tua VPS e reiniciar o sistema, basta rodares exatamente o mesmo comando:
+
+```bash
+cd /var/www/central_ai && git pull origin main && sudo systemctl restart central_ai && sudo systemctl status central_ai --no-pager
+```
+
+Isto vai baixar as alterações de código da última correção e colocar a versão fresquinha em funcionamento.
+---

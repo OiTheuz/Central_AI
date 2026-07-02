@@ -31,6 +31,20 @@ router = APIRouter(
     tags=["App Lojista"],
 )
 
+# ─── Helper: Normalização de Telefone ────────────────────────
+
+def normalizar_telefone(telefone: str) -> str:
+    """
+    Remove caracteres não numéricos e padroniza para o formato internacional do Brasil.
+    Ex: '(41) 9 9999-8888' vira '5541999998888'
+    """
+    if not telefone:
+        return ""
+    tel_limpo = ''.join(filter(str.isdigit, telefone))
+    # Se for BR sem DDI
+    if len(tel_limpo) in [10, 11] and not tel_limpo.startswith("55"):
+        tel_limpo = "55" + tel_limpo
+    return tel_limpo
 
 # ─── Helper: Serialização de agendamento ────────────────────
 
@@ -842,7 +856,7 @@ def obter_servicos(
 
 
     # CORREÇÃO: A coluna real no banco é duracao_minutos
-    resultados = db.execute(text("SELECT id, nome, preco, duracao_minutos AS duracao FROM services ORDER BY nome")).mappings().all()
+    resultados = db.execute(text("SELECT id, nome, preco, duracao_minutos AS duracao FROM services WHERE nome != 'Bloqueio de agenda' ORDER BY nome")).mappings().all()
 
     servicos = []
     for row in resultados:
@@ -1431,6 +1445,7 @@ def listar_clientes(
     query = text("""
         SELECT id, nome, telefone_whatsapp, ultima_interacao, data_nascimento, origem
         FROM customers
+        WHERE nome != 'Bloqueio de agenda'
         ORDER BY nome ASC
     """)
     resultados = db.execute(query).mappings().all()
@@ -1456,25 +1471,49 @@ def cadastrar_cliente(
 ):
     """Cadastra ou atualiza um cliente manualmente."""
     try:
-        # Tira caracteres indesejados do telefone (para garantir padrão)
-        tel_limpo = ''.join(filter(str.isdigit, body.telefone_whatsapp))
-        
-        # Padronização de número brasileiro (se não tiver 55 na frente)
-        if len(tel_limpo) in [10, 11] and not tel_limpo.startswith("55"):
-            tel_limpo = "55" + tel_limpo
-            
+        tel_limpo = normalizar_telefone(body.telefone_whatsapp)
+
+        # Gera as variantes do número para busca (com/sem 9 extra)
+        variantes = {tel_limpo}
+        if tel_limpo.startswith("55") and len(tel_limpo) in [12, 13]:
+            ddd = tel_limpo[2:4]
+            resto = tel_limpo[4:]
+            if len(resto) == 8:   # sem 9 → adiciona
+                variantes.add(f"55{ddd}9{resto}")
+            elif len(resto) == 9 and resto.startswith("9"):  # com 9 → sem
+                variantes.add(f"55{ddd}{resto[1:]}")
+
+        # Verifica se já existe alguma variante cadastrada
+        existente = db.execute(
+            text("SELECT id, nome FROM customers WHERE telefone_whatsapp = ANY(:tels) LIMIT 1"),
+            {"tels": list(variantes)}
+        ).mappings().fetchone()
+
+        if existente:
+            # Atualiza o nome e devolve sinalização de que já existia
+            db.execute(
+                text("UPDATE customers SET nome = :nome WHERE id = :id"),
+                {"nome": body.nome, "id": existente["id"]}
+            )
+            db.commit()
+            return {
+                "status": "sucesso",
+                "mensagem": "Cliente já existia — dados atualizados.",
+                "existing": True,
+                "cliente_id": existente["id"]
+            }
+
+        # Novo cliente
         result = db.execute(
             text("""
                 INSERT INTO customers (nome, telefone_whatsapp, data_nascimento)
                 VALUES (:nome, :tel, :dn)
-                ON CONFLICT (telefone_whatsapp) DO UPDATE 
-                    SET nome = EXCLUDED.nome, data_nascimento = COALESCE(EXCLUDED.data_nascimento, customers.data_nascimento)
                 RETURNING id
             """),
             {"nome": body.nome, "tel": tel_limpo, "dn": body.data_nascimento}
         )
         db.commit()
-        return {"status": "sucesso", "mensagem": "Cliente salvo com sucesso!"}
+        return {"status": "sucesso", "mensagem": "Cliente salvo com sucesso!", "existing": False}
     except Exception as e:
         db.rollback()
         raise HTTPException(status_code=500, detail=str(e))
@@ -1488,9 +1527,7 @@ def editar_cliente(
 ):
     """Edita as informações de um cliente existente."""
     try:
-        tel_limpo = ''.join(filter(str.isdigit, body.telefone_whatsapp))
-        if len(tel_limpo) in [10, 11] and not tel_limpo.startswith("55"):
-            tel_limpo = "55" + tel_limpo
+        tel_limpo = normalizar_telefone(body.telefone_whatsapp)
             
         result = db.execute(
             text("""
@@ -1620,11 +1657,11 @@ async def upload_foto_perfil(
     merchant: Merchant = Depends(get_lojista_atual)
 ):
     """Faz upload da foto de perfil do lojista e atualiza no banco de dados."""
-    if not foto.content_type.startswith("image/"):
+    if not foto.content_type or not foto.content_type.startswith("image/"):
         raise HTTPException(status_code=400, detail="O arquivo enviado não é uma imagem.")
     
     # Gera um nome de arquivo único
-    extensao = foto.filename.split(".")[-1] if "." in foto.filename else "jpg"
+    extensao = foto.filename.split(".")[-1] if foto.filename and "." in foto.filename else "jpg"
     novo_nome = f"{merchant.id}_{uuid.uuid4().hex}.{extensao}"
     caminho_relativo = f"uploads/{novo_nome}"
     

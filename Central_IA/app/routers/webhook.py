@@ -599,8 +599,8 @@ async def receive_message(request: Request, db: Session = Depends(get_public_db)
                                 nome_push = (nome_push_row[0] if nome_push_row else None) or "Cliente"
                                 enviar_notificacao_push(
                                     push_token=merchant_alvo.push_token,
-                                    titulo="Solicitação de Cancelamento 🔴",
-                                    corpo=f"{nome_push} quer cancelar um agendamento. Motivo: {motivo_texto}.",
+                                    titulo="🚨 Alerta de Cancelamento",
+                                    corpo=f"{nome_push} pediu para cancelar. Libere esse horário agora!",
                                     dados={"tela": "pending"}
                                 )
 
@@ -666,8 +666,8 @@ async def receive_message(request: Request, db: Session = Depends(get_public_db)
                                 nome_push = (nome_push_row[0] if nome_push_row else None) or "Cliente"
                                 enviar_notificacao_push(
                                     push_token=merchant_alvo.push_token,
-                                    titulo="Solicitação de Cancelamento 🔴",
-                                    corpo=f"{nome_push} quer cancelar. Motivo: {motivo_texto}.",
+                                    titulo="🚨 Alerta de Cancelamento",
+                                    corpo=f"{nome_push} pediu para cancelar. Libere esse horário agora!",
                                     dados={"tela": "pending"}
                                 )
                     encerrar_sessao_cliente(db, telefone_cliente)
@@ -947,8 +947,8 @@ async def receive_message(request: Request, db: Session = Depends(get_public_db)
                         nome_push = (nome_push_row[0] if nome_push_row else None) or "Cliente"
                         enviar_notificacao_push(
                             push_token=merchant_alvo.push_token,
-                            titulo="Solicitação de Reagendamento 🟡",
-                            corpo=f"{nome_push} quer reagendar para {nova_data_fmt} às {nova_hora}.",
+                            titulo="🔄 Reagendamento Solicitado",
+                            corpo=f"{nome_push} quer mudar para {nova_data_fmt} às {nova_hora}. Confirme logo!",
                             dados={"tela": "pending"}
                         )
                     return JSONResponse(content={"status": "sucesso"}, status_code=200)
@@ -1520,8 +1520,8 @@ async def receive_message(request: Request, db: Session = Depends(get_public_db)
                     nome_push = nome_final or "Cliente"
                     enviar_notificacao_push(
                         push_token=merchant_alvo.push_token,
-                        titulo="Nova Solicitação Pendente! 🔔",
-                        corpo=f"{nome_push} quer agendar {nomes_servicos} para {data_exibicao} às {hora}.",
+                        titulo="💰 Novo Agendamento!",
+                        corpo=f"{nome_push} quer marcar {nomes_servicos} para {data_exibicao} às {hora}. Aprovar agora?",
                         dados={"tela": "pending"}
                     )
                 
