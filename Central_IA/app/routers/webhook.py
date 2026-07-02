@@ -182,7 +182,7 @@ async def receive_message(request: Request, db: Session = Depends(get_public_db)
             display_limpo = re.sub(r'\D', '', str(display_phone)) if display_phone else ""
             phone_id_limpo = re.sub(r'\D', '', str(phone_id)) if phone_id else ""
 
-            from app.services.whatsapp_service import current_phone_id
+            from app.services.whatsapp_service import current_phone_id, current_token
             if phone_id_limpo:
                 current_phone_id.set(phone_id_limpo)
             elif display_limpo:
@@ -199,6 +199,14 @@ async def receive_message(request: Request, db: Session = Depends(get_public_db)
                 logger.warning("Mensagem recebida para número/ID não registrado: %s / %s", display_limpo, phone_id_limpo)
                 # Responde 200 para que a Meta não fique retentando indefinidamente
                 return JSONResponse(content={"status": "numero_nao_registrado"}, status_code=200)
+            
+            # Seta as credenciais específicas do lojista no contexto.
+            # Se o lojista não tiver credenciais próprias, os contextvars ficam
+            # vazios e o whatsapp_service usa o fallback do .env automaticamente.
+            if getattr(lojista, 'meta_access_token', None):
+                current_token.set(lojista.meta_access_token)
+            if getattr(lojista, 'meta_phone_id', None):
+                current_phone_id.set(lojista.meta_phone_id)
             
             schema_alvo = lojista.nome_do_schema
             nome_loja = lojista.nome_loja

@@ -6,8 +6,9 @@ from app.config import META_ACCESS_TOKEN, META_PHONE_ID
 
 logger = logging.getLogger(__name__)
 
-# Variável de contexto para armazenar o ID do telefone da requisição atual
+# Variáveis de contexto para armazenar as credenciais do lojista da requisição atual
 current_phone_id: contextvars.ContextVar[str] = contextvars.ContextVar("current_phone_id", default="")
+current_token: contextvars.ContextVar[str] = contextvars.ContextVar("current_token", default="")
 
 def get_phone_id(passed_id: str | None = None) -> str:
     if passed_id:
@@ -16,6 +17,14 @@ def get_phone_id(passed_id: str | None = None) -> str:
     if ctx_id:
         return ctx_id
     return META_PHONE_ID
+
+def get_token(passed_token: str | None = None) -> str:
+    if passed_token:
+        return passed_token
+    ctx_token = current_token.get()
+    if ctx_token:
+        return ctx_token
+    return META_ACCESS_TOKEN
 
 # ── Versão da Graph API da Meta ──────────────────────────────
 # Atualize aqui quando a Meta deprecar a versão atual.
@@ -30,7 +39,7 @@ def enviar_mensagem_whatsapp(numero_destino: str, texto: str, phone_number_id: s
     Envia uma mensagem de texto via API do WhatsApp Business da Meta.
     Retorna o JSON de resposta da API ou None em caso de falha.
     """
-    TOKEN_META = META_ACCESS_TOKEN
+    TOKEN_META = get_token()
     PHONE_NUMBER_ID = get_phone_id(phone_number_id)
 
     if not TOKEN_META or not PHONE_NUMBER_ID:
@@ -74,7 +83,7 @@ def enviar_menu_lojas_whatsapp(numero_destino: str, texto: str, lojas: list, pho
     """
     Envia uma mensagem interativa de lista com as lojas disponíveis.
     """
-    TOKEN_META = META_ACCESS_TOKEN
+    TOKEN_META = get_token()
     PHONE_NUMBER_ID = get_phone_id(phone_number_id)
 
     if not TOKEN_META or not PHONE_NUMBER_ID:
@@ -142,7 +151,7 @@ def enviar_menu_intencao_whatsapp(numero_destino: str, texto: str, phone_number_
     Envia uma mensagem interativa perguntando a intenção do cliente:
     Agendar ou Consultar Status.
     """
-    TOKEN_META = META_ACCESS_TOKEN
+    TOKEN_META = get_token()
     PHONE_NUMBER_ID = get_phone_id(phone_number_id)
 
     if not TOKEN_META or not PHONE_NUMBER_ID:
@@ -211,7 +220,7 @@ def enviar_menu_servicos_whatsapp(numero_destino: str, texto: str, servicos: lis
     """
     Envia uma mensagem interativa de lista com os serviços disponíveis.
     """
-    TOKEN_META = META_ACCESS_TOKEN
+    TOKEN_META = get_token()
     PHONE_NUMBER_ID = get_phone_id(phone_number_id)
 
     if not TOKEN_META or not PHONE_NUMBER_ID:

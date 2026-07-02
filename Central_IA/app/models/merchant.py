@@ -41,3 +41,6 @@ class Merchant(Base):
     # Termos e Política
     politica_aceita = Column(Boolean, default=False, nullable=False, server_default="false")
 
+    # Credenciais WhatsApp Business (por lojista — fallback para .env se NULL)
+    meta_access_token = Column(String(500), nullable=True)
+    meta_phone_id = Column(String(50), nullable=True)
