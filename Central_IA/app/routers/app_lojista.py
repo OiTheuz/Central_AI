@@ -1217,17 +1217,24 @@ class ConfiguracoesRequest(BaseModel):
 
 @router.get("/configuracoes")
 def obter_configuracoes(
+    db: Session = Depends(get_db),
     merchant: Merchant = Depends(get_lojista_atual),
 ):
-    """Retorna as configurações de agendamento do lojista."""
+    """Retorna as configurações de agendamento do lojista (usa loja pai se sub-usuário)."""
+    target = merchant
+    if merchant.loja_pai_id:
+        loja_pai = db.query(Merchant).filter(Merchant.id == merchant.loja_pai_id).first()
+        if loja_pai:
+            target = loja_pai
+
     return {
         "status": "sucesso",
-        "permitir_sobreposicao": bool(merchant.permitir_sobreposicao),
-        "horario_abertura": merchant.horario_abertura or "08:00",
-        "horario_fechamento": merchant.horario_fechamento or "18:00",
-        "dias_fechados": merchant.dias_fechados,
-        "horario_almoco_inicio": merchant.horario_almoco_inicio,
-        "horario_almoco_fim": merchant.horario_almoco_fim,
+        "permitir_sobreposicao": bool(target.permitir_sobreposicao),
+        "horario_abertura": target.horario_abertura or "08:00",
+        "horario_fechamento": target.horario_fechamento or "18:00",
+        "dias_fechados": target.dias_fechados,
+        "horario_almoco_inicio": target.horario_almoco_inicio,
+        "horario_almoco_fim": target.horario_almoco_fim,
     }
 
 
@@ -1245,12 +1252,18 @@ def atualizar_configuracoes(
     except ValueError:
         raise HTTPException(status_code=400, detail="Horários devem estar no formato HH:MM com valores válidos (ex: 08:00, 18:30).")
 
-    merchant.permitir_sobreposicao = body.permitir_sobreposicao  # type: ignore
-    merchant.horario_abertura = body.horario_abertura  # type: ignore
-    merchant.horario_fechamento = body.horario_fechamento  # type: ignore
-    merchant.dias_fechados = body.dias_fechados  # type: ignore
-    merchant.horario_almoco_inicio = body.horario_almoco_inicio  # type: ignore
-    merchant.horario_almoco_fim = body.horario_almoco_fim  # type: ignore
+    target = merchant
+    if merchant.loja_pai_id:
+        loja_pai = db.query(Merchant).filter(Merchant.id == merchant.loja_pai_id).first()
+        if loja_pai:
+            target = loja_pai
+
+    target.permitir_sobreposicao = body.permitir_sobreposicao  # type: ignore
+    target.horario_abertura = body.horario_abertura  # type: ignore
+    target.horario_fechamento = body.horario_fechamento  # type: ignore
+    target.dias_fechados = body.dias_fechados  # type: ignore
+    target.horario_almoco_inicio = body.horario_almoco_inicio  # type: ignore
+    target.horario_almoco_fim = body.horario_almoco_fim  # type: ignore
 
     try:
         db.commit()
