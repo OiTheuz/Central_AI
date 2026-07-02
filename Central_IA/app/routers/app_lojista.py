@@ -1221,9 +1221,9 @@ def obter_configuracoes(
     merchant: Merchant = Depends(get_lojista_atual),
 ):
     """Retorna as configurações de agendamento do lojista (usa loja pai se sub-usuário)."""
-    target = merchant
-    if merchant.loja_pai_id:
-        loja_pai = db.query(Merchant).filter(Merchant.id == merchant.loja_pai_id).first()
+    target = db.query(Merchant).filter(Merchant.codigo_loja == merchant.codigo_loja).first() or merchant
+    if target.loja_pai_id:
+        loja_pai = db.query(Merchant).filter(Merchant.id == target.loja_pai_id).first()
         if loja_pai:
             target = loja_pai
 
@@ -1252,9 +1252,9 @@ def atualizar_configuracoes(
     except ValueError:
         raise HTTPException(status_code=400, detail="Horários devem estar no formato HH:MM com valores válidos (ex: 08:00, 18:30).")
 
-    target = merchant
-    if merchant.loja_pai_id:
-        loja_pai = db.query(Merchant).filter(Merchant.id == merchant.loja_pai_id).first()
+    target = db.query(Merchant).filter(Merchant.codigo_loja == merchant.codigo_loja).first() or merchant
+    if target.loja_pai_id:
+        loja_pai = db.query(Merchant).filter(Merchant.id == target.loja_pai_id).first()
         if loja_pai:
             target = loja_pai
 
