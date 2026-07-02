@@ -855,8 +855,7 @@ def obter_servicos(
     """Lista todos os serviços cadastrados no schema do lojista."""
 
 
-    # CORREÇÃO: A coluna real no banco é duracao_minutos
-    resultados = db.execute(text("SELECT id, nome, preco, duracao_minutos AS duracao FROM services WHERE nome != 'Bloqueio de agenda' ORDER BY nome")).mappings().all()
+    resultados = db.execute(text("SELECT id, nome, preco, duracao_minutos AS duracao FROM services WHERE nome NOT ILIKE 'Bloqueio%' ORDER BY nome")).mappings().all()
 
     servicos = []
     for row in resultados:
@@ -1445,7 +1444,7 @@ def listar_clientes(
     query = text("""
         SELECT id, nome, telefone_whatsapp, ultima_interacao, data_nascimento, origem
         FROM customers
-        WHERE nome != 'Bloqueio de agenda'
+        WHERE nome NOT ILIKE 'Bloqueio%'
         ORDER BY nome ASC
     """)
     resultados = db.execute(query).mappings().all()
