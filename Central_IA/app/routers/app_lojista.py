@@ -105,6 +105,48 @@ def registrar_push_token(
         raise HTTPException(status_code=500, detail=str(e))
 
 # =========================================================
+# PREFERÊNCIAS DE NOTIFICAÇÃO
+# =========================================================
+
+class NotificacoesRequest(BaseModel):
+    notificacoes_push_enabled: bool
+    notificacoes_novos: bool
+    notificacoes_cancelamentos: bool
+    notificacoes_lembretes: bool
+
+@router.put("/notificacoes")
+def atualizar_preferencias_notificacao(
+    body: NotificacoesRequest,
+    db: Session = Depends(get_db),
+    merchant: Merchant = Depends(get_lojista_atual),
+):
+    """Atualiza as preferências de notificação do lojista no banco."""
+    try:
+        db.execute(
+            text("""
+                UPDATE merchant 
+                SET notificacoes_push_enabled = :enabled,
+                    notificacoes_novos = :novos,
+                    notificacoes_cancelamentos = :cancelamentos,
+                    notificacoes_lembretes = :lembretes
+                WHERE id = :m_id
+            """),
+            {
+                "enabled": body.notificacoes_push_enabled,
+                "novos": body.notificacoes_novos,
+                "cancelamentos": body.notificacoes_cancelamentos,
+                "lembretes": body.notificacoes_lembretes,
+                "m_id": merchant.id
+            }
+        )
+        db.commit()
+        return {"status": "sucesso", "mensagem": "Preferências salvas."}
+    except Exception as e:
+        db.rollback()
+        logger.error("Erro ao salvar preferências de notificação: %s", e)
+        raise HTTPException(status_code=500, detail=str(e))
+
+# =========================================================
 # AGENDAMENTOS DE HOJE (status aprovado/confirmado)
 # =========================================================
 

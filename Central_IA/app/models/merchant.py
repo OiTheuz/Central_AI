@@ -27,6 +27,10 @@ class Merchant(Base):
     
     # Notificações Push
     push_token = Column(String(255), nullable=True)
+    notificacoes_push_enabled = Column(Boolean, default=True, nullable=False, server_default="true")
+    notificacoes_novos = Column(Boolean, default=True, nullable=False, server_default="true")
+    notificacoes_cancelamentos = Column(Boolean, default=True, nullable=False, server_default="true")
+    notificacoes_lembretes = Column(Boolean, default=True, nullable=False, server_default="true")
 
     # Configurações de agendamento
     permitir_sobreposicao = Column(Boolean, default=False, nullable=False, server_default="false")

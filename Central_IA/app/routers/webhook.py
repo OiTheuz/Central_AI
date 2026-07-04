@@ -591,7 +591,7 @@ async def receive_message(request: Request, db: Session = Depends(get_public_db)
                             merchant_alvo = db.query(Merchant).filter(
                                 Merchant.nome_do_schema == schema_alvo_seguro
                             ).first()
-                            if merchant_alvo and merchant_alvo.push_token:
+                            if merchant_alvo and merchant_alvo.push_token and getattr(merchant_alvo, 'notificacoes_push_enabled', True) and getattr(merchant_alvo, 'notificacoes_cancelamentos', True):
                                 nome_push_row = db.execute(
                                     text(f"SELECT nome FROM {schema_alvo_seguro}.customers WHERE telefone_whatsapp = :tel"),
                                     {"tel": telefone_cliente}
@@ -658,7 +658,7 @@ async def receive_message(request: Request, db: Session = Depends(get_public_db)
                             merchant_alvo = db.query(Merchant).filter(
                                 Merchant.nome_do_schema == schema_alvo_seguro
                             ).first()
-                            if merchant_alvo and merchant_alvo.push_token:
+                            if merchant_alvo and merchant_alvo.push_token and getattr(merchant_alvo, 'notificacoes_push_enabled', True) and getattr(merchant_alvo, 'notificacoes_cancelamentos', True):
                                 nome_push_row = db.execute(
                                     text(f"SELECT nome FROM {schema_alvo_seguro}.customers WHERE telefone_whatsapp = :tel"),
                                     {"tel": telefone_cliente}
@@ -938,7 +938,7 @@ async def receive_message(request: Request, db: Session = Depends(get_public_db)
                     merchant_alvo = db.query(Merchant).filter(
                         Merchant.nome_do_schema == schema_alvo_seguro
                     ).first()
-                    if merchant_alvo and merchant_alvo.push_token:
+                    if merchant_alvo and merchant_alvo.push_token and getattr(merchant_alvo, 'notificacoes_push_enabled', True) and getattr(merchant_alvo, 'notificacoes_novos', True):
                         db.execute(text(f"SET search_path TO {schema_alvo_seguro}, public"))
                         nome_push_row = db.execute(
                             text("SELECT nome FROM customers WHERE telefone_whatsapp = :tel"),
@@ -1516,7 +1516,7 @@ async def receive_message(request: Request, db: Session = Depends(get_public_db)
                 ).first()
                 nomes_servicos = ", ".join([s.get("nome") for s in servicos_encontrados])
                 
-                if merchant_alvo and merchant_alvo.push_token:
+                if merchant_alvo and merchant_alvo.push_token and getattr(merchant_alvo, 'notificacoes_push_enabled', True) and getattr(merchant_alvo, 'notificacoes_novos', True):
                     nome_push = nome_final or "Cliente"
                     enviar_notificacao_push(
                         push_token=merchant_alvo.push_token,

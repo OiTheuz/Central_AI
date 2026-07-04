@@ -135,6 +135,10 @@ def me(
         "pode_editar_servicos": getattr(merchant, 'pode_editar_servicos', True),
         "politica_aceita": getattr(merchant, 'politica_aceita', False),
         "foto_perfil": getattr(merchant, 'foto_perfil', None),
+        "notificacoes_push_enabled": getattr(merchant, 'notificacoes_push_enabled', True),
+        "notificacoes_novos": getattr(merchant, 'notificacoes_novos', True),
+        "notificacoes_cancelamentos": getattr(merchant, 'notificacoes_cancelamentos', True),
+        "notificacoes_lembretes": getattr(merchant, 'notificacoes_lembretes', True),
     }
 
 
