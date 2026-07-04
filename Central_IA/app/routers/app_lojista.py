@@ -1685,7 +1685,7 @@ def obter_ficha_cliente(
         dados_cliente = db.execute(
             text("""
                 SELECT id, nome, telefone_whatsapp, data_nascimento, origem,
-                       ultima_interacao, anotacoes,
+                       ultima_interacao,
                        (SELECT MIN(data_agendamento) FROM appointments WHERE customer_id = c.id) as membro_desde
                 FROM customers c
                 WHERE c.id = :cliente_id
@@ -1695,6 +1695,17 @@ def obter_ficha_cliente(
 
         if not dados_cliente:
             raise HTTPException(status_code=404, detail="Cliente não encontrado.")
+
+        # Busca anotacoes separadamente (coluna pode não existir em schemas antigos)
+        anotacoes_txt = ""
+        try:
+            nota_row = db.execute(
+                text("SELECT anotacoes FROM customers WHERE id = :id"),
+                {"id": cliente_id}
+            ).mappings().first()
+            anotacoes_txt = nota_row["anotacoes"] or "" if nota_row else ""
+        except Exception:
+            anotacoes_txt = ""
 
         # 2. Métricas financeiras e de atendimento
         metricas = db.execute(
@@ -1723,7 +1734,7 @@ def obter_ficha_cliente(
                 SELECT
                     a.id,
                     a.data_agendamento,
-                    a.hora_agendamento,
+                    a.horario_agendamento,
                     a.status,
                     COALESCE(s.nome, 'Serviço não informado') as servico,
                     COALESCE(a.valor_cobrado, s.preco, 0) as valor,
@@ -1732,7 +1743,7 @@ def obter_ficha_cliente(
                 LEFT JOIN services s ON a.service_id = s.id
                 WHERE a.customer_id = :cliente_id
                   AND a.status IN ('pendente', 'aprovado', 'confirmado')
-                ORDER BY a.data_agendamento ASC, a.hora_agendamento ASC
+                ORDER BY a.data_agendamento ASC, a.horario_agendamento ASC
             """),
             {"cliente_id": cliente_id}
         ).mappings().all()
@@ -1742,7 +1753,7 @@ def obter_ficha_cliente(
             pendentes.append({
                 "id": row["id"],
                 "data": str(row["data_agendamento"]) if row["data_agendamento"] else None,
-                "hora": str(row["hora_agendamento"]) if row["hora_agendamento"] else None,
+                "hora": row["horario_agendamento"].strftime("%H:%M") if row["horario_agendamento"] else None,
                 "status": row["status"],
                 "servico": row["servico"],
                 "valor": float(row["valor"] or 0),
@@ -1778,7 +1789,7 @@ def obter_ficha_cliente(
                 "origem": dados_cliente["origem"],
                 "ultima_interacao": str(dados_cliente["ultima_interacao"]) if dados_cliente["ultima_interacao"] else None,
                 "membro_desde": str(dados_cliente["membro_desde"]) if dados_cliente["membro_desde"] else None,
-                "anotacoes": dados_cliente["anotacoes"] or "",
+                "anotacoes": anotacoes_txt,
             },
             "metricas": {
                 "total_atendimentos": int(metricas["total_atendimentos"] or 0),
