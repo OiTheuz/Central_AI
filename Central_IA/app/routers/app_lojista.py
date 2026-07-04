@@ -1660,6 +1660,171 @@ def obter_insights_cliente(
         raise HTTPException(status_code=500, detail=str(e))
 
 # =========================================================
+# FICHA COMPLETA DO CLIENTE (CRM Premium)
+# =========================================================
+
+@router.get("/clientes/{cliente_id}/ficha")
+def obter_ficha_cliente(
+    cliente_id: int,
+    db: Session = Depends(get_db),
+    merchant: Merchant = Depends(get_lojista_atual)
+):
+    """
+    Retorna a ficha completa de um cliente para o painel de CRM Premium:
+    - Dados pessoais completos
+    - Receita total (Lifetime Value)
+    - Último atendimento (data formatada)
+    - Total de agendamentos histórico
+    - Agendamentos cancelados
+    - Agendamentos pendentes/futuros (lista resumida)
+    - Top 5 serviços mais usados
+    - Anotações
+    """
+    try:
+        # 1. Dados pessoais do cliente
+        dados_cliente = db.execute(
+            text("""
+                SELECT id, nome, telefone_whatsapp, data_nascimento, origem,
+                       ultima_interacao, anotacoes,
+                       (SELECT MIN(data_agendamento) FROM appointments WHERE customer_id = c.id) as membro_desde
+                FROM customers c
+                WHERE c.id = :cliente_id
+            """),
+            {"cliente_id": cliente_id}
+        ).mappings().first()
+
+        if not dados_cliente:
+            raise HTTPException(status_code=404, detail="Cliente não encontrado.")
+
+        # 2. Métricas financeiras e de atendimento
+        metricas = db.execute(
+            text("""
+                SELECT
+                    COUNT(CASE WHEN status IN ('concluido', 'aprovado', 'confirmado') THEN 1 END) as total_atendimentos,
+                    COUNT(CASE WHEN status = 'cancelado' THEN 1 END) as total_cancelados,
+                    SUM(
+                        CASE
+                            WHEN status IN ('concluido', 'aprovado', 'confirmado')
+                             AND COALESCE(is_paid_in_package, false) = false
+                            THEN COALESCE(valor_cobrado, (SELECT preco FROM services WHERE id = a.service_id LIMIT 1), 0)
+                            ELSE 0
+                        END
+                    ) as receita_total,
+                    MAX(CASE WHEN status IN ('concluido', 'aprovado', 'confirmado') AND data_agendamento <= CURRENT_DATE THEN data_agendamento END) as ultimo_atendimento
+                FROM appointments a
+                WHERE customer_id = :cliente_id
+            """),
+            {"cliente_id": cliente_id}
+        ).mappings().first()
+
+        # 3. Agendamentos pendentes/futuros
+        pendentes_rows = db.execute(
+            text("""
+                SELECT
+                    a.id,
+                    a.data_agendamento,
+                    a.hora_agendamento,
+                    a.status,
+                    COALESCE(s.nome, 'Serviço não informado') as servico,
+                    COALESCE(a.valor_cobrado, s.preco, 0) as valor,
+                    COALESCE(a.is_paid_in_package, false) as is_paid_in_package
+                FROM appointments a
+                LEFT JOIN services s ON a.service_id = s.id
+                WHERE a.customer_id = :cliente_id
+                  AND a.status IN ('pendente', 'aprovado', 'confirmado')
+                ORDER BY a.data_agendamento ASC, a.hora_agendamento ASC
+            """),
+            {"cliente_id": cliente_id}
+        ).mappings().all()
+
+        pendentes = []
+        for row in pendentes_rows:
+            pendentes.append({
+                "id": row["id"],
+                "data": str(row["data_agendamento"]) if row["data_agendamento"] else None,
+                "hora": str(row["hora_agendamento"]) if row["hora_agendamento"] else None,
+                "status": row["status"],
+                "servico": row["servico"],
+                "valor": float(row["valor"] or 0),
+                "is_paid_in_package": bool(row["is_paid_in_package"]),
+            })
+
+        # 4. Top 5 serviços
+        top5_rows = db.execute(
+            text("""
+                SELECT
+                    COALESCE(s.nome, 'Desconhecido') as servico,
+                    COUNT(a.id) as quantidade
+                FROM appointments a
+                LEFT JOIN services s ON a.service_id = s.id
+                WHERE a.customer_id = :cliente_id
+                  AND a.status IN ('concluido', 'aprovado', 'confirmado')
+                GROUP BY s.id, s.nome
+                ORDER BY quantidade DESC
+                LIMIT 5
+            """),
+            {"cliente_id": cliente_id}
+        ).mappings().all()
+
+        top5 = [{"servico": r["servico"], "quantidade": r["quantidade"]} for r in top5_rows]
+
+        return {
+            "status": "sucesso",
+            "dados_pessoais": {
+                "id": dados_cliente["id"],
+                "nome": dados_cliente["nome"],
+                "telefone_whatsapp": dados_cliente["telefone_whatsapp"],
+                "data_nascimento": dados_cliente["data_nascimento"],
+                "origem": dados_cliente["origem"],
+                "ultima_interacao": str(dados_cliente["ultima_interacao"]) if dados_cliente["ultima_interacao"] else None,
+                "membro_desde": str(dados_cliente["membro_desde"]) if dados_cliente["membro_desde"] else None,
+                "anotacoes": dados_cliente["anotacoes"] or "",
+            },
+            "metricas": {
+                "total_atendimentos": int(metricas["total_atendimentos"] or 0),
+                "total_cancelados": int(metricas["total_cancelados"] or 0),
+                "receita_total": float(metricas["receita_total"] or 0),
+                "ultimo_atendimento": str(metricas["ultimo_atendimento"]) if metricas["ultimo_atendimento"] else None,
+            },
+            "pendentes": pendentes,
+            "top5_servicos": top5,
+        }
+
+    except HTTPException:
+        raise
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
+
+
+class AnotacaoRequest(BaseModel):
+    anotacoes: str
+
+@router.put("/clientes/{cliente_id}/anotacoes")
+def salvar_anotacoes_cliente(
+    cliente_id: int,
+    body: AnotacaoRequest,
+    db: Session = Depends(get_db),
+    merchant: Merchant = Depends(get_lojista_atual)
+):
+    """
+    Salva/atualiza as anotações do lojista sobre um cliente.
+    """
+    try:
+        result = db.execute(
+            text("UPDATE customers SET anotacoes = :anotacoes WHERE id = :id"),
+            {"anotacoes": body.anotacoes, "id": cliente_id}
+        )
+        if getattr(result, "rowcount", 0) == 0:
+            raise HTTPException(status_code=404, detail="Cliente não encontrado.")
+        db.commit()
+        return {"status": "sucesso", "mensagem": "Anotações salvas com sucesso!"}
+    except HTTPException:
+        raise
+    except Exception as e:
+        db.rollback()
+        raise HTTPException(status_code=500, detail=str(e))
+
+# =========================================================
 # UPLOAD FOTO DE PERFIL
 # =========================================================
 @router.post("/lojista/foto")
