@@ -1681,7 +1681,7 @@ def obter_ficha_cliente(
     - Anotações
     """
     try:
-        validar_schema(db, merchant.db_schema)
+        # O schema já está validado e definido no db pelo Depends(get_db)
 
         # 1. Dados pessoais do cliente
         dados_cliente = db.execute(
