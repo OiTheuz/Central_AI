@@ -1728,6 +1728,15 @@ def obter_ficha_cliente(
             {"cliente_id": cliente_id}
         ).mappings().first()
 
+        # Guard: aggregate query returns None when customer has no appointments
+        if metricas is None:
+            metricas = {
+                "total_atendimentos": 0,
+                "total_cancelados": 0,
+                "receita_total": 0,
+                "ultimo_atendimento": None,
+            }
+
         # 3. Agendamentos pendentes/futuros
         pendentes_rows = db.execute(
             text("""
