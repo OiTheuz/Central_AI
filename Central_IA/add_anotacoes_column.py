@@ -1,64 +1,89 @@
 """
 Migration: Adiciona a coluna 'anotacoes' na tabela customers de todos os schemas.
-Execute este script no servidor com o ambiente virtual ativado:
-    python add_anotacoes_column.py
+
+Execute na VPS de dentro de /var/www/central_ai/Central_IA com venv ativo:
+    cd /var/www/central_ai/Central_IA
+    python3 add_anotacoes_column.py
 """
-import sys
 import os
-sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
+import sys
 
-from sqlalchemy import text
-from app.database import engine, get_all_schemas  # ajuste conforme necessário
+# ─── Carrega DATABASE_URL direto do .env ──────────────────────
+env_path = os.path.join(os.path.dirname(__file__), '.env')
+if not os.path.exists(env_path):
+    # Tenta um nível acima (caso rode de fora da pasta)
+    env_path = os.path.join(os.path.dirname(__file__), '..', '.env')
 
-def run():
-    schemas_to_migrate = []
+database_url = None
+if os.path.exists(env_path):
+    with open(env_path) as f:
+        for line in f:
+            line = line.strip()
+            if line.startswith('DATABASE_URL='):
+                database_url = line.split('=', 1)[1].strip().strip('"').strip("'")
+                break
 
-    # Tenta obter todos os schemas dinamicamente
+if not database_url:
+    database_url = os.getenv('DATABASE_URL')
+
+if not database_url:
+    print("❌ DATABASE_URL não encontrada no .env nem nas variáveis de ambiente.")
+    sys.exit(1)
+
+print(f"✅ DATABASE_URL encontrada.")
+
+# ─── Conecta via psycopg2 diretamente ─────────────────────────
+try:
+    import psycopg2
+except ImportError:
+    print("❌ psycopg2 não instalado. Rode: pip install psycopg2-binary")
+    sys.exit(1)
+
+conn = psycopg2.connect(database_url)
+conn.autocommit = False
+cur = conn.cursor()
+
+# ─── Busca todos os schemas que têm a tabela customers ────────
+cur.execute("""
+    SELECT table_schema
+    FROM information_schema.tables
+    WHERE table_name = 'customers'
+      AND table_schema NOT IN ('pg_catalog', 'information_schema', 'public')
+    ORDER BY table_schema
+""")
+schemas = [row[0] for row in cur.fetchall()]
+
+if not schemas:
+    print("Nenhum schema encontrado com a tabela 'customers'.")
+    cur.close()
+    conn.close()
+    sys.exit(0)
+
+print(f"Schemas encontrados: {schemas}\n")
+
+# ─── Adiciona a coluna em cada schema ─────────────────────────
+for schema in schemas:
     try:
-        from app.database import engine
-        with engine.connect() as conn:
-            # Pega todos os schemas que possuem a tabela 'customers'
-            rows = conn.execute(text("""
-                SELECT table_schema
-                FROM information_schema.tables
-                WHERE table_name = 'customers'
-                  AND table_schema NOT IN ('pg_catalog', 'information_schema', 'public')
-                ORDER BY table_schema
-            """)).fetchall()
-            schemas_to_migrate = [r[0] for r in rows]
+        # Verifica se já existe
+        cur.execute("""
+            SELECT column_name
+            FROM information_schema.columns
+            WHERE table_schema = %s
+              AND table_name = 'customers'
+              AND column_name = 'anotacoes'
+        """, (schema,))
+        existe = cur.fetchone()
+
+        if existe:
+            print(f"  [{schema}] Coluna 'anotacoes' já existe. Pulando.")
+        else:
+            cur.execute(f'ALTER TABLE "{schema}".customers ADD COLUMN anotacoes TEXT')
+            conn.commit()
+            print(f"  [{schema}] ✅ Coluna 'anotacoes' adicionada com sucesso!")
     except Exception as e:
-        print(f"Erro ao listar schemas: {e}")
-        sys.exit(1)
+        conn.rollback()
+        print(f"  [{schema}] ❌ Erro: {e}")
 
-    if not schemas_to_migrate:
-        print("Nenhum schema encontrado com a tabela 'customers'.")
-        return
-
-    print(f"Schemas encontrados: {schemas_to_migrate}")
-    
-    with engine.connect() as conn:
-        for schema in schemas_to_migrate:
-            try:
-                # Verifica se a coluna já existe
-                exists = conn.execute(text("""
-                    SELECT column_name
-                    FROM information_schema.columns
-                    WHERE table_schema = :schema
-                      AND table_name = 'customers'
-                      AND column_name = 'anotacoes'
-                """), {"schema": schema}).fetchone()
-
-                if exists:
-                    print(f"  [{schema}] Coluna 'anotacoes' já existe. Pulando.")
-                else:
-                    conn.execute(text(f'ALTER TABLE "{schema}".customers ADD COLUMN anotacoes TEXT'))
-                    conn.commit()
-                    print(f"  [{schema}] ✅ Coluna 'anotacoes' adicionada com sucesso!")
-            except Exception as e:
-                print(f"  [{schema}] ❌ Erro: {e}")
-                conn.rollback()
-
-    print("\nMigration concluída!")
-
-if __name__ == "__main__":
-    run()
+cur.close()
+conn.close()
+print("\n✅ Migration concluída!")
