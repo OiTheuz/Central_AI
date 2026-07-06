@@ -1,8 +1,21 @@
 import logging
 import requests
 import contextvars
+import re
 
 from app.config import META_ACCESS_TOKEN, META_PHONE_ID
+
+def sanitizar_numero_whatsapp(numero: str) -> str:
+    """Remove caracteres especiais e garante o DDI 55 para números do Brasil com 10 ou 11 dígitos."""
+    if not numero:
+        return ""
+    limpo = re.sub(r'\D', '', numero)
+    if not limpo:
+        return ""
+    if len(limpo) in (10, 11):
+        return f"55{limpo}"
+    return limpo
+
 
 logger = logging.getLogger(__name__)
 
@@ -34,12 +47,16 @@ GRAPH_API_VERSION = "v21.0"
 # =========================================================
 # ENVIAR MENSAGEM VIA WHATSAPP (API Meta)
 
-def enviar_mensagem_whatsapp(numero_destino: str, texto: str, phone_number_id: str | None = None) -> dict | None:
+def enviar_mensagem_whatsapp(numero_destino: str, texto: str, phone_number_id: str | None = None, token: str | None = None) -> dict | None:
     """
     Envia uma mensagem de texto via API do WhatsApp Business da Meta.
     Retorna o JSON de resposta da API ou None em caso de falha.
     """
-    TOKEN_META = get_token()
+    numero_destino = sanitizar_numero_whatsapp(numero_destino)
+    if not numero_destino:
+        return None
+
+    TOKEN_META = get_token(token)
     PHONE_NUMBER_ID = get_phone_id(phone_number_id)
 
     if not TOKEN_META or not PHONE_NUMBER_ID:
