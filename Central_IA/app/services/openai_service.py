@@ -29,7 +29,8 @@ async def analisar_mensagem_com_ia(
     servicos_disponiveis: str = "",
     nome_loja: str = "Loja",
     data_nascimento_conhecida: bool = False,
-    regras_agenda: str = ""
+    regras_agenda: str = "",
+    area_atuacao: str = ""
 ) -> dict:
     """
     Analisa as mensagens e extrai os dados em formato JSON puro.
@@ -76,6 +77,7 @@ async def analisar_mensagem_com_ia(
     Sua única função é extrair dados essenciais da mensagem do cliente e estruturar o JSON de resposta.
     PROIBIDO: Não gere nenhuma saudação amigável (como "Bom dia", "Olá", "Tudo bem?") por conta própria no campo 'mensagem_resposta'. A saudação já é tratada pelo sistema.
     PROIBIDO: NUNCA use as palavras genéricas "estabelecimento" ou "lojista" nas suas respostas. Refira-se à loja sempre pelo seu nome oficial: "{nome_loja}".
+    ÁREA DE ATUAÇÃO / TIPO DE ESTABELECIMENTO: '{area_atuacao if area_atuacao else "Estabelecimento comercial"}'. Ajuste seu tom e vocabulário para combinar perfeitamente com este tipo de negócio.
 
     CONTEXTO DO CLIENTE: O cliente atual está classificado como '{contexto_cliente}'.
     NOME DO CLIENTE: '{nome_display or "desconhecido"}'.
@@ -113,18 +115,25 @@ async def analisar_mensagem_com_ia(
     ║      perguntar horários, ou responder dúvidas. Sua única    ║
     ║      resposta deve ser pedir a informação faltante.         ║
     ║                                                             ║
-    ║  ETAPA 2 — INTENÇÃO E SERVIÇO                               ║
-    ║    → Se o cliente pedir para agendar mas não disser qual    ║
-    ║      serviço, é ESTRITAMENTE OBRIGATÓRIO que o campo        ║
-    ║      'mensagem_resposta' contenha EXATAMENTE esta frase:    ║
-    ║      "Você já conhece nossos serviços ou prefere que eu envie a lista?" ║
-    ║    → SÓ LISTE OS SERVIÇOS se o cliente pedir a lista ou     ║
-    ║      disser que não conhece.                                ║
-    ║    → Não avance para a ETAPA 3 sem um serviço confirmado.   ║
+    ║  ATALHO (DIRETO AO PONTO):                                  ║
+    ║    → Se o cliente já informar dados antecipadamente (ex:    ║
+    ║      "Quero agendar pro dia 10 às 15h" ou "Quero cortar o   ║
+    ║      cabelo hoje"), EXTRAIA TUDO imediatamente.             ║
+    ║    → Ignore a ordem rígida das etapas 2 e 3. Pergunte       ║
+    ║      APENAS o que estiver faltando de forma natural.        ║
+    ║      Exemplo: Se já deu data e hora mas não o serviço, diga:║
+    ║      "Certo! Para amanhã às 15h, qual serviço seria?"       ║
     ║                                                             ║
-    ║  ETAPA 3 — DATA E HORÁRIO                                   ║
-    ║    → Com o serviço confirmado, pergunte a data E o horário  ║
-    ║      desejado numa única mensagem.                          ║
+    ║  ETAPA 2 — INTENÇÃO E SERVIÇO (Se o cliente for genérico)   ║
+    ║    → Se o cliente apenas disser "Quero agendar", sem dar    ║
+    ║      nenhum outro detalhe (sem data, sem serviço):          ║
+    ║      Pergunte: "Você já conhece nossos serviços ou prefere  ║
+    ║      que eu envie a lista?".                                ║
+    ║    → Se ele pedir a lista, envie os SERVIÇOS DISPONÍVEIS.   ║
+    ║                                                             ║
+    ║  ETAPA 3 — DATA E HORÁRIO (Se o serviço já foi escolhido)   ║
+    ║    → Se ele já disse o serviço, mas não deu data/hora:      ║
+    ║      Pergunte a data e o horário desejados numa única frase.║
     ║    → Não tente confirmar o agendamento. Apenas colete.      ║
     ║                                                             ║
     ║  TRAVA ANTI-LOOP: Se algum dado já foi coletado (está no    ║
@@ -153,11 +162,11 @@ async def analisar_mensagem_com_ia(
     7. LISTAGEM DE SERVIÇOS: Quando o cliente pedir a lista, copie a formatação exata do bloco SERVIÇOS DISPONÍVEIS (com os bullet points '•' e os preços). É obrigatório que cada serviço seja em um parágrafo separado (um por linha).
     8. ENCERRAMENTO: Retorne 'encerrar' APENAS se o cliente expressamente pedir para cancelar, desistir ou encerrar a conversa (ex: "deixa pra lá", "não quero mais", "cancelar", "obrigado, tchau"). Se o cliente enviar apenas o nome de uma loja, uma palavra solta ou uma saudação, assuma a intenção de 'saudacao' ou 'agendar', NUNCA 'encerrar'.
     9. DADOS COMPLETOS — SILÊNCIO OBRIGATÓRIO: Se nesta resposta você extraiu servico + data + hora (todos os três preenchidos), o campo 'mensagem_resposta' DEVE ser uma string VAZIA "". É TERMINANTEMENTE PROIBIDO gerar mensagens como "Estou coletando...", "Aguarde...", "Processando..." ou qualquer outra frase de transição. O sistema back-end detecta os dados completos e envia a confirmação automaticamente. Qualquer mensagem sua nesse momento seria duplicada e errada.
-    10. INTENÇÃO: Se o cliente quiser marcar um horário, use "agendar". Se o cliente quiser saber seus horários marcados ou consultar agendamentos, use "consultar".
+    10. INTENÇÃO: Se o cliente quiser marcar um horário, use "agendar". Se o cliente quiser saber seus horários marcados ou consultar agendamentos, use "consultar". Se o cliente pedir para falar com um humano, atendente, dono, ou suporte, use "falar_com_atendente".
 
     O formato JSON estrito DEVE ser retornado sem blocos markdown (```json):
     {{
-        "intencao": "agendar" ou "consultar" ou "saudacao" ou "duvida" ou "encerrar",
+        "intencao": "agendar" ou "consultar" ou "saudacao" ou "duvida" ou "encerrar" ou "falar_com_atendente",
         "nome_cliente": "nome extraído da pessoa, ou null",
         "data_nascimento": "DD/MM/YYYY ou null se o cliente falar a data de nascimento",
         "servico": ["serviço 1", "serviço 2"] ou null,
@@ -293,3 +302,250 @@ async def extrair_data_hora_com_ia(texto_cliente: str, nome_loja: str) -> dict:
     except Exception as e:
         logger.error("OpenAI erro na extração de data/hora: %s", e)
         return fallback
+
+import tempfile
+import os
+
+async def transcrever_audio_com_ia(audio_bytes: bytes) -> str:
+    """Usa Whisper para transcrever áudio"""
+    if not audio_bytes: return ""
+    temp_file = tempfile.NamedTemporaryFile(delete=False, suffix=".ogg")
+    try:
+        temp_file.write(audio_bytes)
+        temp_file.close()
+        with open(temp_file.name, 'rb') as audio_file:
+            response = await client_ai.audio.transcriptions.create(
+                model="whisper-1",
+                file=audio_file,
+                language="pt"
+            )
+            
+        if hasattr(response, 'text'):
+            return response.text.strip()
+        elif isinstance(response, str):
+            return response.strip()
+        elif isinstance(response, dict) and "text" in response:
+            return str(response["text"]).strip()
+        else:
+            logger.warning("Tipo de resposta inesperado do Whisper: %s", type(response))
+            return ""
+    except Exception as e:
+        logger.error("Erro ao transcrever audio: %s", e)
+        return ""
+    finally:
+        if os.path.exists(temp_file.name):
+            os.remove(temp_file.name)
+
+# =========================================================
+# ANÁLISE DE MENSAGEM DO CHEFE
+# =========================================================
+async def analisar_mensagem_chefe(
+    historico: list[dict],
+    servicos_disponiveis: str,
+    nome_loja: str,
+    nome_chefe: str = "Chefe",
+    regras_agenda: str = ""
+) -> dict:
+    """
+    Analisa a mensagem do 'chefe' de forma interativa, suportando desambiguação e cadastro.
+    """
+    tz_br = ZoneInfo("America/Sao_Paulo")
+    data_hora_atual = datetime.now(tz_br).strftime("%d-%m-%Y %H:%M")
+    
+    dias_semana_pt = ["segunda-feira", "terça-feira", "quarta-feira", "quinta-feira", "sexta-feira", "sábado", "domingo"]
+    hoje = datetime.now(tz_br)
+    dia_semana_hoje = dias_semana_pt[hoje.weekday()]
+    proximos_dias = []
+    for i in range(14):
+        d = hoje + timedelta(days=i)
+        nome_dia = dias_semana_pt[d.weekday()]
+        proximos_dias.append(f"  - {nome_dia}: {d.strftime('%Y-%m-%d')}")
+    calendario_referencia = "\n".join(proximos_dias)
+
+    prompt_sistema = f"""Você é a assistente virtual da loja '{nome_loja}'.
+    Seu papel exclusivo aqui é atender e ajudar o responsável/gestor da loja, cujo nome é {nome_chefe}.
+    Sua função é facilitar a vida dele, interpretando comandos para agendar clientes ou registrar contatos de forma rápida e prática pelo WhatsApp.
+
+    Hoje é {dia_semana_hoje}, {data_hora_atual}.
+    CALENDÁRIO DE REFERÊNCIA (próximos 14 dias):
+{calendario_referencia}
+
+    SERVIÇOS DISPONÍVEIS NA LOJA:
+    {servicos_disponiveis if servicos_disponiveis else "Não fornecidos. Aceite o que o responsável pedir."}
+
+    REGRAS DA AGENDA:
+    {regras_agenda if regras_agenda else "Nenhuma."}
+
+    INSTRUÇÕES CRÍTICAS PARA INTERAÇÃO:
+    - O sistema backend fará a busca de clientes no banco. Você APENAS extrai a intenção e os dados pedidos.
+    - SE HOUVER UMA SAUDAÇÃO INICIAL (ex: "Oi", "Bom dia", "Tudo bem?"): responda de forma muito educada, proativa e personalizada. Use o horário adequado (Bom dia, Boa tarde ou Boa noite com base em {data_hora_atual}), chame-o pelo nome ({nome_chefe}), e se coloque à disposição para realizar registros na agenda sem que ele precise abrir o aplicativo. 
+      Exemplo de tom: "Olá {nome_chefe}! Boa tarde. Estou aqui para ajudar. Deseja realizar algum registro na agenda ou adicionar um cliente sem precisar abrir o aplicativo?"
+      IMPORTANTE: Coloque essa saudação EXCLUSIVAMENTE dentro do campo "mensagem_resposta" do JSON. NUNCA escreva texto fora do JSON.
+    - Se o sistema enviar uma mensagem com "SYSTEM:" relatando homônimos ou que um contato foi salvo, USE essa informação para responder ou perguntar.
+    - Quando o sistema informar homônimos, liste EXATAMENTE as opções fornecidas pelo sistema de forma limpa (Exemplo de formato: "Encontrei estas opções, qual deseja agendar? • Opção 1 • Opção 2"). NUNCA invente ou sugira nomes de clientes que o sistema não forneceu.
+    - Quando o sistema informar que um cliente não foi encontrado, se for a primeira vez, confirme se você entendeu o nome corretamente, repetindo o nome para o usuário (ex: 'Entendi que é o(a) [Nome]. É isso mesmo?'). Se ele já tiver confirmado que o nome é esse, pergunte se ele gostaria de cadastrar o cliente e peça para enviar o contato do WhatsApp.
+    - Se o sistema informar que um contato foi salvo, continue imediatamente o fluxo de agendamento que estava pendente, caso tenha os dados.
+    Você DEVE retornar SEMPRE um JSON estrito, sem blocos markdown (```json), seguindo este modelo:
+    {{
+        "intencao": "agendar_lote" | "responder",
+        "agendamentos": [
+            {{
+                "nome_cliente": "Nome do Cliente",
+                "cliente_id": null,
+                "servicos": ["Corte"],
+                "data": "YYYY-MM-DD",
+                "hora": "HH:MM"
+            }}
+        ],
+        "mensagem_resposta": "Sua resposta para {nome_chefe} ou a pergunta de esclarecimento. Deixe vazio se for agendar diretamente e estiver tudo certo."
+    }}
+    - Use "intencao": "responder" se precisar perguntar algo, listar homônimos ou avisar que não achou o cliente, e escreva na "mensagem_resposta".
+    - Use "intencao": "agendar_lote" APENAS se souber quem é o cliente (ou se {nome_chefe} resolveu a ambiguidade), data, hora e serviço.
+    
+    IMPORTANTE: Nunca se refira a ele como "chefe", "o chefe" ou "patrão". Sempre o chame pelo nome: {nome_chefe}.
+    """
+
+    messages = [{"role": "system", "content": prompt_sistema}]
+    # Limitar histórico para não estourar tokens
+    for msg in historico[-10:]:
+        messages.append(msg)
+
+    conteudo = None
+    try:
+        response = cast(
+            ChatCompletion,
+            await client_ai.chat.completions.create(
+                model="gpt-4o-mini",
+                messages=messages,
+                temperature=0.2,
+                stream=False,
+                response_format={"type": "json_object"},
+            )
+        )
+        conteudo = response.choices[0].message.content or "{}"
+        
+        # Limpar markdown
+        if conteudo.startswith("```json"):
+            conteudo = conteudo[7:]
+        if conteudo.endswith("```"):
+            conteudo = conteudo[:-3]
+            
+        dados = json.loads(conteudo.strip())
+        return dados
+    except Exception as e:
+        logger.error("Erro na analise da mensagem do gestor. Conteúdo gerado: %s | Erro: %s", conteudo if conteudo is not None else 'N/A', e)
+        return {"intencao": "erro", "agendamentos": [], "mensagem_resposta": f"Desculpe {nome_chefe}, tive um problema ao analisar."}
+
+# =========================================================
+# ANÁLISE DE MENSAGEM DO APP LOJISTA (CHAT INTERNO)
+# =========================================================
+async def analisar_mensagem_app(
+    historico: list[dict],
+    servicos_disponiveis: str,
+    nome_loja: str,
+    nome_chefe: str = "Lojista",
+    regras_agenda: str = "",
+    clientes_cadastrados: str = ""
+) -> dict:
+    """
+    Analisa a mensagem do 'chefe' originada do chat interno do App.
+    Suporta intenções estendidas: agendar, cadastrar_cliente, bloquear_horario e responder.
+    """
+    tz_br = ZoneInfo("America/Sao_Paulo")
+    data_hora_atual = datetime.now(tz_br).strftime("%d-%m-%Y %H:%M")
+    
+    dias_semana_pt = ["segunda-feira", "terça-feira", "quarta-feira", "quinta-feira", "sexta-feira", "sábado", "domingo"]
+    hoje = datetime.now(tz_br)
+    dia_semana_hoje = dias_semana_pt[hoje.weekday()]
+    proximos_dias = []
+    for i in range(14):
+        d = hoje + timedelta(days=i)
+        nome_dia = dias_semana_pt[d.weekday()]
+        proximos_dias.append(f"  - {nome_dia}: {d.strftime('%Y-%m-%d')}")
+    calendario_referencia = "\n".join(proximos_dias)
+
+    prompt_sistema = f"""Você é a IA Assistente integrada diretamente no aplicativo da loja '{nome_loja}'.
+    Você está conversando com o dono/gestor da loja, {nome_chefe}.
+    Sua função é executar ações de gestão (agendar clientes, cadastrar clientes, bloquear horários) conversando de forma natural.
+
+    Hoje é {dia_semana_hoje}, {data_hora_atual}.
+    CALENDÁRIO DE REFERÊNCIA (próximos 14 dias):
+{calendario_referencia}
+
+    SERVIÇOS DISPONÍVEIS NA LOJA:
+    {servicos_disponiveis if servicos_disponiveis else "Não fornecidos. Aceite o que for pedido."}
+
+    CLIENTES CADASTRADOS NA BASE:
+    {clientes_cadastrados if clientes_cadastrados else "Nenhum cliente cadastrado ainda."}
+
+    REGRAS DA AGENDA:
+    {regras_agenda if regras_agenda else "Nenhuma."}
+
+    INSTRUÇÕES:
+    1. Trate o gestor SEMPRE pelo nome: {nome_chefe}. NUNCA o chame por termos genéricos como "lojista", "gestor" ou "usuário". Se for uma saudação, responda de forma muito educada chamando-o de {nome_chefe} e diga que pode ajudar.
+    2. O backend vai executar as ações com base na intenção que você retornar.
+    3. Para CADASTRAR CLIENTE: se o gestor passar nome e telefone (e opcionalmente data de nascimento), retorne a intenção "cadastrar_cliente" e preencha os dados de cadastro.
+    4. Para BLOQUEAR HORÁRIO: se o gestor pedir para bloquear a agenda, extraia data, hora de início e hora de término. Retorne "bloquear_horario".
+    5. Para AGENDAR: retorne "agendar" com a lista de clientes, datas e serviços. Se faltar dados, use "responder" para perguntar. IMPORTANTE: Se o gestor usar apenas o primeiro nome (ex: 'Matheus') e existirem vários na base, NÃO tente adivinhar o sobrenome. Preencha 'nome_cliente' apenas com 'Matheus' para que o backend acione a verificação de homônimos.
+    5.1. MANUTENÇÃO DE CONTEXTO: Se o gestor estiver completando uma informação que faltava (ex: informando apenas o serviço após você perguntar), você DEVE resgatar da conversa anterior os dados já informados (nome, data, hora) e juntá-los para retornar o JSON de "agendar" completo. Não pergunte o que já foi dito!
+    6. Se o backend inserir mensagens começando com "SYSTEM:", use essa informação. Ex: "SYSTEM: O cliente X não foi encontrado" -> pergunte se ele quer cadastrar o cliente (peça o telefone). "SYSTEM: Sucesso" -> informe o sucesso.
+    7. Se o backend avisar "SYSTEM: Há um conflito...", pergunte se o gestor deseja agendar mesmo assim. Se ele responder que SIM, na próxima requisição preencha "confirmar_sobreposicao": true no JSON.
+    8. FORMATAÇÃO DE DATA: Quando você for escrever datas na 'mensagem_resposta' para o gestor ler, use SEMPRE o formato (DD/MM/AA). Exemplo: 25/12/26. NUNCA utilize YYYY-MM-DD no texto da resposta. (As datas dentro do JSON como 'data' devem manter o formato 'YYYY-MM-DD').
+
+    Você DEVE retornar SEMPRE um JSON estrito, seguindo este modelo:
+    {{
+        "intencao": "agendar" | "cadastrar_cliente" | "bloquear_horario" | "responder",
+        "mensagem_resposta": "O que você vai dizer ao gestor (sempre preencha).",
+        "agendamentos": [
+            {{
+                "nome_cliente": "Nome",
+                "servicos": ["Corte"],
+                "data": "YYYY-MM-DD",
+                "hora": "HH:MM",
+                "confirmar_sobreposicao": false
+            }}
+        ],
+        "cadastro": {{
+            "nome": "Nome",
+            "telefone": "11999999999",
+            "data_nascimento": "YYYY-MM-DD"
+        }},
+        "bloqueio": {{
+            "data": "YYYY-MM-DD",
+            "hora_inicio": "HH:MM",
+            "hora_fim": "HH:MM",
+            "motivo": "Almoço"
+        }}
+    }}
+    
+    Atenção: Apenas preencha 'agendamentos', 'cadastro' ou 'bloqueio' se tiver os dados. Se for apenas conversa, preencha apenas 'mensagem_resposta' e use a intenção 'responder'.
+    """
+
+    messages = [{"role": "system", "content": prompt_sistema}]
+    for msg in historico[-10:]:
+        messages.append(msg)
+
+    conteudo = None
+    try:
+        response = cast(
+            ChatCompletion,
+            await client_ai.chat.completions.create(
+                model="gpt-4o-mini",
+                messages=messages,
+                temperature=0.2,
+                stream=False,
+                response_format={"type": "json_object"},
+            )
+        )
+        conteudo = response.choices[0].message.content or "{}"
+        
+        if conteudo.startswith("```json"):
+            conteudo = conteudo[7:]
+        if conteudo.endswith("```"):
+            conteudo = conteudo[:-3]
+            
+        dados = json.loads(conteudo.strip())
+        return dados
+    except Exception as e:
+        logger.error("Erro na IA do App. Conteúdo: %s | Erro: %s", conteudo, e)
+        return {"intencao": "erro", "mensagem_resposta": f"Desculpe {nome_chefe}, ocorreu um erro no meu processamento."}

@@ -17,7 +17,7 @@ from app.database import engine, Base, SessionLocal
 from app.models import Merchant, ActiveSession  # noqa: F401
 
 # Importa os routers
-from app.routers import webhook_router, lojistas_router, agendamentos_router, custos
+from app.routers import webhook_router, lojistas_router, agendamentos_router, custos, chat_router, ws_chat_router
 
 # =========================================================
 # LOGGING — substitui print() por logs estruturados
@@ -58,7 +58,7 @@ def _processar_timeouts_sync() -> list[dict]:
 
         sessoes_expiradas = db.execute(
             text("""
-                SELECT id, telefone_cliente
+                SELECT id, telefone_cliente, loja_atual
                 FROM public.active_sessions
                 WHERE ativo = TRUE
                   AND ultima_interacao IS NOT NULL
@@ -90,7 +90,7 @@ def _processar_timeouts_sync() -> list[dict]:
         # Coleta os telefones para notificar APÓS o commit —
         # se o WhatsApp falhar, o banco já está correto.
         clientes_para_notificar = [
-            {"telefone": s["telefone_cliente"]} for s in sessoes_expiradas
+            {"telefone": s["telefone_cliente"], "schema": s["loja_atual"]} for s in sessoes_expiradas
         ]
 
     except Exception as e:
@@ -102,10 +102,28 @@ def _processar_timeouts_sync() -> list[dict]:
     return clientes_para_notificar
 
 
-def _enviar_whatsapp_timeout_sync(telefone: str, mensagem: str) -> None:
+def _enviar_whatsapp_timeout_sync(telefone: str, mensagem: str, schema_name: str) -> None:
     """Função SÍNCRONA de envio WhatsApp — executada em thread pool."""
     from app.services.whatsapp_service import enviar_mensagem_whatsapp
-    enviar_mensagem_whatsapp(numero_destino=telefone, texto=mensagem)
+    from app.database import SessionLocal
+    from app.models import Merchant
+    db = SessionLocal()
+    try:
+        main_merchant = db.query(Merchant).filter(Merchant.nome_do_schema == schema_name, Merchant.loja_pai_id == None).first()
+        token = None
+        phone_id = None
+        if main_merchant:
+            token = main_merchant.meta_access_token
+            phone_id = main_merchant.meta_phone_id
+            
+        enviar_mensagem_whatsapp(
+            numero_destino=telefone, 
+            texto=mensagem,
+            phone_number_id=str(phone_id) if phone_id else None,
+            token=token
+        )
+    finally:
+        db.close()
 
 
 async def _verificar_timeouts_de_inatividade():
@@ -128,9 +146,10 @@ async def _verificar_timeouts_de_inatividade():
             # 2. Notificar cada cliente via WhatsApp (I/O síncrono → thread pool)
             for cliente in clientes:
                 telefone = cliente["telefone"]
+                schema_name = cliente["schema"]
                 try:
                     await asyncio.to_thread(
-                        _enviar_whatsapp_timeout_sync, telefone, MENSAGEM_TIMEOUT
+                        _enviar_whatsapp_timeout_sync, telefone, MENSAGEM_TIMEOUT, schema_name
                     )
                     logger.info("Mensagem de timeout enviada para: %s", telefone)
                 except Exception as e:
@@ -144,20 +163,145 @@ async def _verificar_timeouts_de_inatividade():
 
 
 # =========================================================
-# LIFESPAN — inicializa e encerra a background task
+# BACKGROUND TASK: LEMBRETES DIÁRIOS
+# =========================================================
+
+def _processar_lembretes_sync(tipo: str):
+    from sqlalchemy import text
+    from datetime import datetime
+    try:
+        from zoneinfo import ZoneInfo
+    except ImportError:
+        from backports.zoneinfo import ZoneInfo  # type: ignore # Python 3.8 fallback se necessário
+    from app.services.push_service import enviar_notificacao_push
+    
+    db = SessionLocal()
+    fuso = ZoneInfo("America/Sao_Paulo")
+    hoje = datetime.now(fuso).date()
+    
+    try:
+        merchants = db.execute(
+            text("""
+                SELECT id, nome_loja, nome_do_schema, push_token 
+                FROM merchant 
+                WHERE push_token IS NOT NULL 
+                  AND notificacoes_push_enabled = TRUE 
+                  AND notificacoes_lembretes = TRUE
+            """)
+        ).mappings().fetchall()
+        
+        for m in merchants:
+            schema = m["nome_do_schema"]
+            try:
+                count_res = db.execute(
+                    text(f"""
+                        SELECT COUNT(*) as qtd
+                        FROM {schema}.appointments
+                        WHERE data_agendamento = :hoje
+                          AND status NOT IN ('cancelado', 'recusado')
+                    """),
+                    {"hoje": hoje}
+                ).fetchone()
+                
+                qtd = count_res[0] if count_res else 0
+                
+                if tipo == "matinal":
+                    if qtd > 0:
+                        enviar_notificacao_push(
+                            push_token=m["push_token"],
+                            titulo="☀️ Bom dia!",
+                            corpo=f"Você tem {qtd} agendamento(s) para hoje. Tenha um ótimo dia de trabalho!",
+                            dados={"tela": "calendar"}
+                        )
+                    else:
+                        enviar_notificacao_push(
+                            push_token=m["push_token"],
+                            titulo="☀️ Bom dia!",
+                            corpo="Você ainda não tem agendamentos para hoje. Aproveite para divulgar seus serviços!",
+                            dados={"tela": "calendar"}
+                        )
+                elif tipo == "noturno":
+                    enviar_notificacao_push(
+                        push_token=m["push_token"],
+                        titulo="🌙 Resumo do dia",
+                        corpo=f"Hoje você teve {qtd} agendamento(s) programado(s). Bom descanso!",
+                        dados={"tela": "calendar"}
+                    )
+            except Exception as e:
+                logger.error("Erro ao processar lembretes para schema %s: %s", schema, e)
+                
+    except Exception as e:
+        logger.error("Erro geral no loop de lembretes: %s", e)
+    finally:
+        db.close()
+
+async def _loop_de_lembretes_diarios():
+    try:
+        from zoneinfo import ZoneInfo
+    except ImportError:
+        from backports.zoneinfo import ZoneInfo  # type: ignore
+    from datetime import datetime
+    fuso = ZoneInfo("America/Sao_Paulo")
+    
+    ultimo_minuto_disparado = None
+    
+    while True:
+        agora = datetime.now(fuso)
+        hh_mm = agora.strftime("%H:%M")
+        
+        if hh_mm == "07:30" and ultimo_minuto_disparado != "07:30":
+            ultimo_minuto_disparado = hh_mm
+            logger.info("Disparando lembretes matinais...")
+            await asyncio.to_thread(_processar_lembretes_sync, "matinal")
+            
+        elif hh_mm == "20:00" and ultimo_minuto_disparado != "20:00":
+            ultimo_minuto_disparado = hh_mm
+            logger.info("Disparando lembretes noturnos...")
+            await asyncio.to_thread(_processar_lembretes_sync, "noturno")
+            
+        elif hh_mm not in ["07:30", "20:00"]:
+            ultimo_minuto_disparado = None
+            
+        await asyncio.sleep(30)
+
+
+# =========================================================
+# BACKGROUND TASK: LEMBRETES IA (A CADA MINUTO)
+# =========================================================
+
+async def _loop_de_lembretes_1_minuto():
+    from scripts.check_lembretes_petshop import run_lembretes
+    from scripts.check_lembretes_pre import run_lembretes_pre
+    while True:
+        try:
+            await run_lembretes()
+        except Exception as e:
+            logger.error("Erro no loop de lembretes petshop (pos): %s", e)
+            
+        try:
+            await run_lembretes_pre()
+        except Exception as e:
+            logger.error("Erro no loop de lembretes pre-servico: %s", e)
+            
+        await asyncio.sleep(60)
+
+
+# =========================================================
+# LIFESPAN — inicializa e encerra as background tasks
 # =========================================================
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
-    logger.info("Iniciando background task de verificação de timeouts...")
-    task = asyncio.create_task(_verificar_timeouts_de_inatividade())
+    logger.info("Iniciando background tasks (Timeouts e Lembretes)...")
+    task_timeouts = asyncio.create_task(_verificar_timeouts_de_inatividade())
+    task_lembretes = asyncio.create_task(_loop_de_lembretes_diarios())
+    task_1_minuto = asyncio.create_task(_loop_de_lembretes_1_minuto())
     yield
-    logger.info("Encerrando background task de timeouts...")
-    task.cancel()
-    try:
-        await task
-    except asyncio.CancelledError:
-        pass
+    logger.info("Encerrando background tasks...")
+    task_timeouts.cancel()
+    task_lembretes.cancel()
+    task_1_minuto.cancel()
+    await asyncio.gather(task_timeouts, task_lembretes, task_1_minuto, return_exceptions=True)
 
 
 # =========================================================
@@ -201,6 +345,8 @@ app.include_router(agendamentos_router)
 app.include_router(admin.router)       # /admin/estabelecimento (requer JWT admin)
 app.include_router(dashboards.router)  # /api/dashboards/...
 app.include_router(custos.router)
+app.include_router(chat_router)
+app.include_router(ws_chat_router)
 
 # =========================================================
 # HEALTH CHECK E ARQUIVOS ESTÁTICOS

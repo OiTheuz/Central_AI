@@ -476,3 +476,70 @@ def obter_proximos_aniversariantes(
         })
 
     return {"status": "sucesso", "dados": dados}
+
+
+# =========================================================
+# 10. CONSUMO WHATSAPP API
+# =========================================================
+
+@router.get("/whatsapp-usage")
+def obter_uso_whatsapp(
+    data_inicio: str = Query(...),
+    data_fim: str = Query(...),
+    db: Session = Depends(get_db), # Esse db aqui não é public, mas o modelo whatsapp_message_log está em public
+    merchant: Merchant = Depends(get_lojista_atual),
+):
+    """Retorna o uso do WhatsApp API no período selecionado."""
+    di, df = _parse_datas(data_inicio, data_fim)
+    
+    from app.database import SessionLocal
+    from app.models import Merchant
+    with SessionLocal() as public_db:
+        
+        # Obter todos os IDs de usuários (matriz e sub-lojas) para somar os custos da família inteira
+        pai_id = merchant.loja_pai_id if getattr(merchant, "loja_pai_id", None) else merchant.id
+        
+        merchants_familia = public_db.query(Merchant.id).filter(
+            (Merchant.id == pai_id) | (Merchant.loja_pai_id == pai_id)
+        ).all()
+        
+        merchant_ids = tuple(set(m[0] for m in merchants_familia))
+        
+        # To include the entire last day, we add 1 day to df and use < 
+        df_fim = df + timedelta(days=1)
+        
+        query = text("""
+            SELECT message_type, 
+                   SUM(CASE WHEN cost_estimated > 0 THEN 1 ELSE 0 END) as qtd, 
+                   SUM(cost_estimated) as custo
+            FROM whatsapp_message_log
+            WHERE merchant_id IN :mids AND sent_at >= :di AND sent_at < :df_fim
+            GROUP BY message_type
+        """)
+        
+        # Transforma a tupla em lista ou usa IN dinâmico do SQLAlchemy
+        rows = public_db.execute(query, {"mids": merchant_ids, "di": di, "df_fim": df_fim}).mappings().all()
+        
+        resumo = {
+            "service": {"qtd": 0, "custo": 0.0},
+            "utility": {"qtd": 0, "custo": 0.0},
+            "marketing": {"qtd": 0, "custo": 0.0},
+            "total_custo": 0.0
+        }
+        
+        for r in rows:
+            tipo = r["message_type"]
+            if tipo in resumo:
+                item = resumo[tipo]
+                if isinstance(item, dict):
+                    item["qtd"] = int(r["qtd"])
+                    item["custo"] = float(r["custo"])
+                    
+                    total = resumo.get("total_custo", 0.0)
+                    if isinstance(total, (int, float)):
+                        resumo["total_custo"] = total + float(r["custo"])
+                
+        logger.error(f"DEBUG WHATSAPP USAGE: MID={merchant.id}, INICIO={di}, ROWS={list(rows)}, RESUMO={resumo}")
+                
+        return {"status": "sucesso", "dados": resumo}
+

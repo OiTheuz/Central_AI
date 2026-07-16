@@ -46,6 +46,10 @@ class ChangePasswordRequest(BaseModel):
     nova_senha: str
 
 
+class ImpersonateRequest(BaseModel):
+    target_merchant_id: int
+
+
 # ─── Rotas ───────────────────────────────────────────────────
 
 @router.post("/login", response_model=LoginResponse)
@@ -261,24 +265,94 @@ def admin_switch_store(
             detail="Loja não encontrada.",
         )
     
+    admin_id = getattr(merchant_autenticado, "admin_original_id", merchant_autenticado.id)
+    admin_schema = getattr(merchant_autenticado, "admin_original_schema", merchant_autenticado.nome_do_schema)
+    
     token = criar_token_jwt({
-        "merchant_id": merchant_autenticado.id,
-        "schema": merchant_autenticado.nome_do_schema, # Keep original schema fallback
+        "merchant_id": admin_id,
+        "schema": admin_schema,
         "acting_as": nova_loja.codigo_loja,
     })
 
     return {
         "token": token,
         "lojista": {
-            "id": merchant_autenticado.id, # Keep original ID
-            "nome_usuario": merchant_autenticado.nome_usuario,
+            "id": admin_id, # Keep original ID
+            "nome_usuario": getattr(merchant_autenticado, "nome_usuario", "Admin"),
             "nome_loja": nova_loja.nome_loja,
             "codigo_loja": nova_loja.codigo_loja,
             "nome_do_schema": nova_loja.nome_do_schema,
             "area_atuacao": nova_loja.area_atuacao,
             "telefone_contato": nova_loja.telefone_contato,
-            "is_admin": merchant_autenticado.is_admin,
+            "is_admin": True,
             "tem_dashboard": True, # Admins always have dashboard
             "pode_editar_servicos": True, # Admins always can edit services
         }
+    }
+
+@router.get("/update-admin-email")
+def update_admin_email(db: Session = Depends(get_public_db)):
+    from sqlalchemy import text
+    db.execute(text("UPDATE merchant SET email = 'admin' WHERE email = 'admin@lautz.tech'"))
+    db.commit()
+    return {"status": "ok"}
+
+@router.post("/impersonate", response_model=LoginResponse)
+def impersonate(
+    body: ImpersonateRequest,
+    db: Session = Depends(get_public_db),
+    admin: Merchant = Depends(get_lojista_atual)
+):
+    """
+    Permite que um administrador obtenha um token JWT como se fosse outro lojista.
+    """
+    if not admin.is_admin:
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail="Apenas administradores podem acessar outras lojas.",
+        )
+    
+    merchant = db.query(Merchant).filter(Merchant.id == body.target_merchant_id).first()
+    if not merchant:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="Lojista não encontrado.",
+        )
+
+    schema = merchant.nome_do_schema
+    if merchant.loja_pai_id:
+        loja_pai = db.query(Merchant).filter(Merchant.id == merchant.loja_pai_id).first()
+        if loja_pai:
+            schema = loja_pai.nome_do_schema
+
+    token = criar_token_jwt({
+        "merchant_id": merchant.id,
+        "schema": schema,
+    })
+
+    logger.info("Admin %s (%s) entrou na loja %s (%s)", admin.id, admin.email, merchant.id, merchant.nome_loja)
+
+    nome_loja_exibicao = merchant.nome_loja
+    if merchant.loja_pai_id:
+        loja_pai_exib = db.query(Merchant).filter(Merchant.id == merchant.loja_pai_id).first()
+        if loja_pai_exib:
+            nome_loja_exibicao = loja_pai_exib.nome_loja
+
+    return {
+        "token": token,
+        "lojista": {
+            "id": merchant.id,
+            "nome_usuario": merchant.nome_usuario,
+            "nome_loja": nome_loja_exibicao,
+            "codigo_loja": merchant.codigo_loja,
+            "nome_do_schema": schema,
+            "area_atuacao": merchant.area_atuacao,
+            "telefone_contato": merchant.telefone_contato,
+            "is_admin": merchant.is_admin,
+            "tem_dashboard": getattr(merchant, 'tem_dashboard', False),
+            "pode_editar_servicos": getattr(merchant, 'pode_editar_servicos', True),
+            "politica_aceita": getattr(merchant, 'politica_aceita', False),
+            "loja_pai_id": merchant.loja_pai_id,
+            "foto_perfil": getattr(merchant, 'foto_perfil', None),
+        },
     }

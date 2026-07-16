@@ -11,11 +11,12 @@ from sqlalchemy import text
 from app.config import VERIFY_TOKEN
 from app.database import get_public_db, validar_schema
 from app.models import Merchant
-from app.services.openai_service import analisar_mensagem_com_ia, extrair_data_hora_com_ia
+from app.services.openai_service import analisar_mensagem_com_ia, extrair_data_hora_com_ia, transcrever_audio_com_ia
 from app.services.whatsapp_service import (
     enviar_mensagem_whatsapp, 
     enviar_menu_intencao_whatsapp,
-    enviar_menu_servicos_whatsapp
+    enviar_menu_servicos_whatsapp,
+    baixar_media_whatsapp
 )
 from app.services.push_service import enviar_notificacao_push
 from app.services.session_service import get_sessao_cliente, salvar_sessao_cliente, encerrar_sessao_cliente
@@ -24,7 +25,7 @@ import asyncio
 
 logger = logging.getLogger(__name__)
 
-router = APIRouter(tags=["Webhook"])
+router = APIRouter(prefix="/api", tags=["Webhook"])
 
 def _notificar_atualizacao(schema: str):
     try:
@@ -158,15 +159,6 @@ async def receive_message(request: Request, db: Session = Depends(get_public_db)
                 logger.info("Mensagem duplicada ignorada: %s", message_id)
                 return JSONResponse(content={"status": "duplicada"}, status_code=200)
             
-            if mensagem["type"] == "text":
-                texto_cliente = mensagem["text"]["body"]
-            elif mensagem["type"] == "interactive" and mensagem["interactive"]["type"] == "list_reply":
-                texto_cliente = mensagem["interactive"]["list_reply"]["id"]
-            else:
-                return JSONResponse(content={"status": "tipo de mensagem não suportado"}, status_code=200)
-
-            logger.info("Mensagem recebida de %s: %s", telefone_cliente, texto_cliente[:80])
-
             # =========================================================
             # ROTEAMENTO WHITE-LABEL (Por Número de Destino ou ID)
             # =========================================================
@@ -182,18 +174,32 @@ async def receive_message(request: Request, db: Session = Depends(get_public_db)
             display_limpo = re.sub(r'\D', '', str(display_phone)) if display_phone else ""
             phone_id_limpo = re.sub(r'\D', '', str(phone_id)) if phone_id else ""
 
-            from app.services.whatsapp_service import current_phone_id, current_token
+            from app.services.whatsapp_service import current_phone_id, current_token, current_merchant_id
             if phone_id_limpo:
                 current_phone_id.set(phone_id_limpo)
             elif display_limpo:
                 current_phone_id.set(display_limpo)
             
+            def obter_variacoes_br(num: str) -> list[str]:
+                if not num or not num.startswith("55"): return [num]
+                resto = num[2:]
+                if len(resto) == 10: # Sem o 9
+                    return [num, f"55{resto[:2]}9{resto[2:]}"]
+                elif len(resto) == 11 and resto[2] == '9': # Com o 9
+                    return [num, f"55{resto[:2]}{resto[3:]}"]
+                return [num]
+
             db.execute(text("SET search_path TO public"))
             lojista = None
-            if display_limpo:
-                lojista = db.query(Merchant).filter(Merchant.numero_whatsapp == display_limpo).first()
-            if not lojista and phone_id_limpo:
-                lojista = db.query(Merchant).filter(Merchant.numero_whatsapp == phone_id_limpo).first()
+            
+            # Tenta casar qualquer uma das variações (com ou sem o 9)
+            variacoes_display = obter_variacoes_br(display_limpo) if display_limpo else []
+            variacoes_id = obter_variacoes_br(phone_id_limpo) if phone_id_limpo else []
+            
+            todas_variacoes = list(set(variacoes_display + variacoes_id))
+            
+            if todas_variacoes:
+                lojista = db.query(Merchant).filter(Merchant.numero_whatsapp.in_(todas_variacoes)).first()
             
             if not lojista:
                 logger.warning("Mensagem recebida para número/ID não registrado: %s / %s", display_limpo, phone_id_limpo)
@@ -201,15 +207,280 @@ async def receive_message(request: Request, db: Session = Depends(get_public_db)
                 return JSONResponse(content={"status": "numero_nao_registrado"}, status_code=200)
             
             # Seta as credenciais específicas do lojista no contexto.
-            # Se o lojista não tiver credenciais próprias, os contextvars ficam
-            # vazios e o whatsapp_service usa o fallback do .env automaticamente.
             if getattr(lojista, 'meta_access_token', None):
                 current_token.set(lojista.meta_access_token)
-            if getattr(lojista, 'meta_phone_id', None):
-                current_phone_id.set(lojista.meta_phone_id)
+            # Não sobrescreve o current_phone_id aqui, pois queremos responder pelo mesmo número que recebeu a mensagem!
+            current_merchant_id.set(lojista.id)
             
             schema_alvo = lojista.nome_do_schema
             nome_loja = lojista.nome_loja
+
+            # =========================================================
+            # EXTRAÇÃO DA MENSAGEM (TEXTO, INTERATIVA, AUDIO)
+            # =========================================================
+            texto_cliente = ""
+            if mensagem["type"] == "text":
+                texto_cliente = mensagem["text"]["body"]
+            elif mensagem["type"] == "interactive" and mensagem["interactive"]["type"] == "list_reply":
+                texto_cliente = mensagem["interactive"]["list_reply"]["id"]
+            elif mensagem["type"] == "audio":
+                media_id = mensagem["audio"]["id"]
+                enviar_mensagem_whatsapp(telefone_cliente, "⏳ Estou ouvindo seu áudio, só um instante...")
+                audio_bytes = baixar_media_whatsapp(media_id)
+                if not audio_bytes:
+                    enviar_mensagem_whatsapp(telefone_cliente, "Desculpe, não consegui baixar seu áudio. Pode escrever?")
+                    return JSONResponse(content={"status": "falha_download_audio"}, status_code=200)
+                
+                texto_transcrito = await transcrever_audio_com_ia(audio_bytes)
+                if not texto_transcrito:
+                    enviar_mensagem_whatsapp(telefone_cliente, "Desculpe, não consegui entender o que foi dito no áudio. Pode escrever?")
+                    return JSONResponse(content={"status": "falha_transcricao"}, status_code=200)
+                
+                texto_cliente = texto_transcrito
+                logger.info("Áudio transcrito: %s", texto_cliente)
+                
+                # Mockamos o objeto original para continuar o fluxo normal
+                mensagem["type"] = "text"
+                mensagem["text"] = {"body": texto_cliente}
+            elif mensagem["type"] == "contacts":
+                contato = mensagem["contacts"][0]
+                nome_contato = contato.get("name", {}).get("formatted_name", "Desconhecido")
+                telefone_contato = ""
+                if contato.get("phones"):
+                    phone_obj = contato["phones"][0]
+                    telefone_contato = phone_obj.get("wa_id") or re.sub(r'\D', '', phone_obj.get("phone", ""))
+                
+                texto_cliente = f"[CONTATO ENVIADO: Nome: {nome_contato}, Telefone: {telefone_contato}]"
+                logger.info("Contato recebido: %s", texto_cliente)
+                mensagem["type"] = "text"
+                mensagem["text"] = {"body": texto_cliente}
+            else:
+                return JSONResponse(content={"status": "tipo de mensagem não suportado"}, status_code=200)
+
+            logger.info("Mensagem recebida de %s: %s", telefone_cliente, texto_cliente[:80])
+
+            # =========================================================
+            # INTERCEPTAÇÃO: NÚMERO CHEFE
+            # =========================================================
+            is_chefe = False
+            if lojista.numero_chefe:
+                num_c = "".join(filter(str.isdigit, lojista.numero_chefe))
+                tel_c = "".join(filter(str.isdigit, telefone_cliente))
+                if num_c == tel_c:
+                    is_chefe = True
+                elif num_c.startswith("55") and tel_c.startswith("55") and len(num_c) >= 12 and len(tel_c) >= 12:
+                    if num_c[2:4] == tel_c[2:4] and num_c[-8:] == tel_c[-8:]:
+                        is_chefe = True
+
+            if is_chefe:
+                logger.info("Comando recebido do número chefe: %s", texto_cliente)
+                db.execute(text(f"SET search_path TO {validar_schema(str(schema_alvo))}, public"))
+                
+                # Gerenciamento de Sessão do Chefe
+                sessao_chefe = get_sessao_cliente(db, telefone_cliente)
+                if not sessao_chefe or sessao_chefe.loja_atual != schema_alvo:
+                    encerrar_sessao_cliente(db, telefone_cliente)
+                    sessao_chefe = None
+                    
+                dados_sessao = sessao_chefe.dados_sessao if sessao_chefe and isinstance(sessao_chefe.dados_sessao, dict) else {}
+                estado_atual = dados_sessao.get("state")
+                historico = dados_sessao.get("historico", [])
+                
+                if not sessao_chefe or estado_atual != "BOSS_CONVERSATION":
+                    estado_atual = "BOSS_CONVERSATION"
+                    historico = []
+                    
+                # Adiciona a mensagem atual do chefe no histórico
+                historico.append({"role": "user", "content": texto_cliente})
+                
+                # Se for um contato enviado, vamos cadastrá-arlo imediatamente
+                if "[CONTATO ENVIADO:" in texto_cliente:
+                    match_nome = re.search(r'Nome:\s*(.+?),\s*Telefone:', texto_cliente)
+                    match_tel = re.search(r'Telefone:\s*(.+?)\]', texto_cliente)
+                    if match_nome and match_tel:
+                        nome_novo = match_nome.group(1).strip()
+                        tel_novo = match_tel.group(1).strip()
+                        
+                        # Cadastra no banco
+                        cliente_existente = db.execute(
+                            text("SELECT id FROM customers WHERE telefone_whatsapp = :tel LIMIT 1"),
+                            {"tel": tel_novo}
+                        ).fetchone()
+                        
+                        if not cliente_existente:
+                            db.execute(
+                                text("INSERT INTO customers (nome, telefone_whatsapp, origem) VALUES (:nome, :tel, 'WhatsApp (Contato do Chefe)')"),
+                                {"nome": nome_novo, "tel": tel_novo}
+                            )
+                            db.commit()
+                            msg_sistema = f"SYSTEM: Contato de '{nome_novo}' salvo com sucesso. Se havia um agendamento pendente, você já pode agendar agora."
+                        else:
+                            msg_sistema = f"SYSTEM: O contato '{nome_novo}' ({tel_novo}) já estava cadastrado. Se havia um agendamento pendente, você já pode agendar agora."
+                            
+                        historico.append({"role": "system", "content": msg_sistema})
+                
+                from app.services.openai_service import analisar_mensagem_chefe
+                
+                # --- Busca de Serviços ---
+                schema_alvo_seguro = validar_schema(str(schema_alvo))
+                try:
+                    servicos_db = db.execute(text(f"SELECT nome, preco, duracao_minutos FROM {schema_alvo_seguro}.services")).mappings().all()
+                    if servicos_db:
+                        linhas_serv = []
+                        for s in servicos_db:
+                            price_str = f"R$ {s['preco']:.2f}" if s.get('preco') is not None else "Valor a consultar"
+                            linhas_serv.append(f"- {s['nome']} ({s['duracao_minutos']} min) - {price_str}")
+                        servicos_str = "\n".join(linhas_serv)
+                    else:
+                        servicos_str = "Nenhum serviço cadastrado."
+                except Exception:
+                    servicos_str = "Catálogo de serviços indisponível no momento."
+
+                # --- Regras da Agenda ---
+                regras_str = ""
+                try:
+                    r = [f"Abertura: {lojista.horario_abertura or '08:00'}", f"Fechamento: {lojista.horario_fechamento or '18:00'}"]
+                    if lojista.horario_almoco_inicio:
+                        if schema_alvo_seguro.lower() == "jessiely_moura":
+                            r.append(f"Almoço: {lojista.horario_almoco_inicio} as {lojista.horario_almoco_fim} (EXCETO DIA 08/08, NESTE DIA NÃO HÁ ALMOÇO, AGENDE NORMALMENTE)")
+                        else:
+                            r.append(f"Almoço: {lojista.horario_almoco_inicio} as {lojista.horario_almoco_fim}")
+                    if lojista.dias_fechados:
+                        r.append(f"Dias fechados: {lojista.dias_fechados}")
+                    regras_str = " | ".join(r)
+                except Exception:
+                    pass
+                
+                # Chamada da IA
+                resposta_chefe = await analisar_mensagem_chefe(
+                    historico=historico,
+                    servicos_disponiveis=servicos_str,
+                    nome_loja=nome_loja,
+                    nome_chefe=lojista.nome_chefe or "Chefe",
+                    regras_agenda=regras_str
+                )
+                
+                intencao = resposta_chefe.get("intencao")
+                agendamentos_extraidos = resposta_chefe.get("agendamentos", [])
+                msg_resposta = resposta_chefe.get("mensagem_resposta", "")
+                
+                resumo = []
+                precisa_desambiguar = False
+                
+                if intencao == "agendar_lote":
+                    for ag in agendamentos_extraidos:
+                        nome_cl = ag.get("nome_cliente")
+                        servicos_list = ag.get("servicos", [])
+                        data_ag = ag.get("data")
+                        hora_ag = ag.get("hora")
+                        
+                        if not nome_cl:
+                            continue
+                            
+                        # Busca o cliente
+                        clientes_db = db.execute(
+                            text("SELECT id, nome, telefone_whatsapp FROM customers WHERE nome ILIKE :nome"),
+                            {"nome": f"%{nome_cl}%"}
+                        ).fetchall()
+                        
+                        if len(clientes_db) == 0:
+                            historico.append({"role": "system", "content": f"SYSTEM: O cliente '{nome_cl}' não foi encontrado. Avise-o que não encontrou e peça para confirmar se o nome é esse mesmo (pode ser erro de áudio). Caso ele já tenha confirmado, peça para enviar o contato (cartão do WhatsApp) do {nome_cl} para realizarmos o cadastro imediatamente."})
+                            precisa_desambiguar = True
+                            
+                        elif len(clientes_db) > 1:
+                            lista_opcoes = "\n".join([f"• {c.nome}" for c in clientes_db])
+                            historico.append({"role": "system", "content": f"SYSTEM: Foram encontrados múltiplos clientes para '{nome_cl}':\n{lista_opcoes}\nPergunte a ele qual deseja."})
+                            precisa_desambiguar = True
+                            
+                        else:
+                            # 1 cliente exato
+                            cliente_id = clientes_db[0].id
+                            
+                            if not (servicos_list and data_ag and hora_ag):
+                                # Faltam dados, a IA deveria ter pedido na mensagem_resposta, mas podemos forçar
+                                historico.append({"role": "system", "content": f"SYSTEM: Cliente '{nome_cl}' encontrado, mas faltam dados de agendamento (serviços, data ou hora). Pergunte a ele."})
+                                precisa_desambiguar = True
+                                continue
+                                
+                            # Verifica e agenda
+                            conflito = False
+                            schema_alvo_seguro = validar_schema(str(schema_alvo))
+                            if not lojista.permitir_sobreposicao:
+                                # Calcula a duração total dos serviços pedidos
+                                duracao_total = 0
+                                for s_nome in servicos_list:
+                                    s_dur = db.execute(text(f"SELECT duracao_minutos FROM {schema_alvo_seguro}.services WHERE nome ILIKE :nome LIMIT 1"), {"nome": f"%{s_nome}%"}).fetchone()
+                                    duracao_total += (s_dur[0] if s_dur and s_dur[0] else 30)
+
+                                hora_pedida_obj = datetime.strptime(hora_ag, "%H:%M").time()
+                                fim_pedido_obj = (datetime.combine(datetime.today(), hora_pedida_obj) + timedelta(minutes=duracao_total)).time()
+
+                                # Busca agendamentos do dia
+                                ags_dia = db.execute(text(f"""
+                                    SELECT a.horario_agendamento, COALESCE(s.duracao_minutos, 30) AS dur
+                                    FROM {schema_alvo_seguro}.appointments a
+                                    LEFT JOIN {schema_alvo_seguro}.services s ON a.service_id = s.id
+                                    WHERE a.data_agendamento = :d AND a.status IN ('pendente', 'confirmado')
+                                """), {"d": data_ag}).fetchall()
+
+                                for ag_existente in ags_dia:
+                                    ag_ini_str = ag_existente[0]
+                                    if isinstance(ag_ini_str, str):
+                                        ag_ini_obj = datetime.strptime(ag_ini_str, "%H:%M").time()
+                                    else:
+                                        ag_ini_obj = ag_ini_str
+                                    ag_fim_obj = (datetime.combine(datetime.today(), ag_ini_obj) + timedelta(minutes=ag_existente[1])).time()
+                                    
+                                    if hora_pedida_obj < ag_fim_obj and fim_pedido_obj > ag_ini_obj:
+                                        conflito = True
+                                        break
+                            
+                            if conflito:
+                                historico.append({"role": "system", "content": f"SYSTEM: Conflito de horário para {nome_cl} no dia {data_ag} às {hora_ag}."})
+                                precisa_desambiguar = True
+                                continue
+                                
+                            for servico in servicos_list:
+                                srv_db = db.execute(text(f"SELECT id FROM {schema_alvo_seguro}.services WHERE nome ILIKE :nome LIMIT 1"), {"nome": f"%{servico}%"}).fetchone()
+                                if srv_db:
+                                    db.execute(text(f"""
+                                        INSERT INTO {schema_alvo_seguro}.appointments (customer_id, service_id, data_agendamento, horario_agendamento, status, origem) 
+                                        VALUES (:c, :s, :d, :h, 'pendente', 'WhatsApp (Gestor)')
+                                    """), {"c": cliente_id, "s": srv_db.id, "d": data_ag, "h": hora_ag})
+                            
+                            db.commit()
+                            resumo.append(f"✅ {clientes_db[0].nome} agendado para {data_ag} às {hora_ag}.")
+                            
+                    if resumo:
+                        _notificar_atualizacao(str(schema_alvo))
+                        
+                # Se precisou desambiguar, chamamos a IA novamente para gerar a resposta baseada nos SYSTEM messages injetados
+                if precisa_desambiguar:
+                    resposta_chefe = await analisar_mensagem_chefe(
+                        historico=historico,
+                        servicos_disponiveis=servicos_str,
+                        nome_loja=nome_loja,
+                        nome_chefe=lojista.nome_chefe or "Chefe",
+                        regras_agenda=regras_str
+                    )
+                    msg_resposta = resposta_chefe.get("mensagem_resposta", "")
+                    
+                # Envia resposta
+                texto_final = msg_resposta
+                if resumo:
+                    texto_resumo = "Resumo dos agendamentos:\n" + "\n".join(resumo)
+                    texto_final = f"{texto_resumo}\n\n{texto_final}".strip()
+                    
+                if not texto_final:
+                    texto_final = "Comando recebido, mas nenhum agendamento foi processado e nenhuma ação solicitada."
+                    
+                enviar_mensagem_whatsapp(telefone_cliente, texto_final)
+                historico.append({"role": "assistant", "content": texto_final})
+                
+                # Salva sessão
+                salvar_sessao_cliente(db, telefone_cliente, schema_alvo, {"state": "BOSS_CONVERSATION", "historico": historico})
+                
+                return JSONResponse(content={"status": "sucesso_chefe"}, status_code=200)
 
             # =========================================================
             # BUSCA OU CRIA O CLIENTE (Mover para o topo)
@@ -273,7 +544,53 @@ async def receive_message(request: Request, db: Session = Depends(get_public_db)
             cadastro_completo = bool(nome_db and nome_db.strip() not in ("Cliente", "") and data_nasc_db and data_nasc_db.strip())
 
             # =========================================================
+            # VERIFICAÇÃO DE CHAT COM ATENDENTE (HUMANO)
+            # =========================================================
+            from app.models.chat import ClientChatState, ChatMessage
+            from datetime import timezone
+            
+            chat_state = db.query(ClientChatState).filter(
+                ClientChatState.merchant_id == lojista.id,
+                ClientChatState.client_phone == telefone_cliente
+            ).first()
+
+            if chat_state and chat_state.is_human_service:
+                ultima = chat_state.human_service_started_at
+                agora = datetime.now(timezone.utc)
+                if ultima and (agora - ultima) > timedelta(hours=2):
+                    chat_state.is_human_service = False
+                    db.commit()
+                    enviar_mensagem_whatsapp(
+                        numero_destino=telefone_cliente,
+                        texto="O atendimento humano foi encerrado por inatividade. A inteligência artificial assumiu o atendimento novamente."
+                    )
+                else:
+                    msg_obj = ChatMessage(
+                        merchant_id=lojista.id,
+                        client_phone=telefone_cliente,
+                        message_content=texto_cliente,
+                        sender="client"
+                    )
+                    db.add(msg_obj)
+                    chat_state.human_service_started_at = agora
+                    db.commit()
+                    
+                    try:
+                        await manager.broadcast_to_schema(str(schema_alvo), {
+                            "type": "NEW_CHAT_MESSAGE",
+                            "client_phone": telefone_cliente,
+                            "client_name": nome_db or "Cliente",
+                            "content": texto_cliente,
+                            "sender": "client"
+                        })
+                    except Exception as e:
+                        logger.error(f"Erro ao disparar websocket do chat: {e}")
+                    
+                    return JSONResponse(content={"status": "human_service"}, status_code=200)
+
+            # =========================================================
             # GERENCIAMENTO DE SESSÃO E TIMEOUT
+
             # =========================================================
             sessao_atual = get_sessao_cliente(db, telefone_cliente)
             
@@ -773,8 +1090,11 @@ async def receive_message(request: Request, db: Session = Depends(get_public_db)
                             if merchant_config_reag.dias_fechados:
                                 dias_fechados = merchant_config_reag.dias_fechados.split(",")
                             if merchant_config_reag.horario_almoco_inicio and merchant_config_reag.horario_almoco_fim:
-                                almoco_inicio = datetime.strptime(merchant_config_reag.horario_almoco_inicio, "%H:%M").time()
-                                almoco_fim = datetime.strptime(merchant_config_reag.horario_almoco_fim, "%H:%M").time()
+                                if schema_alvo_seguro.lower() == "jessiely_moura" and nova_data == "2026-08-08":
+                                    pass # Ignora almoço para Jessiely dia 08/08
+                                else:
+                                    almoco_inicio = datetime.strptime(merchant_config_reag.horario_almoco_inicio, "%H:%M").time()
+                                    almoco_fim = datetime.strptime(merchant_config_reag.horario_almoco_fim, "%H:%M").time()
 
                         data_obj = datetime.strptime(nova_data, "%Y-%m-%d").date()
                         if str(data_obj.weekday()) in dias_fechados:
@@ -1037,7 +1357,10 @@ async def receive_message(request: Request, db: Session = Depends(get_public_db)
                         regras_texto += f"Dias fechados na semana: {', '.join(dias_fechados_nomes)}.\n"
                 
                 if merchant_config.horario_almoco_inicio and merchant_config.horario_almoco_fim:
-                    regras_texto += f"Horário de almoço/pausa (fechado): das {merchant_config.horario_almoco_inicio} às {merchant_config.horario_almoco_fim}.\n"
+                    if schema_alvo_seguro.lower() == "jessiely_moura":
+                        regras_texto += f"Horário de almoço/pausa (fechado): das {merchant_config.horario_almoco_inicio} às {merchant_config.horario_almoco_fim} (ATENÇÃO: PARA O DIA 08/08, IGNORE ESTE ALMOÇO E ACEITE O AGENDAMENTO NORMALMENTE).\n"
+                    else:
+                        regras_texto += f"Horário de almoço/pausa (fechado): das {merchant_config.horario_almoco_inicio} às {merchant_config.horario_almoco_fim}.\n"
             
             # Voltar para schema alvo
             db.execute(text(f"SET search_path TO {schema_alvo_seguro}, public"))
@@ -1063,19 +1386,20 @@ async def receive_message(request: Request, db: Session = Depends(get_public_db)
                     regras_texto += f"- Dia {b['data_agendamento']} das {inicio_obj.strftime('%H:%M')} às {fim_obj.strftime('%H:%M')}\n"
             
             resposta_ia = await analisar_mensagem_com_ia(
-                historico, 
-                contexto, 
-                nome_cliente, 
+                historico=historico, 
+                contexto_cliente=contexto, 
+                nome_cliente=nome_cliente, 
                 servicos_disponiveis=servicos_formatados, 
                 nome_loja=nome_loja, 
                 data_nascimento_conhecida=dt_nascimento_conhecida,
-                regras_agenda=regras_texto
+                regras_agenda=regras_texto,
+                area_atuacao=lojista.area_atuacao or ""
             )
             
             texto_ia = resposta_ia.get("mensagem_resposta")
             if not texto_ia:
                 if dados_sessao.get("intencao") == "INTENT_AGENDAR":
-                    texto_ia = "Você já conhece nossos serviços ou prefere que eu envie a lista?"
+                    texto_ia = "Certo! Qual serviço você gostaria de agendar?"
                 else:
                     texto_ia = "Como posso te ajudar?"
 
@@ -1096,6 +1420,43 @@ async def receive_message(request: Request, db: Session = Depends(get_public_db)
                 mensagem_despedida = "Atendimento encerrado! Se precisar de mais alguma coisa depois, estarei por aqui. Até logo! 👋"
                 enviar_mensagem_whatsapp(numero_destino=telefone_cliente, texto=mensagem_despedida)
                 logger.info("Atendimento encerrado voluntariamente pelo cliente: %s", telefone_cliente)
+                return JSONResponse(content={"status": "sucesso"}, status_code=200)
+
+            # =========================================================
+            # HANDOVER PARA ATENDENTE HUMANO
+            # =========================================================
+            if resposta_ia.get("intencao") == "falar_com_atendente":
+                from app.models.chat import ClientChatState
+                from datetime import timezone
+                chat_state = db.query(ClientChatState).filter(
+                    ClientChatState.merchant_id == lojista.id,
+                    ClientChatState.client_phone == telefone_cliente
+                ).first()
+                if not chat_state:
+                    chat_state = ClientChatState(
+                        merchant_id=lojista.id,
+                        client_phone=telefone_cliente,
+                        client_name=nome_db or "Cliente"
+                    )
+                    db.add(chat_state)
+                
+                chat_state.is_human_service = True  # type: ignore
+                chat_state.human_service_started_at = datetime.now(timezone.utc)  # type: ignore
+                db.commit()
+                
+                enviar_mensagem_whatsapp(
+                    numero_destino=telefone_cliente,
+                    texto="Certo! Estou te transferindo para o lojista. Ele te responderá por aqui em breve. 👨‍💻"
+                )
+                
+                if getattr(lojista, 'push_token', None) and getattr(lojista, 'notificacoes_push_enabled', True):
+                    enviar_notificacao_push(
+                        push_token=lojista.push_token,
+                        titulo="🗣️ Cliente aguardando no Chat",
+                        corpo=f"O cliente {nome_db or 'Cliente'} quer falar com você. Abra o app para responder.",
+                        dados={"tela": "chat", "client_phone": telefone_cliente}
+                    )
+                    
                 return JSONResponse(content={"status": "sucesso"}, status_code=200)
 
             # =========================================================
@@ -1341,8 +1702,11 @@ async def receive_message(request: Request, db: Session = Depends(get_public_db)
                         if merchant_config.dias_fechados:
                             dias_fechados = merchant_config.dias_fechados.split(",")
                         if merchant_config.horario_almoco_inicio and merchant_config.horario_almoco_fim:
-                            almoco_inicio = datetime.strptime(merchant_config.horario_almoco_inicio, "%H:%M").time()
-                            almoco_fim = datetime.strptime(merchant_config.horario_almoco_fim, "%H:%M").time()
+                            if schema_alvo_seguro.lower() == "jessiely_moura" and data == "2026-08-08":
+                                pass # Ignora almoço para Jessiely dia 08/08
+                            else:
+                                almoco_inicio = datetime.strptime(merchant_config.horario_almoco_inicio, "%H:%M").time()
+                                almoco_fim = datetime.strptime(merchant_config.horario_almoco_fim, "%H:%M").time()
 
                     data_obj = datetime.strptime(data, "%Y-%m-%d").date()
                     
@@ -1382,16 +1746,16 @@ async def receive_message(request: Request, db: Session = Depends(get_public_db)
                         return JSONResponse(content={"status": "sucesso"}, status_code=200)
 
                     # Verificar conflito com agendamentos normais
-                        for ag in agendamentos_dia:
-                            ag_inicio = ag["horario_agendamento"]
-                            if isinstance(ag_inicio, str):
-                                ag_inicio = datetime.strptime(ag_inicio, "%H:%M").time()
-                            ag_fim = (datetime.combine(datetime.today(), ag_inicio) + timedelta(minutes=ag["dur"])).time()
+                    for ag in agendamentos_dia:
+                        ag_inicio = ag["horario_agendamento"]
+                        if isinstance(ag_inicio, str):
+                            ag_inicio = datetime.strptime(ag_inicio, "%H:%M").time()
+                        ag_fim = (datetime.combine(datetime.today(), ag_inicio) + timedelta(minutes=ag["dur"])).time()
 
-                            # Sobreposição: início_pedido < fim_existente AND fim_pedido > início_existente
-                            if hora_pedida < ag_fim and fim_pedido > ag_inicio:
-                                conflito = True
-                                break
+                        # Sobreposição: início_pedido < fim_existente AND fim_pedido > início_existente
+                        if hora_pedida < ag_fim and fim_pedido > ag_inicio:
+                            conflito = True
+                            break
 
                     if conflito:
                         # Sugerir próximo horário livre

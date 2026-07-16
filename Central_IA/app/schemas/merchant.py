@@ -8,6 +8,8 @@ class MerchantBase(BaseModel):
     codigo_loja: str
     telefone_contato: Optional[str] = None
     numero_whatsapp: Optional[str] = None
+    numero_chefe: Optional[str] = None
+    nome_chefe: Optional[str] = None
     nome_do_schema: str
     area_atuacao: Optional[str] = None
 
@@ -43,6 +45,8 @@ class MerchantUpdate(BaseModel):
     pode_editar_servicos: Optional[bool] = None
     telefone_contato: Optional[str] = None
     numero_whatsapp: Optional[str] = None
+    numero_chefe: Optional[str] = None
+    nome_chefe: Optional[str] = None
 
 
 class MerchantResponse(MerchantBase):

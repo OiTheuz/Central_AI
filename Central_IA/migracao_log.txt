@@ -1,0 +1,31 @@
+Iniciando migração de 6 schemas...
+Migrando schema: sub_jessiely_moura_user_jessiely
+ -> Erro no schema sub_jessiely_moura_user_jessiely: (psycopg2.errors.InvalidSchemaName) schema "sub_jessiely_moura_user_jessiely" does not exist
+
+[SQL: 
+                    ALTER TABLE sub_jessiely_moura_user_jessiely.services 
+                    ADD COLUMN IF NOT EXISTS lembrete_pre_ativo BOOLEAN DEFAULT FALSE,
+                    ADD COLUMN IF NOT EXISTS lembrete_pre_valor_intervalo INTEGER DEFAULT 1,
+                    ADD COLUMN IF NOT EXISTS lembrete_pre_tipo_intervalo VARCHAR(50) DEFAULT 'horas',
+                    ADD COLUMN IF NOT EXISTS lembrete_pre_prompt TEXT DEFAULT ''
+                ]
+(Background on this error at: https://sqlalche.me/e/20/f405)
+Migrando schema: sub_MOURA_user_teste
+ -> Erro no schema sub_MOURA_user_teste: (psycopg2.errors.InvalidSchemaName) schema "sub_moura_user_teste" does not exist
+
+[SQL: 
+                    ALTER TABLE sub_MOURA_user_teste.services 
+                    ADD COLUMN IF NOT EXISTS lembrete_pre_ativo BOOLEAN DEFAULT FALSE,
+                    ADD COLUMN IF NOT EXISTS lembrete_pre_valor_intervalo INTEGER DEFAULT 1,
+                    ADD COLUMN IF NOT EXISTS lembrete_pre_tipo_intervalo VARCHAR(50) DEFAULT 'horas',
+                    ADD COLUMN IF NOT EXISTS lembrete_pre_prompt TEXT DEFAULT ''
+                ]
+(Background on this error at: https://sqlalche.me/e/20/f405)
+Migrando schema: jessiely_moura
+ -> Sucesso no schema jessiely_moura
+Migrando schema: moura_schema
+ -> Sucesso no schema moura_schema
+Migrando schema: petshop_demo
+ -> Sucesso no schema petshop_demo
+Migrando schema: template_petshop
+ -> Sucesso no schema template_petshop

@@ -22,6 +22,41 @@ logger = logging.getLogger(__name__)
 # Variáveis de contexto para armazenar as credenciais do lojista da requisição atual
 current_phone_id: contextvars.ContextVar[str] = contextvars.ContextVar("current_phone_id", default="")
 current_token: contextvars.ContextVar[str] = contextvars.ContextVar("current_token", default="")
+current_merchant_id: contextvars.ContextVar[int | None] = contextvars.ContextVar("current_merchant_id", default=None)
+
+def _log_message(recipient: str, msg_type: str = "service"):
+    merchant_id = current_merchant_id.get()
+    if not merchant_id:
+        return
+    try:
+        from app.database import SessionLocal
+        from app.models.whatsapp_log import WhatsappMessageLog
+        from datetime import datetime, timedelta, timezone
+        
+        with SessionLocal() as db:
+            # A Meta cobra por CONVERSA (janela de 24 horas), e não por cada mensagem solta.
+            # Vamos checar se já iniciamos uma conversa tarifada com este cliente nas últimas 24h.
+            limite_24h = datetime.now(timezone.utc) - timedelta(hours=24)
+            
+            conversa_ativa = db.query(WhatsappMessageLog).filter(
+                WhatsappMessageLog.merchant_id == merchant_id,
+                WhatsappMessageLog.recipient == recipient,
+                WhatsappMessageLog.message_type == msg_type,
+                WhatsappMessageLog.sent_at >= limite_24h,
+                WhatsappMessageLog.cost_estimated > 0 # Apenas procuramos a mensagem que abriu a cobrança
+            ).first()
+            
+            # Se já tem uma conversa ativa, o custo dessa mensagem é zero!
+            if conversa_ativa:
+                cost = 0.0
+            else:
+                cost = 0.15 if msg_type == "service" else 0.17
+                
+            log = WhatsappMessageLog(merchant_id=merchant_id, recipient=recipient, message_type=msg_type, cost_estimated=cost)
+            db.add(log)
+            db.commit()
+    except Exception as e:
+        logger.error(f"Erro ao logar mensagem do whatsapp: {e}")
 
 def get_phone_id(passed_id: str | None = None) -> str:
     if passed_id:
@@ -88,6 +123,8 @@ def enviar_mensagem_whatsapp(numero_destino: str, texto: str, phone_number_id: s
         )
         if not response.ok:
             logger.warning("WhatsApp API erro: %s", response.text)
+        else:
+            _log_message(numero_destino, "service")
         return response.json()
     except requests.Timeout:
         logger.error("WhatsApp: timeout ao enviar para %s", numero_destino)
@@ -158,6 +195,8 @@ def enviar_menu_lojas_whatsapp(numero_destino: str, texto: str, lojas: list, pho
         logger.info("WhatsApp (Menu) → %s | status=%s", numero_destino, response.status_code)
         if not response.ok:
             logger.warning("WhatsApp API erro (Menu): %s", response.text)
+        else:
+            _log_message(numero_destino, "service")
         return response.json()
     except Exception as e:
         logger.error("WhatsApp: falha ao enviar menu para %s: %s", numero_destino, e)
@@ -228,6 +267,8 @@ def enviar_menu_intencao_whatsapp(numero_destino: str, texto: str, phone_number_
         logger.info("WhatsApp (Menu Intenção) → %s | status=%s (Phone ID: %s)", numero_destino, response.status_code, PHONE_NUMBER_ID)
         if not response.ok:
             logger.warning("WhatsApp API erro (Menu Intenção): %s", response.text)
+        else:
+            _log_message(numero_destino, "service")
         return response.json()
     except Exception as e:
         logger.error("WhatsApp: falha ao enviar menu intenção para %s: %s", numero_destino, e)
@@ -294,7 +335,32 @@ def enviar_menu_servicos_whatsapp(numero_destino: str, texto: str, servicos: lis
         logger.info("WhatsApp (Menu Serviços) → %s | status=%s (Phone ID: %s)", numero_destino, response.status_code, PHONE_NUMBER_ID)
         if not response.ok:
             logger.warning("WhatsApp API erro (Menu Serviços): %s", response.text)
+        else:
+            _log_message(numero_destino, "service")
         return response.json()
     except Exception as e:
         logger.error("WhatsApp: falha ao enviar menu de serviços para %s: %s", numero_destino, e)
+        return None
+
+def baixar_media_whatsapp(media_id: str, phone_number_id: str | None = None, token: str | None = None) -> bytes | None:
+    """Baixa o arquivo binário da Meta"""
+    TOKEN_META = get_token(token)
+    PHONE_NUMBER_ID = get_phone_id(phone_number_id)
+    if not TOKEN_META or not PHONE_NUMBER_ID:
+        logger.error("Credenciais Meta ausentes — não foi possível baixar media_id %s", media_id)
+        return None
+    url_info = f"https://graph.facebook.com/{GRAPH_API_VERSION}/{media_id}"
+    headers = {"Authorization": f"Bearer {TOKEN_META}"}
+    try:
+        resp_info = requests.get(url_info, headers=headers, timeout=10)
+        if not resp_info.ok:
+            logger.error("WhatsApp API erro URL media: %s", resp_info.text)
+            return None
+        media_url = resp_info.json().get("url")
+        if not media_url: return None
+        resp_media = requests.get(media_url, headers=headers, timeout=20)
+        if not resp_media.ok: return None
+        return resp_media.content
+    except Exception as e:
+        logger.error("Falha ao baixar media %s: %s", media_id, e)
         return None

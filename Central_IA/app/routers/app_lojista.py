@@ -11,6 +11,7 @@ import os
 import shutil
 from datetime import date, datetime, timedelta
 from dateutil.relativedelta import relativedelta
+from typing import Optional
 from fastapi import APIRouter, Depends, HTTPException, BackgroundTasks, UploadFile, File
 from pydantic import BaseModel
 from sqlalchemy.orm import Session
@@ -73,6 +74,25 @@ async def _broadcast_refresh(schema_name: str):
         await manager.broadcast_to_schema(schema_name, {"type": "REFRESH_APPOINTMENTS"})
     except Exception as e:
         logger.error("Erro no broadcast: %s", e)
+
+def _enviar_whatsapp_lojista(db: Session, merchant: Merchant, telefone: str, texto: str):
+    """Garante o uso das credenciais (token e phone_id) corretas da loja pai quando necessário.
+    Se a loja pai não tiver, passa None para cair no fallback (.env)."""
+    main_merchant = db.query(Merchant).filter(Merchant.nome_do_schema == merchant.nome_do_schema, Merchant.loja_pai_id == None).first()
+    
+    token = None
+    phone_id = None
+    
+    if main_merchant:
+        token = main_merchant.meta_access_token
+        phone_id = main_merchant.meta_phone_id
+        
+    enviar_mensagem_whatsapp(
+        numero_destino=telefone, 
+        texto=texto, 
+        phone_number_id=str(phone_id) if phone_id else None, 
+        token=token
+    )
 
 
 
@@ -350,7 +370,7 @@ def confirmar_reagendamento(
                 f"Seu reagendamento para {servico} foi confirmado para o dia "
                 f"*{data_fmt} às {hora_fmt}*. Estamos te esperando! Até logo! 👋"
             )
-            enviar_mensagem_whatsapp(numero_destino=telefone, texto=msg, phone_number_id=str(merchant.meta_phone_id) if merchant.meta_phone_id else None, token=merchant.meta_access_token)
+            _enviar_whatsapp_lojista(db, merchant, telefone, msg)
         except Exception as e:
             logger.warning("Erro ao enviar WhatsApp de confirmação de reagendamento: %s", e)
 
@@ -416,7 +436,7 @@ def recusar_reagendamento(
                 f"Por favor, entre em contato conosco para encontrarmos a melhor solução. "
                 f"Qualquer dúvida, é só mandar um *Oi*! 👋"
             )
-            enviar_mensagem_whatsapp(numero_destino=telefone, texto=msg, phone_number_id=str(merchant.meta_phone_id) if merchant.meta_phone_id else None, token=merchant.meta_access_token)
+            _enviar_whatsapp_lojista(db, merchant, telefone, msg)
         except Exception as e:
             logger.warning("Erro ao enviar WhatsApp de recusa de reagendamento: %s", e)
 
@@ -496,7 +516,7 @@ def aceitar_cancelamento(
                 f"Sentiremos a sua falta! Quando quiser voltar, é só mandar um *Oi* "
                 f"e agendamos novamente. Até logo! 👋"
             )
-            enviar_mensagem_whatsapp(numero_destino=telefone, texto=msg, phone_number_id=str(merchant.meta_phone_id) if merchant.meta_phone_id else None, token=merchant.meta_access_token)
+            _enviar_whatsapp_lojista(db, merchant, telefone, msg)
         except Exception as e:
             logger.warning("Erro ao enviar WhatsApp de cancelamento: %s", e)
 
@@ -608,7 +628,7 @@ def aprovar_agendamento(
             else:
                 mensagem = f"Tudo certo! ✅ O seu agendamento para {servico} foi confirmadíssimo para o dia {data_fmt} às {hora_fmt}. Estamos te esperando! Até logo! 👋"
                 
-            enviar_mensagem_whatsapp(numero_destino=telefone, texto=mensagem, phone_number_id=str(merchant.meta_phone_id) if merchant.meta_phone_id else None, token=merchant.meta_access_token)
+            _enviar_whatsapp_lojista(db, merchant, telefone, mensagem)
         except Exception as e:
             logger.warning("Erro ao enviar WhatsApp de aprovação: %s", e)
 
@@ -691,7 +711,7 @@ def recusar_agendamento(
                 f"Mas você pode fazer um novo agendamento! "
                 f"É só mandar um *Oi* para recomeçarmos. 😊"
             )
-            enviar_mensagem_whatsapp(numero_destino=telefone, texto=mensagem, phone_number_id=str(merchant.meta_phone_id) if merchant.meta_phone_id else None, token=merchant.meta_access_token)
+            _enviar_whatsapp_lojista(db, merchant, telefone, mensagem)
         except Exception as e:
             logger.warning("Erro ao enviar WhatsApp de recusa: %s", e)
 
@@ -764,7 +784,7 @@ def cancelar_agendamento(
                 f"do seu agendamento do serviço *{servico}* no dia *{data_fmt}*.\n\n"
                 f"Se desejar reagendar, é só mandar um *Oi*! 😊"
             )
-            enviar_mensagem_whatsapp(numero_destino=telefone, texto=mensagem, phone_number_id=str(merchant.meta_phone_id) if merchant.meta_phone_id else None, token=merchant.meta_access_token)
+            _enviar_whatsapp_lojista(db, merchant, telefone, mensagem)
         except Exception as e:
             logger.warning("Erro ao enviar WhatsApp de cancelamento: %s", e)
 
@@ -874,7 +894,7 @@ def remanejar_agendamento(
                 f"para *{nova_data_fmt} às {body.nova_hora}*.\n\n"
                 f"Se tiver alguma dúvida, é só falar! 😊"
             )
-            enviar_mensagem_whatsapp(numero_destino=telefone, texto=mensagem, phone_number_id=str(merchant.meta_phone_id) if merchant.meta_phone_id else None, token=merchant.meta_access_token)
+            _enviar_whatsapp_lojista(db, merchant, telefone, mensagem)
         except Exception as e:
             logger.warning("Erro ao enviar WhatsApp de remanejamento: %s", e)
 
@@ -897,16 +917,34 @@ def obter_servicos(
     """Lista todos os serviços cadastrados no schema do lojista."""
 
 
-    resultados = db.execute(text("SELECT id, nome, preco, duracao_minutos AS duracao FROM services WHERE nome NOT ILIKE 'Bloqueio%' ORDER BY nome")).mappings().all()
+    is_petshop = (merchant.area_atuacao == 'petshop')
+    
+    if is_petshop:
+        query = "SELECT id, nome, preco, duracao_minutos AS duracao, lembrete_ativo, lembrete_valor_intervalo, lembrete_tipo_intervalo, lembrete_prompt, lembrete_pre_ativo, lembrete_pre_valor_intervalo, lembrete_pre_tipo_intervalo, lembrete_pre_prompt FROM services WHERE nome NOT ILIKE 'Bloqueio%' ORDER BY nome"
+    else:
+        query = "SELECT id, nome, preco, duracao_minutos AS duracao, lembrete_pre_ativo, lembrete_pre_valor_intervalo, lembrete_pre_tipo_intervalo, lembrete_pre_prompt FROM services WHERE nome NOT ILIKE 'Bloqueio%' ORDER BY nome"
+
+    resultados = db.execute(text(query)).mappings().all()
 
     servicos = []
     for row in resultados:
-        servicos.append({
+        svc = {
             "id": row["id"],
             "nome": row["nome"],
             "preco": float(row["preco"]) if row.get("preco") else 0,
             "duracao": int(row["duracao"]) if row.get("duracao") else 0,
-        })
+            "lembrete_pre_ativo": row.get("lembrete_pre_ativo", False),
+            "lembrete_pre_valor_intervalo": row.get("lembrete_pre_valor_intervalo", 1),
+            "lembrete_pre_tipo_intervalo": row.get("lembrete_pre_tipo_intervalo", "horas"),
+            "lembrete_pre_prompt": row.get("lembrete_pre_prompt", ""),
+        }
+        if is_petshop:
+            svc["lembrete_ativo"] = row.get("lembrete_ativo", False)
+            svc["lembrete_valor_intervalo"] = row.get("lembrete_valor_intervalo", 0)
+            svc["lembrete_tipo_intervalo"] = row.get("lembrete_tipo_intervalo", "dias")
+            svc["lembrete_prompt"] = row.get("lembrete_prompt", "")
+        
+        servicos.append(svc)
 
     return {"status": "sucesso", "dados": servicos}
 
@@ -915,6 +953,14 @@ class ServicoRequest(BaseModel):
     nome: str
     preco: float
     duracao: int
+    lembrete_ativo: Optional[bool] = False
+    lembrete_valor_intervalo: Optional[int] = 0
+    lembrete_tipo_intervalo: Optional[str] = "dias"
+    lembrete_prompt: Optional[str] = ""
+    lembrete_pre_ativo: Optional[bool] = False
+    lembrete_pre_valor_intervalo: Optional[int] = 1
+    lembrete_pre_tipo_intervalo: Optional[str] = "horas"
+    lembrete_pre_prompt: Optional[str] = ""
 
 
 @router.post("/servicos")
@@ -932,15 +978,39 @@ def criar_servico(
     if not body.nome.strip():
         raise HTTPException(status_code=400, detail="O nome do serviço é obrigatório.")
 
+    is_petshop = (merchant.area_atuacao == 'petshop')
+
     try:
-        db.execute(text("""
-            INSERT INTO services (nome, preco, duracao_minutos)
-            VALUES (:nome, :preco, :duracao)
-        """), {
-            "nome": body.nome.strip(),
-            "preco": body.preco,
-            "duracao": body.duracao,
-        })
+        if is_petshop:
+            db.execute(text("""
+                INSERT INTO services (nome, preco, duracao_minutos, lembrete_ativo, lembrete_valor_intervalo, lembrete_tipo_intervalo, lembrete_prompt, lembrete_pre_ativo, lembrete_pre_valor_intervalo, lembrete_pre_tipo_intervalo, lembrete_pre_prompt)
+                VALUES (:nome, :preco, :duracao, :ativo, :valor, :tipo, :prompt, :pre_ativo, :pre_valor, :pre_tipo, :pre_prompt)
+            """), {
+                "nome": body.nome.strip(),
+                "preco": body.preco,
+                "duracao": body.duracao,
+                "ativo": body.lembrete_ativo,
+                "valor": body.lembrete_valor_intervalo,
+                "tipo": body.lembrete_tipo_intervalo,
+                "prompt": body.lembrete_prompt,
+                "pre_ativo": body.lembrete_pre_ativo,
+                "pre_valor": body.lembrete_pre_valor_intervalo,
+                "pre_tipo": body.lembrete_pre_tipo_intervalo,
+                "pre_prompt": body.lembrete_pre_prompt
+            })
+        else:
+            db.execute(text("""
+                INSERT INTO services (nome, preco, duracao_minutos, lembrete_pre_ativo, lembrete_pre_valor_intervalo, lembrete_pre_tipo_intervalo, lembrete_pre_prompt)
+                VALUES (:nome, :preco, :duracao, :pre_ativo, :pre_valor, :pre_tipo, :pre_prompt)
+            """), {
+                "nome": body.nome.strip(),
+                "preco": body.preco,
+                "duracao": body.duracao,
+                "pre_ativo": body.lembrete_pre_ativo,
+                "pre_valor": body.lembrete_pre_valor_intervalo,
+                "pre_tipo": body.lembrete_pre_tipo_intervalo,
+                "pre_prompt": body.lembrete_pre_prompt
+            })
         db.commit()
         logger.info("Serviço criado: %s pelo lojista %s", body.nome, merchant.id)
         return {"status": "sucesso", "mensagem": "Serviço criado."}
@@ -971,17 +1041,49 @@ def atualizar_servico(
     if not serv:
         raise HTTPException(status_code=404, detail="Serviço não encontrado.")
 
+    is_petshop = (merchant.area_atuacao == 'petshop')
+
     try:
-        db.execute(text("""
-            UPDATE services 
-            SET nome = :nome, preco = :preco, duracao_minutos = :duracao
-            WHERE id = :id
-        """), {
-            "id": servico_id,
-            "nome": body.nome.strip(),
-            "preco": body.preco,
-            "duracao": body.duracao,
-        })
+        if is_petshop:
+            db.execute(text("""
+                UPDATE services 
+                SET nome = :nome, preco = :preco, duracao_minutos = :duracao,
+                    lembrete_ativo = :ativo, lembrete_valor_intervalo = :valor,
+                    lembrete_tipo_intervalo = :tipo, lembrete_prompt = :prompt,
+                    lembrete_pre_ativo = :pre_ativo, lembrete_pre_valor_intervalo = :pre_valor,
+                    lembrete_pre_tipo_intervalo = :pre_tipo, lembrete_pre_prompt = :pre_prompt
+                WHERE id = :id
+            """), {
+                "id": servico_id,
+                "nome": body.nome.strip(),
+                "preco": body.preco,
+                "duracao": body.duracao,
+                "ativo": body.lembrete_ativo,
+                "valor": body.lembrete_valor_intervalo,
+                "tipo": body.lembrete_tipo_intervalo,
+                "prompt": body.lembrete_prompt,
+                "pre_ativo": body.lembrete_pre_ativo,
+                "pre_valor": body.lembrete_pre_valor_intervalo,
+                "pre_tipo": body.lembrete_pre_tipo_intervalo,
+                "pre_prompt": body.lembrete_pre_prompt
+            })
+        else:
+            db.execute(text("""
+                UPDATE services 
+                SET nome = :nome, preco = :preco, duracao_minutos = :duracao,
+                    lembrete_pre_ativo = :pre_ativo, lembrete_pre_valor_intervalo = :pre_valor,
+                    lembrete_pre_tipo_intervalo = :pre_tipo, lembrete_pre_prompt = :pre_prompt
+                WHERE id = :id
+            """), {
+                "id": servico_id,
+                "nome": body.nome.strip(),
+                "preco": body.preco,
+                "duracao": body.duracao,
+                "pre_ativo": body.lembrete_pre_ativo,
+                "pre_valor": body.lembrete_pre_valor_intervalo,
+                "pre_tipo": body.lembrete_pre_tipo_intervalo,
+                "pre_prompt": body.lembrete_pre_prompt
+            })
         db.commit()
         return {"status": "sucesso", "mensagem": "Serviço atualizado."}
     except Exception as e:
@@ -1255,6 +1357,8 @@ class ConfiguracoesRequest(BaseModel):
     dias_fechados: str | None = None          # "0,6"
     horario_almoco_inicio: str | None = None  # HH:MM
     horario_almoco_fim: str | None = None     # HH:MM
+    numero_chefe: str | None = None
+    nome_chefe: str | None = None
 
 
 @router.get("/configuracoes")
@@ -1277,6 +1381,8 @@ def obter_configuracoes(
         "dias_fechados": target.dias_fechados,
         "horario_almoco_inicio": target.horario_almoco_inicio,
         "horario_almoco_fim": target.horario_almoco_fim,
+        "numero_chefe": target.numero_chefe,
+        "nome_chefe": target.nome_chefe,
     }
 
 
@@ -1306,6 +1412,9 @@ def atualizar_configuracoes(
     target.dias_fechados = body.dias_fechados  # type: ignore
     target.horario_almoco_inicio = body.horario_almoco_inicio  # type: ignore
     target.horario_almoco_fim = body.horario_almoco_fim  # type: ignore
+    
+    target.numero_chefe = ''.join(filter(str.isdigit, body.numero_chefe)) if body.numero_chefe else None  # type: ignore
+    target.nome_chefe = body.nome_chefe.strip() if body.nome_chefe else None  # type: ignore
 
     try:
         db.commit()
@@ -1544,18 +1653,10 @@ def cadastrar_cliente(
         ).mappings().fetchone()
 
         if existente:
-            # Atualiza o nome e devolve sinalização de que já existia
-            db.execute(
-                text("UPDATE customers SET nome = :nome WHERE id = :id"),
-                {"nome": body.nome, "id": existente["id"]}
+            raise HTTPException(
+                status_code=400,
+                detail=f"Este número de telefone já está cadastrado para o cliente: {existente['nome']}."
             )
-            db.commit()
-            return {
-                "status": "sucesso",
-                "mensagem": "Cliente já existia — dados atualizados.",
-                "existing": True,
-                "cliente_id": existente["id"]
-            }
 
         # Novo cliente
         result = db.execute(
@@ -1928,3 +2029,147 @@ async def upload_foto_perfil(
         logger.error("Erro ao fazer upload da foto: %s", e)
         raise HTTPException(status_code=500, detail="Erro interno ao salvar a imagem.")
 
+
+# =========================================================
+# ASSISTENTE VIRTUAL IN-APP (CHAT)
+# =========================================================
+from fastapi import Form, Request
+import json
+from app.services.openai_service import transcrever_audio_com_ia, analisar_mensagem_app
+
+@router.post("/ai/chat")
+async def chat_ia_app(
+    request: Request,
+    texto: str = Form(None),
+    historico: str = Form(None),
+    audio: UploadFile = File(None),
+    db: Session = Depends(get_db),
+    merchant: Merchant = Depends(get_lojista_atual)
+):
+    """Rota para o assistente virtual via texto ou áudio no app do lojista."""
+    try:
+        schema_alvo = validar_schema(str(merchant.nome_do_schema))
+        db.execute(text(f"SET search_path TO {schema_alvo}, public"))
+        
+        texto_final = texto
+        if audio:
+            audio_bytes = await audio.read()
+            transcrito = await transcrever_audio_com_ia(audio_bytes)
+            if not transcrito:
+                return {"status": "erro", "mensagem_resposta": "Desculpe, não consegui entender o áudio."}
+            texto_final = transcrito
+
+        if not texto_final:
+             return {"status": "erro", "mensagem_resposta": "Nenhuma mensagem recebida."}
+             
+        hist_list = []
+        if historico:
+            try:
+                hist_list = json.loads(historico)
+            except:
+                pass
+                
+        hist_list.append({"role": "user", "content": texto_final})
+
+        # Prepara serviços
+        servicos_db = db.execute(text(f"SELECT nome, preco, duracao_minutos FROM services")).mappings().all()
+        servicos_str = "\n".join([f"- {s['nome']} ({s['duracao_minutos']} min)" for s in servicos_db]) if servicos_db else ""
+
+        # Prepara regras
+        regras_str = ""
+        r = [f"Abertura: {merchant.horario_abertura or '08:00'}", f"Fechamento: {merchant.horario_fechamento or '18:00'}"]
+        if merchant.horario_almoco_inicio:
+             r.append(f"Almoço: {merchant.horario_almoco_inicio} as {merchant.horario_almoco_fim}")
+        regras_str = " | ".join(r)
+        
+        # Prepara clientes
+        clientes_db = db.execute(text("SELECT nome, telefone_whatsapp FROM customers LIMIT 300")).mappings().all()
+        clientes_str = "\n".join([f"- {c['nome']} (Tel: {c['telefone_whatsapp']})" for c in clientes_db]) if clientes_db else ""
+        
+        resposta_ia = await analisar_mensagem_app(
+            historico=hist_list,
+            servicos_disponiveis=servicos_str,
+            nome_loja=str(merchant.nome_loja or "Loja"),
+            nome_chefe=str(merchant.nome_usuario or merchant.nome_chefe or "Lojista"),
+            regras_agenda=regras_str,
+            clientes_cadastrados=clientes_str
+        )
+        
+        intencao = resposta_ia.get("intencao")
+        msg_resposta = resposta_ia.get("mensagem_resposta", "Certo, entendi.")
+        
+        # Tratar intenções
+        resumo_acoes = []
+        opcoes_retorno = []
+        
+        if intencao == "cadastrar_cliente":
+            cad = resposta_ia.get("cadastro", {})
+            nome = cad.get("nome")
+            tel = cad.get("telefone")
+            dn = cad.get("data_nascimento")
+            
+            if nome and tel:
+                tel_limpo = re.sub(r'\D', '', tel)
+                existente = db.execute(text("SELECT id FROM customers WHERE telefone_whatsapp = :tel LIMIT 1"), {"tel": tel_limpo}).fetchone()
+                if not existente:
+                    db.execute(text("INSERT INTO customers (nome, telefone_whatsapp, data_nascimento, origem) VALUES (:nome, :tel, :dn, 'App (IA)')"), {"nome": nome, "tel": tel_limpo, "dn": dn})
+                    db.commit()
+                    resumo_acoes.append(f"✅ Cliente {nome} cadastrado.")
+                else:
+                     hist_list.append({"role": "system", "content": f"SYSTEM: O número {tel_limpo} já está cadastrado."})
+                     msg_resposta = f"O telefone {tel_limpo} já existe no cadastro."
+                     
+        elif intencao == "agendar":
+            agendamentos = resposta_ia.get("agendamentos", [])
+            for ag in agendamentos:
+                nome_cl = ag.get("nome_cliente")
+                data_ag = ag.get("data")
+                hora_ag = ag.get("hora")
+                servicos = ag.get("servicos", [])
+                
+                if nome_cl:
+                    clientes_db = db.execute(text("SELECT id, nome, telefone_whatsapp FROM customers WHERE nome ILIKE :nome"), {"nome": f"%{nome_cl}%"}).fetchall()
+                    if len(clientes_db) == 0:
+                        hist_list.append({"role": "system", "content": f"SYSTEM: O cliente '{nome_cl}' não foi encontrado. Pergunte se ele quer cadastrar passando o telefone."})
+                        msg_resposta = f"Não encontrei o cliente {nome_cl} na base. Pode me passar o telefone dele para eu cadastrar?"
+                    elif len(clientes_db) == 1:
+                        cliente_id = clientes_db[0].id
+                        
+                        confirmado = ag.get("confirmar_sobreposicao", False)
+                        
+                        # Verifica conflitos se não estiver confirmado
+                        if not confirmado:
+                            conflito = db.execute(text("SELECT id FROM appointments WHERE data_agendamento = :d AND horario_agendamento = :h AND status IN ('confirmado', 'pendente') LIMIT 1"), {"d": data_ag, "h": hora_ag}).fetchone()
+                            if conflito:
+                                hist_list.append({"role": "system", "content": f"SYSTEM: Há um conflito! Já existe um agendamento para {data_ag} às {hora_ag}."})
+                                msg_resposta = f"Já existe um agendamento para o dia {data_ag} às {hora_ag}. Deseja agendar o(a) {nome_cl} mesmo assim?"
+                                opcoes_retorno = ["Sim, agendar mesmo assim", "Não, cancelar"]
+                                continue # Pula o agendamento atual
+                                
+                        for srv in servicos:
+                            srv_db = db.execute(text(f"SELECT id FROM services WHERE nome ILIKE :nome LIMIT 1"), {"nome": f"%{srv}%"}).fetchone()
+                            if srv_db:
+                                db.execute(text("INSERT INTO appointments (customer_id, service_id, data_agendamento, horario_agendamento, status, origem) VALUES (:c, :s, :d, :h, 'confirmado', 'App (IA)')"), {"c": cliente_id, "s": srv_db.id, "d": data_ag, "h": hora_ag})
+                        db.commit()
+                        resumo_acoes.append(f"✅ {clientes_db[0].nome} agendado para {data_ag} às {hora_ag}.")
+                    else:
+                        msg_resposta = f"Encontrei mais de um cliente com o nome '{nome_cl}'. Qual deles é?"
+                        opcoes_retorno = [f"{c.nome} ({c.telefone_whatsapp})" for c in clientes_db[:3]]
+        
+        hist_list.append({"role": "assistant", "content": msg_resposta})
+        
+        if resumo_acoes:
+             from app.routers.webhook import _notificar_atualizacao
+             _notificar_atualizacao(schema_alvo)
+             msg_resposta = msg_resposta + "\n\n" + "\n".join(resumo_acoes)
+             
+        ret = {"status": "sucesso", "mensagem_resposta": msg_resposta, "historico": hist_list, "transcricao": texto_final if audio else None}
+        if opcoes_retorno:
+            ret["opcoes"] = opcoes_retorno
+            
+        return ret
+
+    except Exception as e:
+        db.rollback()
+        logger.error("Erro no chat da IA do app: %s", e)
+        return {"status": "erro", "mensagem_resposta": "Desculpe, ocorreu um erro no servidor ao processar sua solicitação."}

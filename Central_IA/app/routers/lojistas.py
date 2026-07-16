@@ -9,6 +9,7 @@ from app.schemas import MerchantCreate, MerchantResponse
 from app.schemas.merchant import MerchantUpdate, SubUsuarioCreate
 from app.services.auth_service import get_lojista_atual, hash_senha
 from app.services.schema_service import criar_novo_estabelecimento
+from app.services.whatsapp_service import sanitizar_numero_whatsapp
 
 logger = logging.getLogger(__name__)
 
@@ -37,6 +38,8 @@ def criar_lojista(
 
     dados = merchant.model_dump(exclude={"senha"})
     dados["senha_hash"] = hash_senha(merchant.senha)
+    if dados.get("numero_whatsapp"):
+        dados["numero_whatsapp"] = sanitizar_numero_whatsapp(dados["numero_whatsapp"])
 
     novo_lojista = Merchant(**dados)
     db.add(novo_lojista)
@@ -45,8 +48,8 @@ def criar_lojista(
 
     try:
         schema_nome = validar_schema(merchant.nome_do_schema)
-        criar_novo_estabelecimento(schema_nome, ["appointments", "customers", "services"])
-        logger.info("Schema %s criado para lojista %s", schema_nome, merchant.nome_loja)
+        criar_novo_estabelecimento(schema_nome, ["appointments", "customers", "services"], merchant.area_atuacao)
+        logger.info("Schema %s criado para lojista %s (Nicho: %s)", schema_nome, merchant.nome_loja, merchant.area_atuacao)
     except ValueError as e:
         logger.error("Nome do schema inválido: %s", e)
         raise HTTPException(status_code=400, detail=str(e))
@@ -82,7 +85,7 @@ def listar_lojistas(
 # =========================================================
 # EDITAR LOJISTA OU SUB-USUÁRIO (admin mestre apenas)
 
-@router.patch("/lojistas/{lojista_id}", response_model=MerchantResponse)
+@router.put("/lojistas/{lojista_id}", response_model=MerchantResponse)
 def editar_lojista(
     lojista_id: int,
     dados: MerchantUpdate,
@@ -97,6 +100,8 @@ def editar_lojista(
         raise HTTPException(status_code=404, detail="Lojista não encontrado.")
 
     for campo, valor in dados.model_dump(exclude_unset=True).items():
+        if campo == "numero_whatsapp" and valor:
+            valor = sanitizar_numero_whatsapp(valor)
         setattr(lojista, campo, valor)
 
     db.commit()

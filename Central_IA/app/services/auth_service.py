@@ -83,13 +83,11 @@ def get_lojista_atual(
     if merchant.is_admin and acting_as and acting_as != merchant.codigo_loja:
         target_merchant = db.query(Merchant).filter(Merchant.codigo_loja == acting_as).first()
         if target_merchant:
-            # Detach from session to prevent accidental commits of these changes
-            db.expunge(merchant)
-            merchant.codigo_loja = target_merchant.codigo_loja
-            merchant.nome_do_schema = target_merchant.nome_do_schema
-            merchant.nome_loja = target_merchant.nome_loja
-            merchant.area_atuacao = target_merchant.area_atuacao
-            merchant.telefone_contato = target_merchant.telefone_contato
+            db.expunge(target_merchant)
+            target_merchant.is_admin = True  # Mantém os poderes de Admin
+            target_merchant.admin_original_id = merchant.id
+            target_merchant.admin_original_schema = merchant.nome_do_schema
+            return target_merchant
     elif merchant.loja_pai_id:
         schema = payload.get("schema")
         print(f"!!! DEBUG AUTH: schema do token={schema}, merchant.loja_pai_id={merchant.loja_pai_id}", flush=True)

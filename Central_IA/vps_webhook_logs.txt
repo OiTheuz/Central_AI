@@ -1,0 +1,720 @@
+Jul 14 09:35:11 VM-7a18f394-4476-4cd4-ad3a-9451e0ca49c3 uvicorn[12038]: WARNING:  Unsupported upgrade request.
+Jul 14 09:35:11 VM-7a18f394-4476-4cd4-ad3a-9451e0ca49c3 uvicorn[12038]: WARNING:  No supported WebSocket library detected. Please use "pip install 'uvicorn[standard]'", or install 'websockets' or 'wsproto' manually.
+Jul 14 09:35:21 VM-7a18f394-4476-4cd4-ad3a-9451e0ca49c3 uvicorn[12038]: WARNING:  Unsupported upgrade request.
+Jul 14 09:35:21 VM-7a18f394-4476-4cd4-ad3a-9451e0ca49c3 uvicorn[12038]: WARNING:  No supported WebSocket library detected. Please use "pip install 'uvicorn[standard]'", or install 'websockets' or 'wsproto' manually.
+Jul 14 09:35:32 VM-7a18f394-4476-4cd4-ad3a-9451e0ca49c3 uvicorn[12038]: WARNING:  Unsupported upgrade request.
+Jul 14 09:35:32 VM-7a18f394-4476-4cd4-ad3a-9451e0ca49c3 uvicorn[12038]: WARNING:  No supported WebSocket library detected. Please use "pip install 'uvicorn[standard]'", or install 'websockets' or 'wsproto' manually.
+Jul 14 09:35:42 VM-7a18f394-4476-4cd4-ad3a-9451e0ca49c3 uvicorn[12038]: WARNING:  Unsupported upgrade request.
+Jul 14 09:35:42 VM-7a18f394-4476-4cd4-ad3a-9451e0ca49c3 uvicorn[12038]: WARNING:  No supported WebSocket library detected. Please use "pip install 'uvicorn[standard]'", or install 'websockets' or 'wsproto' manually.
+Jul 14 09:35:53 VM-7a18f394-4476-4cd4-ad3a-9451e0ca49c3 uvicorn[12038]: WARNING:  Unsupported upgrade request.
+Jul 14 09:35:53 VM-7a18f394-4476-4cd4-ad3a-9451e0ca49c3 uvicorn[12038]: WARNING:  No supported WebSocket library detected. Please use "pip install 'uvicorn[standard]'", or install 'websockets' or 'wsproto' manually.
+Jul 14 09:36:03 VM-7a18f394-4476-4cd4-ad3a-9451e0ca49c3 uvicorn[12038]: WARNING:  Unsupported upgrade request.
+Jul 14 09:36:03 VM-7a18f394-4476-4cd4-ad3a-9451e0ca49c3 uvicorn[12038]: WARNING:  No supported WebSocket library detected. Please use "pip install 'uvicorn[standard]'", or install 'websockets' or 'wsproto' manually.
+Jul 14 09:36:13 VM-7a18f394-4476-4cd4-ad3a-9451e0ca49c3 uvicorn[12038]: WARNING:  Unsupported upgrade request.
+Jul 14 09:36:13 VM-7a18f394-4476-4cd4-ad3a-9451e0ca49c3 uvicorn[12038]: WARNING:  No supported WebSocket library detected. Please use "pip install 'uvicorn[standard]'", or install 'websockets' or 'wsproto' manually.
+Jul 14 09:36:24 VM-7a18f394-4476-4cd4-ad3a-9451e0ca49c3 uvicorn[12038]: WARNING:  Unsupported upgrade request.
+Jul 14 09:36:24 VM-7a18f394-4476-4cd4-ad3a-9451e0ca49c3 uvicorn[12038]: WARNING:  No supported WebSocket library detected. Please use "pip install 'uvicorn[standard]'", or install 'websockets' or 'wsproto' manually.
+Jul 14 09:36:34 VM-7a18f394-4476-4cd4-ad3a-9451e0ca49c3 uvicorn[12038]: WARNING:  Unsupported upgrade request.
+Jul 14 09:36:34 VM-7a18f394-4476-4cd4-ad3a-9451e0ca49c3 uvicorn[12038]: WARNING:  No supported WebSocket library detected. Please use "pip install 'uvicorn[standard]'", or install 'websockets' or 'wsproto' manually.
+Jul 14 09:36:45 VM-7a18f394-4476-4cd4-ad3a-9451e0ca49c3 uvicorn[12038]: WARNING:  Unsupported upgrade request.
+Jul 14 09:36:45 VM-7a18f394-4476-4cd4-ad3a-9451e0ca49c3 uvicorn[12038]: WARNING:  No supported WebSocket library detected. Please use "pip install 'uvicorn[standard]'", or install 'websockets' or 'wsproto' manually.
+Jul 14 09:36:55 VM-7a18f394-4476-4cd4-ad3a-9451e0ca49c3 uvicorn[12038]: WARNING:  Unsupported upgrade request.
+Jul 14 09:36:55 VM-7a18f394-4476-4cd4-ad3a-9451e0ca49c3 uvicorn[12038]: WARNING:  No supported WebSocket library detected. Please use "pip install 'uvicorn[standard]'", or install 'websockets' or 'wsproto' manually.
+Jul 14 09:37:06 VM-7a18f394-4476-4cd4-ad3a-9451e0ca49c3 uvicorn[12038]: WARNING:  Unsupported upgrade request.
+Jul 14 09:37:06 VM-7a18f394-4476-4cd4-ad3a-9451e0ca49c3 uvicorn[12038]: WARNING:  No supported WebSocket library detected. Please use "pip install 'uvicorn[standard]'", or install 'websockets' or 'wsproto' manually.
+Jul 14 09:37:16 VM-7a18f394-4476-4cd4-ad3a-9451e0ca49c3 uvicorn[12038]: WARNING:  Unsupported upgrade request.
+Jul 14 09:37:16 VM-7a18f394-4476-4cd4-ad3a-9451e0ca49c3 uvicorn[12038]: WARNING:  No supported WebSocket library detected. Please use "pip install 'uvicorn[standard]'", or install 'websockets' or 'wsproto' manually.
+Jul 14 09:37:27 VM-7a18f394-4476-4cd4-ad3a-9451e0ca49c3 uvicorn[12038]: WARNING:  Unsupported upgrade request.
+Jul 14 09:37:27 VM-7a18f394-4476-4cd4-ad3a-9451e0ca49c3 uvicorn[12038]: WARNING:  No supported WebSocket library detected. Please use "pip install 'uvicorn[standard]'", or install 'websockets' or 'wsproto' manually.
+Jul 14 09:37:37 VM-7a18f394-4476-4cd4-ad3a-9451e0ca49c3 uvicorn[12038]: WARNING:  Unsupported upgrade request.
+Jul 14 09:37:37 VM-7a18f394-4476-4cd4-ad3a-9451e0ca49c3 uvicorn[12038]: WARNING:  No supported WebSocket library detected. Please use "pip install 'uvicorn[standard]'", or install 'websockets' or 'wsproto' manually.
+Jul 14 09:37:48 VM-7a18f394-4476-4cd4-ad3a-9451e0ca49c3 uvicorn[12038]: WARNING:  Unsupported upgrade request.
+Jul 14 09:37:48 VM-7a18f394-4476-4cd4-ad3a-9451e0ca49c3 uvicorn[12038]: WARNING:  No supported WebSocket library detected. Please use "pip install 'uvicorn[standard]'", or install 'websockets' or 'wsproto' manually.
+Jul 14 09:37:58 VM-7a18f394-4476-4cd4-ad3a-9451e0ca49c3 uvicorn[12038]: WARNING:  Unsupported upgrade request.
+Jul 14 09:37:58 VM-7a18f394-4476-4cd4-ad3a-9451e0ca49c3 uvicorn[12038]: WARNING:  No supported WebSocket library detected. Please use "pip install 'uvicorn[standard]'", or install 'websockets' or 'wsproto' manually.
+Jul 14 09:38:09 VM-7a18f394-4476-4cd4-ad3a-9451e0ca49c3 uvicorn[12038]: WARNING:  Unsupported upgrade request.
+Jul 14 09:38:09 VM-7a18f394-4476-4cd4-ad3a-9451e0ca49c3 uvicorn[12038]: WARNING:  No supported WebSocket library detected. Please use "pip install 'uvicorn[standard]'", or install 'websockets' or 'wsproto' manually.
+Jul 14 09:38:19 VM-7a18f394-4476-4cd4-ad3a-9451e0ca49c3 uvicorn[12038]: WARNING:  Unsupported upgrade request.
+Jul 14 09:38:19 VM-7a18f394-4476-4cd4-ad3a-9451e0ca49c3 uvicorn[12038]: WARNING:  No supported WebSocket library detected. Please use "pip install 'uvicorn[standard]'", or install 'websockets' or 'wsproto' manually.
+Jul 14 09:38:29 VM-7a18f394-4476-4cd4-ad3a-9451e0ca49c3 uvicorn[12038]: WARNING:  Unsupported upgrade request.
+Jul 14 09:38:29 VM-7a18f394-4476-4cd4-ad3a-9451e0ca49c3 uvicorn[12038]: WARNING:  No supported WebSocket library detected. Please use "pip install 'uvicorn[standard]'", or install 'websockets' or 'wsproto' manually.
+Jul 14 09:38:40 VM-7a18f394-4476-4cd4-ad3a-9451e0ca49c3 uvicorn[12038]: WARNING:  Unsupported upgrade request.
+Jul 14 09:38:40 VM-7a18f394-4476-4cd4-ad3a-9451e0ca49c3 uvicorn[12038]: WARNING:  No supported WebSocket library detected. Please use "pip install 'uvicorn[standard]'", or install 'websockets' or 'wsproto' manually.
+Jul 14 09:38:50 VM-7a18f394-4476-4cd4-ad3a-9451e0ca49c3 uvicorn[12038]: WARNING:  Unsupported upgrade request.
+Jul 14 09:38:50 VM-7a18f394-4476-4cd4-ad3a-9451e0ca49c3 uvicorn[12038]: WARNING:  No supported WebSocket library detected. Please use "pip install 'uvicorn[standard]'", or install 'websockets' or 'wsproto' manually.
+Jul 14 09:39:01 VM-7a18f394-4476-4cd4-ad3a-9451e0ca49c3 uvicorn[12038]: WARNING:  Unsupported upgrade request.
+Jul 14 09:39:01 VM-7a18f394-4476-4cd4-ad3a-9451e0ca49c3 uvicorn[12038]: WARNING:  No supported WebSocket library detected. Please use "pip install 'uvicorn[standard]'", or install 'websockets' or 'wsproto' manually.
+Jul 14 09:39:11 VM-7a18f394-4476-4cd4-ad3a-9451e0ca49c3 uvicorn[12038]: WARNING:  Unsupported upgrade request.
+Jul 14 09:39:11 VM-7a18f394-4476-4cd4-ad3a-9451e0ca49c3 uvicorn[12038]: WARNING:  No supported WebSocket library detected. Please use "pip install 'uvicorn[standard]'", or install 'websockets' or 'wsproto' manually.
+Jul 14 09:39:22 VM-7a18f394-4476-4cd4-ad3a-9451e0ca49c3 uvicorn[12038]: WARNING:  Unsupported upgrade request.
+Jul 14 09:39:22 VM-7a18f394-4476-4cd4-ad3a-9451e0ca49c3 uvicorn[12038]: WARNING:  No supported WebSocket library detected. Please use "pip install 'uvicorn[standard]'", or install 'websockets' or 'wsproto' manually.
+Jul 14 09:39:32 VM-7a18f394-4476-4cd4-ad3a-9451e0ca49c3 uvicorn[12038]: WARNING:  Unsupported upgrade request.
+Jul 14 09:39:32 VM-7a18f394-4476-4cd4-ad3a-9451e0ca49c3 uvicorn[12038]: WARNING:  No supported WebSocket library detected. Please use "pip install 'uvicorn[standard]'", or install 'websockets' or 'wsproto' manually.
+Jul 14 09:39:42 VM-7a18f394-4476-4cd4-ad3a-9451e0ca49c3 uvicorn[12038]: WARNING:  Unsupported upgrade request.
+Jul 14 09:39:42 VM-7a18f394-4476-4cd4-ad3a-9451e0ca49c3 uvicorn[12038]: WARNING:  No supported WebSocket library detected. Please use "pip install 'uvicorn[standard]'", or install 'websockets' or 'wsproto' manually.
+Jul 14 09:39:53 VM-7a18f394-4476-4cd4-ad3a-9451e0ca49c3 uvicorn[12038]: WARNING:  Unsupported upgrade request.
+Jul 14 09:39:53 VM-7a18f394-4476-4cd4-ad3a-9451e0ca49c3 uvicorn[12038]: WARNING:  No supported WebSocket library detected. Please use "pip install 'uvicorn[standard]'", or install 'websockets' or 'wsproto' manually.
+Jul 14 09:40:03 VM-7a18f394-4476-4cd4-ad3a-9451e0ca49c3 uvicorn[12038]: WARNING:  Unsupported upgrade request.
+Jul 14 09:40:03 VM-7a18f394-4476-4cd4-ad3a-9451e0ca49c3 uvicorn[12038]: WARNING:  No supported WebSocket library detected. Please use "pip install 'uvicorn[standard]'", or install 'websockets' or 'wsproto' manually.
+Jul 14 09:40:14 VM-7a18f394-4476-4cd4-ad3a-9451e0ca49c3 uvicorn[12038]: WARNING:  Unsupported upgrade request.
+Jul 14 09:40:14 VM-7a18f394-4476-4cd4-ad3a-9451e0ca49c3 uvicorn[12038]: WARNING:  No supported WebSocket library detected. Please use "pip install 'uvicorn[standard]'", or install 'websockets' or 'wsproto' manually.
+Jul 14 09:40:24 VM-7a18f394-4476-4cd4-ad3a-9451e0ca49c3 uvicorn[12038]: WARNING:  Unsupported upgrade request.
+Jul 14 09:40:24 VM-7a18f394-4476-4cd4-ad3a-9451e0ca49c3 uvicorn[12038]: WARNING:  No supported WebSocket library detected. Please use "pip install 'uvicorn[standard]'", or install 'websockets' or 'wsproto' manually.
+Jul 14 09:40:35 VM-7a18f394-4476-4cd4-ad3a-9451e0ca49c3 uvicorn[12038]: WARNING:  Unsupported upgrade request.
+Jul 14 09:40:35 VM-7a18f394-4476-4cd4-ad3a-9451e0ca49c3 uvicorn[12038]: WARNING:  No supported WebSocket library detected. Please use "pip install 'uvicorn[standard]'", or install 'websockets' or 'wsproto' manually.
+Jul 14 09:40:45 VM-7a18f394-4476-4cd4-ad3a-9451e0ca49c3 uvicorn[12038]: WARNING:  Unsupported upgrade request.
+Jul 14 09:40:45 VM-7a18f394-4476-4cd4-ad3a-9451e0ca49c3 uvicorn[12038]: WARNING:  No supported WebSocket library detected. Please use "pip install 'uvicorn[standard]'", or install 'websockets' or 'wsproto' manually.
+Jul 14 09:40:56 VM-7a18f394-4476-4cd4-ad3a-9451e0ca49c3 uvicorn[12038]: WARNING:  Unsupported upgrade request.
+Jul 14 09:40:56 VM-7a18f394-4476-4cd4-ad3a-9451e0ca49c3 uvicorn[12038]: WARNING:  No supported WebSocket library detected. Please use "pip install 'uvicorn[standard]'", or install 'websockets' or 'wsproto' manually.
+Jul 14 09:41:06 VM-7a18f394-4476-4cd4-ad3a-9451e0ca49c3 uvicorn[12038]: WARNING:  Unsupported upgrade request.
+Jul 14 09:41:06 VM-7a18f394-4476-4cd4-ad3a-9451e0ca49c3 uvicorn[12038]: WARNING:  No supported WebSocket library detected. Please use "pip install 'uvicorn[standard]'", or install 'websockets' or 'wsproto' manually.
+Jul 14 09:41:16 VM-7a18f394-4476-4cd4-ad3a-9451e0ca49c3 uvicorn[12038]: WARNING:  Unsupported upgrade request.
+Jul 14 09:41:16 VM-7a18f394-4476-4cd4-ad3a-9451e0ca49c3 uvicorn[12038]: WARNING:  No supported WebSocket library detected. Please use "pip install 'uvicorn[standard]'", or install 'websockets' or 'wsproto' manually.
+Jul 14 09:41:27 VM-7a18f394-4476-4cd4-ad3a-9451e0ca49c3 uvicorn[12038]: WARNING:  Unsupported upgrade request.
+Jul 14 09:41:27 VM-7a18f394-4476-4cd4-ad3a-9451e0ca49c3 uvicorn[12038]: WARNING:  No supported WebSocket library detected. Please use "pip install 'uvicorn[standard]'", or install 'websockets' or 'wsproto' manually.
+Jul 14 09:41:37 VM-7a18f394-4476-4cd4-ad3a-9451e0ca49c3 uvicorn[12038]: WARNING:  Unsupported upgrade request.
+Jul 14 09:41:37 VM-7a18f394-4476-4cd4-ad3a-9451e0ca49c3 uvicorn[12038]: WARNING:  No supported WebSocket library detected. Please use "pip install 'uvicorn[standard]'", or install 'websockets' or 'wsproto' manually.
+Jul 14 09:41:48 VM-7a18f394-4476-4cd4-ad3a-9451e0ca49c3 uvicorn[12038]: WARNING:  Unsupported upgrade request.
+Jul 14 09:41:48 VM-7a18f394-4476-4cd4-ad3a-9451e0ca49c3 uvicorn[12038]: WARNING:  No supported WebSocket library detected. Please use "pip install 'uvicorn[standard]'", or install 'websockets' or 'wsproto' manually.
+Jul 14 09:41:58 VM-7a18f394-4476-4cd4-ad3a-9451e0ca49c3 uvicorn[12038]: WARNING:  Unsupported upgrade request.
+Jul 14 09:41:58 VM-7a18f394-4476-4cd4-ad3a-9451e0ca49c3 uvicorn[12038]: WARNING:  No supported WebSocket library detected. Please use "pip install 'uvicorn[standard]'", or install 'websockets' or 'wsproto' manually.
+Jul 14 09:42:09 VM-7a18f394-4476-4cd4-ad3a-9451e0ca49c3 uvicorn[12038]: WARNING:  Unsupported upgrade request.
+Jul 14 09:42:09 VM-7a18f394-4476-4cd4-ad3a-9451e0ca49c3 uvicorn[12038]: WARNING:  No supported WebSocket library detected. Please use "pip install 'uvicorn[standard]'", or install 'websockets' or 'wsproto' manually.
+Jul 14 09:42:19 VM-7a18f394-4476-4cd4-ad3a-9451e0ca49c3 uvicorn[12038]: WARNING:  Unsupported upgrade request.
+Jul 14 09:42:19 VM-7a18f394-4476-4cd4-ad3a-9451e0ca49c3 uvicorn[12038]: WARNING:  No supported WebSocket library detected. Please use "pip install 'uvicorn[standard]'", or install 'websockets' or 'wsproto' manually.
+Jul 14 09:42:30 VM-7a18f394-4476-4cd4-ad3a-9451e0ca49c3 uvicorn[12038]: WARNING:  Unsupported upgrade request.
+Jul 14 09:42:30 VM-7a18f394-4476-4cd4-ad3a-9451e0ca49c3 uvicorn[12038]: WARNING:  No supported WebSocket library detected. Please use "pip install 'uvicorn[standard]'", or install 'websockets' or 'wsproto' manually.
+Jul 14 09:42:40 VM-7a18f394-4476-4cd4-ad3a-9451e0ca49c3 uvicorn[12038]: WARNING:  Unsupported upgrade request.
+Jul 14 09:42:40 VM-7a18f394-4476-4cd4-ad3a-9451e0ca49c3 uvicorn[12038]: WARNING:  No supported WebSocket library detected. Please use "pip install 'uvicorn[standard]'", or install 'websockets' or 'wsproto' manually.
+Jul 14 09:42:50 VM-7a18f394-4476-4cd4-ad3a-9451e0ca49c3 uvicorn[12038]: WARNING:  Unsupported upgrade request.
+Jul 14 09:42:50 VM-7a18f394-4476-4cd4-ad3a-9451e0ca49c3 uvicorn[12038]: WARNING:  No supported WebSocket library detected. Please use "pip install 'uvicorn[standard]'", or install 'websockets' or 'wsproto' manually.
+Jul 14 09:43:01 VM-7a18f394-4476-4cd4-ad3a-9451e0ca49c3 uvicorn[12038]: WARNING:  Unsupported upgrade request.
+Jul 14 09:43:01 VM-7a18f394-4476-4cd4-ad3a-9451e0ca49c3 uvicorn[12038]: WARNING:  No supported WebSocket library detected. Please use "pip install 'uvicorn[standard]'", or install 'websockets' or 'wsproto' manually.
+Jul 14 09:43:11 VM-7a18f394-4476-4cd4-ad3a-9451e0ca49c3 uvicorn[12038]: WARNING:  Unsupported upgrade request.
+Jul 14 09:43:11 VM-7a18f394-4476-4cd4-ad3a-9451e0ca49c3 uvicorn[12038]: WARNING:  No supported WebSocket library detected. Please use "pip install 'uvicorn[standard]'", or install 'websockets' or 'wsproto' manually.
+Jul 14 09:43:22 VM-7a18f394-4476-4cd4-ad3a-9451e0ca49c3 uvicorn[12038]: WARNING:  Unsupported upgrade request.
+Jul 14 09:43:22 VM-7a18f394-4476-4cd4-ad3a-9451e0ca49c3 uvicorn[12038]: WARNING:  No supported WebSocket library detected. Please use "pip install 'uvicorn[standard]'", or install 'websockets' or 'wsproto' manually.
+Jul 14 09:43:32 VM-7a18f394-4476-4cd4-ad3a-9451e0ca49c3 uvicorn[12038]: WARNING:  Unsupported upgrade request.
+Jul 14 09:43:32 VM-7a18f394-4476-4cd4-ad3a-9451e0ca49c3 uvicorn[12038]: WARNING:  No supported WebSocket library detected. Please use "pip install 'uvicorn[standard]'", or install 'websockets' or 'wsproto' manually.
+Jul 14 09:43:43 VM-7a18f394-4476-4cd4-ad3a-9451e0ca49c3 uvicorn[12038]: WARNING:  Unsupported upgrade request.
+Jul 14 09:43:43 VM-7a18f394-4476-4cd4-ad3a-9451e0ca49c3 uvicorn[12038]: WARNING:  No supported WebSocket library detected. Please use "pip install 'uvicorn[standard]'", or install 'websockets' or 'wsproto' manually.
+Jul 14 09:43:53 VM-7a18f394-4476-4cd4-ad3a-9451e0ca49c3 uvicorn[12038]: WARNING:  Unsupported upgrade request.
+Jul 14 09:43:53 VM-7a18f394-4476-4cd4-ad3a-9451e0ca49c3 uvicorn[12038]: WARNING:  No supported WebSocket library detected. Please use "pip install 'uvicorn[standard]'", or install 'websockets' or 'wsproto' manually.
+Jul 14 09:44:04 VM-7a18f394-4476-4cd4-ad3a-9451e0ca49c3 uvicorn[12038]: WARNING:  Unsupported upgrade request.
+Jul 14 09:44:04 VM-7a18f394-4476-4cd4-ad3a-9451e0ca49c3 uvicorn[12038]: WARNING:  No supported WebSocket library detected. Please use "pip install 'uvicorn[standard]'", or install 'websockets' or 'wsproto' manually.
+Jul 14 09:44:14 VM-7a18f394-4476-4cd4-ad3a-9451e0ca49c3 uvicorn[12038]: WARNING:  Unsupported upgrade request.
+Jul 14 09:44:14 VM-7a18f394-4476-4cd4-ad3a-9451e0ca49c3 uvicorn[12038]: WARNING:  No supported WebSocket library detected. Please use "pip install 'uvicorn[standard]'", or install 'websockets' or 'wsproto' manually.
+Jul 14 09:44:24 VM-7a18f394-4476-4cd4-ad3a-9451e0ca49c3 uvicorn[12038]: WARNING:  Unsupported upgrade request.
+Jul 14 09:44:24 VM-7a18f394-4476-4cd4-ad3a-9451e0ca49c3 uvicorn[12038]: WARNING:  No supported WebSocket library detected. Please use "pip install 'uvicorn[standard]'", or install 'websockets' or 'wsproto' manually.
+Jul 14 09:44:35 VM-7a18f394-4476-4cd4-ad3a-9451e0ca49c3 uvicorn[12038]: WARNING:  Unsupported upgrade request.
+Jul 14 09:44:35 VM-7a18f394-4476-4cd4-ad3a-9451e0ca49c3 uvicorn[12038]: WARNING:  No supported WebSocket library detected. Please use "pip install 'uvicorn[standard]'", or install 'websockets' or 'wsproto' manually.
+Jul 14 09:44:45 VM-7a18f394-4476-4cd4-ad3a-9451e0ca49c3 uvicorn[12038]: WARNING:  Unsupported upgrade request.
+Jul 14 09:44:45 VM-7a18f394-4476-4cd4-ad3a-9451e0ca49c3 uvicorn[12038]: WARNING:  No supported WebSocket library detected. Please use "pip install 'uvicorn[standard]'", or install 'websockets' or 'wsproto' manually.
+Jul 14 09:44:56 VM-7a18f394-4476-4cd4-ad3a-9451e0ca49c3 uvicorn[12038]: WARNING:  Unsupported upgrade request.
+Jul 14 09:44:56 VM-7a18f394-4476-4cd4-ad3a-9451e0ca49c3 uvicorn[12038]: WARNING:  No supported WebSocket library detected. Please use "pip install 'uvicorn[standard]'", or install 'websockets' or 'wsproto' manually.
+Jul 14 09:45:06 VM-7a18f394-4476-4cd4-ad3a-9451e0ca49c3 uvicorn[12038]: WARNING:  Unsupported upgrade request.
+Jul 14 09:45:06 VM-7a18f394-4476-4cd4-ad3a-9451e0ca49c3 uvicorn[12038]: WARNING:  No supported WebSocket library detected. Please use "pip install 'uvicorn[standard]'", or install 'websockets' or 'wsproto' manually.
+Jul 14 09:45:17 VM-7a18f394-4476-4cd4-ad3a-9451e0ca49c3 uvicorn[12038]: WARNING:  Unsupported upgrade request.
+Jul 14 09:45:17 VM-7a18f394-4476-4cd4-ad3a-9451e0ca49c3 uvicorn[12038]: WARNING:  No supported WebSocket library detected. Please use "pip install 'uvicorn[standard]'", or install 'websockets' or 'wsproto' manually.
+Jul 14 09:45:27 VM-7a18f394-4476-4cd4-ad3a-9451e0ca49c3 uvicorn[12038]: WARNING:  Unsupported upgrade request.
+Jul 14 09:45:27 VM-7a18f394-4476-4cd4-ad3a-9451e0ca49c3 uvicorn[12038]: WARNING:  No supported WebSocket library detected. Please use "pip install 'uvicorn[standard]'", or install 'websockets' or 'wsproto' manually.
+Jul 14 09:45:37 VM-7a18f394-4476-4cd4-ad3a-9451e0ca49c3 uvicorn[12038]: WARNING:  Unsupported upgrade request.
+Jul 14 09:45:37 VM-7a18f394-4476-4cd4-ad3a-9451e0ca49c3 uvicorn[12038]: WARNING:  No supported WebSocket library detected. Please use "pip install 'uvicorn[standard]'", or install 'websockets' or 'wsproto' manually.
+Jul 14 09:45:48 VM-7a18f394-4476-4cd4-ad3a-9451e0ca49c3 uvicorn[12038]: WARNING:  Unsupported upgrade request.
+Jul 14 09:45:48 VM-7a18f394-4476-4cd4-ad3a-9451e0ca49c3 uvicorn[12038]: WARNING:  No supported WebSocket library detected. Please use "pip install 'uvicorn[standard]'", or install 'websockets' or 'wsproto' manually.
+Jul 14 09:45:58 VM-7a18f394-4476-4cd4-ad3a-9451e0ca49c3 uvicorn[12038]: WARNING:  Unsupported upgrade request.
+Jul 14 09:45:58 VM-7a18f394-4476-4cd4-ad3a-9451e0ca49c3 uvicorn[12038]: WARNING:  No supported WebSocket library detected. Please use "pip install 'uvicorn[standard]'", or install 'websockets' or 'wsproto' manually.
+Jul 14 09:46:09 VM-7a18f394-4476-4cd4-ad3a-9451e0ca49c3 uvicorn[12038]: WARNING:  Unsupported upgrade request.
+Jul 14 09:46:09 VM-7a18f394-4476-4cd4-ad3a-9451e0ca49c3 uvicorn[12038]: WARNING:  No supported WebSocket library detected. Please use "pip install 'uvicorn[standard]'", or install 'websockets' or 'wsproto' manually.
+Jul 14 09:46:19 VM-7a18f394-4476-4cd4-ad3a-9451e0ca49c3 uvicorn[12038]: WARNING:  Unsupported upgrade request.
+Jul 14 09:46:19 VM-7a18f394-4476-4cd4-ad3a-9451e0ca49c3 uvicorn[12038]: WARNING:  No supported WebSocket library detected. Please use "pip install 'uvicorn[standard]'", or install 'websockets' or 'wsproto' manually.
+Jul 14 09:46:30 VM-7a18f394-4476-4cd4-ad3a-9451e0ca49c3 uvicorn[12038]: WARNING:  Unsupported upgrade request.
+Jul 14 09:46:30 VM-7a18f394-4476-4cd4-ad3a-9451e0ca49c3 uvicorn[12038]: WARNING:  No supported WebSocket library detected. Please use "pip install 'uvicorn[standard]'", or install 'websockets' or 'wsproto' manually.
+Jul 14 09:46:40 VM-7a18f394-4476-4cd4-ad3a-9451e0ca49c3 uvicorn[12038]: WARNING:  Unsupported upgrade request.
+Jul 14 09:46:40 VM-7a18f394-4476-4cd4-ad3a-9451e0ca49c3 uvicorn[12038]: WARNING:  No supported WebSocket library detected. Please use "pip install 'uvicorn[standard]'", or install 'websockets' or 'wsproto' manually.
+Jul 14 09:46:51 VM-7a18f394-4476-4cd4-ad3a-9451e0ca49c3 uvicorn[12038]: WARNING:  Unsupported upgrade request.
+Jul 14 09:46:51 VM-7a18f394-4476-4cd4-ad3a-9451e0ca49c3 uvicorn[12038]: WARNING:  No supported WebSocket library detected. Please use "pip install 'uvicorn[standard]'", or install 'websockets' or 'wsproto' manually.
+Jul 14 09:47:01 VM-7a18f394-4476-4cd4-ad3a-9451e0ca49c3 uvicorn[12038]: WARNING:  Unsupported upgrade request.
+Jul 14 09:47:01 VM-7a18f394-4476-4cd4-ad3a-9451e0ca49c3 uvicorn[12038]: WARNING:  No supported WebSocket library detected. Please use "pip install 'uvicorn[standard]'", or install 'websockets' or 'wsproto' manually.
+Jul 14 09:47:21 VM-7a18f394-4476-4cd4-ad3a-9451e0ca49c3 uvicorn[12038]: WARNING:  Unsupported upgrade request.
+Jul 14 09:47:21 VM-7a18f394-4476-4cd4-ad3a-9451e0ca49c3 uvicorn[12038]: WARNING:  No supported WebSocket library detected. Please use "pip install 'uvicorn[standard]'", or install 'websockets' or 'wsproto' manually.
+Jul 14 09:47:31 VM-7a18f394-4476-4cd4-ad3a-9451e0ca49c3 uvicorn[12038]: WARNING:  Unsupported upgrade request.
+Jul 14 09:47:31 VM-7a18f394-4476-4cd4-ad3a-9451e0ca49c3 uvicorn[12038]: WARNING:  No supported WebSocket library detected. Please use "pip install 'uvicorn[standard]'", or install 'websockets' or 'wsproto' manually.
+Jul 14 09:47:41 VM-7a18f394-4476-4cd4-ad3a-9451e0ca49c3 uvicorn[12038]: WARNING:  Unsupported upgrade request.
+Jul 14 09:47:41 VM-7a18f394-4476-4cd4-ad3a-9451e0ca49c3 uvicorn[12038]: WARNING:  No supported WebSocket library detected. Please use "pip install 'uvicorn[standard]'", or install 'websockets' or 'wsproto' manually.
+Jul 14 09:47:52 VM-7a18f394-4476-4cd4-ad3a-9451e0ca49c3 uvicorn[12038]: WARNING:  Unsupported upgrade request.
+Jul 14 09:47:52 VM-7a18f394-4476-4cd4-ad3a-9451e0ca49c3 uvicorn[12038]: WARNING:  No supported WebSocket library detected. Please use "pip install 'uvicorn[standard]'", or install 'websockets' or 'wsproto' manually.
+Jul 14 09:48:02 VM-7a18f394-4476-4cd4-ad3a-9451e0ca49c3 uvicorn[12038]: WARNING:  Unsupported upgrade request.
+Jul 14 09:48:02 VM-7a18f394-4476-4cd4-ad3a-9451e0ca49c3 uvicorn[12038]: WARNING:  No supported WebSocket library detected. Please use "pip install 'uvicorn[standard]'", or install 'websockets' or 'wsproto' manually.
+Jul 14 09:48:13 VM-7a18f394-4476-4cd4-ad3a-9451e0ca49c3 uvicorn[12038]: WARNING:  Unsupported upgrade request.
+Jul 14 09:48:13 VM-7a18f394-4476-4cd4-ad3a-9451e0ca49c3 uvicorn[12038]: WARNING:  No supported WebSocket library detected. Please use "pip install 'uvicorn[standard]'", or install 'websockets' or 'wsproto' manually.
+Jul 14 09:48:23 VM-7a18f394-4476-4cd4-ad3a-9451e0ca49c3 uvicorn[12038]: WARNING:  Unsupported upgrade request.
+Jul 14 09:48:23 VM-7a18f394-4476-4cd4-ad3a-9451e0ca49c3 uvicorn[12038]: WARNING:  No supported WebSocket library detected. Please use "pip install 'uvicorn[standard]'", or install 'websockets' or 'wsproto' manually.
+Jul 14 09:48:34 VM-7a18f394-4476-4cd4-ad3a-9451e0ca49c3 uvicorn[12038]: WARNING:  Unsupported upgrade request.
+Jul 14 09:48:34 VM-7a18f394-4476-4cd4-ad3a-9451e0ca49c3 uvicorn[12038]: WARNING:  No supported WebSocket library detected. Please use "pip install 'uvicorn[standard]'", or install 'websockets' or 'wsproto' manually.
+Jul 14 09:48:44 VM-7a18f394-4476-4cd4-ad3a-9451e0ca49c3 uvicorn[12038]: WARNING:  Unsupported upgrade request.
+Jul 14 09:48:44 VM-7a18f394-4476-4cd4-ad3a-9451e0ca49c3 uvicorn[12038]: WARNING:  No supported WebSocket library detected. Please use "pip install 'uvicorn[standard]'", or install 'websockets' or 'wsproto' manually.
+Jul 14 09:48:54 VM-7a18f394-4476-4cd4-ad3a-9451e0ca49c3 uvicorn[12038]: WARNING:  Unsupported upgrade request.
+Jul 14 09:48:54 VM-7a18f394-4476-4cd4-ad3a-9451e0ca49c3 uvicorn[12038]: WARNING:  No supported WebSocket library detected. Please use "pip install 'uvicorn[standard]'", or install 'websockets' or 'wsproto' manually.
+Jul 14 09:49:05 VM-7a18f394-4476-4cd4-ad3a-9451e0ca49c3 uvicorn[12038]: WARNING:  Unsupported upgrade request.
+Jul 14 09:49:05 VM-7a18f394-4476-4cd4-ad3a-9451e0ca49c3 uvicorn[12038]: WARNING:  No supported WebSocket library detected. Please use "pip install 'uvicorn[standard]'", or install 'websockets' or 'wsproto' manually.
+Jul 14 09:49:15 VM-7a18f394-4476-4cd4-ad3a-9451e0ca49c3 uvicorn[12038]: WARNING:  Unsupported upgrade request.
+Jul 14 09:49:15 VM-7a18f394-4476-4cd4-ad3a-9451e0ca49c3 uvicorn[12038]: WARNING:  No supported WebSocket library detected. Please use "pip install 'uvicorn[standard]'", or install 'websockets' or 'wsproto' manually.
+Jul 14 09:49:26 VM-7a18f394-4476-4cd4-ad3a-9451e0ca49c3 uvicorn[12038]: WARNING:  Unsupported upgrade request.
+Jul 14 09:49:26 VM-7a18f394-4476-4cd4-ad3a-9451e0ca49c3 uvicorn[12038]: WARNING:  No supported WebSocket library detected. Please use "pip install 'uvicorn[standard]'", or install 'websockets' or 'wsproto' manually.
+Jul 14 09:49:36 VM-7a18f394-4476-4cd4-ad3a-9451e0ca49c3 uvicorn[12038]: WARNING:  Unsupported upgrade request.
+Jul 14 09:49:36 VM-7a18f394-4476-4cd4-ad3a-9451e0ca49c3 uvicorn[12038]: WARNING:  No supported WebSocket library detected. Please use "pip install 'uvicorn[standard]'", or install 'websockets' or 'wsproto' manually.
+Jul 14 09:49:47 VM-7a18f394-4476-4cd4-ad3a-9451e0ca49c3 uvicorn[12038]: WARNING:  Unsupported upgrade request.
+Jul 14 09:49:47 VM-7a18f394-4476-4cd4-ad3a-9451e0ca49c3 uvicorn[12038]: WARNING:  No supported WebSocket library detected. Please use "pip install 'uvicorn[standard]'", or install 'websockets' or 'wsproto' manually.
+Jul 14 09:49:57 VM-7a18f394-4476-4cd4-ad3a-9451e0ca49c3 uvicorn[12038]: WARNING:  Unsupported upgrade request.
+Jul 14 09:49:57 VM-7a18f394-4476-4cd4-ad3a-9451e0ca49c3 uvicorn[12038]: WARNING:  No supported WebSocket library detected. Please use "pip install 'uvicorn[standard]'", or install 'websockets' or 'wsproto' manually.
+Jul 14 09:50:07 VM-7a18f394-4476-4cd4-ad3a-9451e0ca49c3 uvicorn[12038]: WARNING:  Unsupported upgrade request.
+Jul 14 09:50:07 VM-7a18f394-4476-4cd4-ad3a-9451e0ca49c3 uvicorn[12038]: WARNING:  No supported WebSocket library detected. Please use "pip install 'uvicorn[standard]'", or install 'websockets' or 'wsproto' manually.
+Jul 14 09:50:18 VM-7a18f394-4476-4cd4-ad3a-9451e0ca49c3 uvicorn[12038]: WARNING:  Unsupported upgrade request.
+Jul 14 09:50:18 VM-7a18f394-4476-4cd4-ad3a-9451e0ca49c3 uvicorn[12038]: WARNING:  No supported WebSocket library detected. Please use "pip install 'uvicorn[standard]'", or install 'websockets' or 'wsproto' manually.
+Jul 14 09:50:28 VM-7a18f394-4476-4cd4-ad3a-9451e0ca49c3 uvicorn[12038]: WARNING:  Unsupported upgrade request.
+Jul 14 09:50:28 VM-7a18f394-4476-4cd4-ad3a-9451e0ca49c3 uvicorn[12038]: WARNING:  No supported WebSocket library detected. Please use "pip install 'uvicorn[standard]'", or install 'websockets' or 'wsproto' manually.
+Jul 14 09:50:39 VM-7a18f394-4476-4cd4-ad3a-9451e0ca49c3 uvicorn[12038]: WARNING:  Unsupported upgrade request.
+Jul 14 09:50:39 VM-7a18f394-4476-4cd4-ad3a-9451e0ca49c3 uvicorn[12038]: WARNING:  No supported WebSocket library detected. Please use "pip install 'uvicorn[standard]'", or install 'websockets' or 'wsproto' manually.
+Jul 14 09:50:49 VM-7a18f394-4476-4cd4-ad3a-9451e0ca49c3 uvicorn[12038]: WARNING:  Unsupported upgrade request.
+Jul 14 09:50:49 VM-7a18f394-4476-4cd4-ad3a-9451e0ca49c3 uvicorn[12038]: WARNING:  No supported WebSocket library detected. Please use "pip install 'uvicorn[standard]'", or install 'websockets' or 'wsproto' manually.
+Jul 14 09:51:00 VM-7a18f394-4476-4cd4-ad3a-9451e0ca49c3 uvicorn[12038]: WARNING:  Unsupported upgrade request.
+Jul 14 09:51:00 VM-7a18f394-4476-4cd4-ad3a-9451e0ca49c3 uvicorn[12038]: WARNING:  No supported WebSocket library detected. Please use "pip install 'uvicorn[standard]'", or install 'websockets' or 'wsproto' manually.
+Jul 14 09:51:10 VM-7a18f394-4476-4cd4-ad3a-9451e0ca49c3 uvicorn[12038]: WARNING:  Unsupported upgrade request.
+Jul 14 09:51:10 VM-7a18f394-4476-4cd4-ad3a-9451e0ca49c3 uvicorn[12038]: WARNING:  No supported WebSocket library detected. Please use "pip install 'uvicorn[standard]'", or install 'websockets' or 'wsproto' manually.
+Jul 14 09:51:21 VM-7a18f394-4476-4cd4-ad3a-9451e0ca49c3 uvicorn[12038]: WARNING:  Unsupported upgrade request.
+Jul 14 09:51:21 VM-7a18f394-4476-4cd4-ad3a-9451e0ca49c3 uvicorn[12038]: WARNING:  No supported WebSocket library detected. Please use "pip install 'uvicorn[standard]'", or install 'websockets' or 'wsproto' manually.
+Jul 14 09:51:31 VM-7a18f394-4476-4cd4-ad3a-9451e0ca49c3 uvicorn[12038]: WARNING:  Unsupported upgrade request.
+Jul 14 09:51:31 VM-7a18f394-4476-4cd4-ad3a-9451e0ca49c3 uvicorn[12038]: WARNING:  No supported WebSocket library detected. Please use "pip install 'uvicorn[standard]'", or install 'websockets' or 'wsproto' manually.
+Jul 14 09:51:41 VM-7a18f394-4476-4cd4-ad3a-9451e0ca49c3 uvicorn[12038]: WARNING:  Unsupported upgrade request.
+Jul 14 09:51:41 VM-7a18f394-4476-4cd4-ad3a-9451e0ca49c3 uvicorn[12038]: WARNING:  No supported WebSocket library detected. Please use "pip install 'uvicorn[standard]'", or install 'websockets' or 'wsproto' manually.
+Jul 14 09:51:52 VM-7a18f394-4476-4cd4-ad3a-9451e0ca49c3 uvicorn[12038]: WARNING:  Unsupported upgrade request.
+Jul 14 09:51:52 VM-7a18f394-4476-4cd4-ad3a-9451e0ca49c3 uvicorn[12038]: WARNING:  No supported WebSocket library detected. Please use "pip install 'uvicorn[standard]'", or install 'websockets' or 'wsproto' manually.
+Jul 14 09:52:02 VM-7a18f394-4476-4cd4-ad3a-9451e0ca49c3 uvicorn[12038]: WARNING:  Unsupported upgrade request.
+Jul 14 09:52:02 VM-7a18f394-4476-4cd4-ad3a-9451e0ca49c3 uvicorn[12038]: WARNING:  No supported WebSocket library detected. Please use "pip install 'uvicorn[standard]'", or install 'websockets' or 'wsproto' manually.
+Jul 14 09:52:13 VM-7a18f394-4476-4cd4-ad3a-9451e0ca49c3 uvicorn[12038]: WARNING:  Unsupported upgrade request.
+Jul 14 09:52:13 VM-7a18f394-4476-4cd4-ad3a-9451e0ca49c3 uvicorn[12038]: WARNING:  No supported WebSocket library detected. Please use "pip install 'uvicorn[standard]'", or install 'websockets' or 'wsproto' manually.
+Jul 14 09:52:23 VM-7a18f394-4476-4cd4-ad3a-9451e0ca49c3 uvicorn[12038]: WARNING:  Unsupported upgrade request.
+Jul 14 09:52:23 VM-7a18f394-4476-4cd4-ad3a-9451e0ca49c3 uvicorn[12038]: WARNING:  No supported WebSocket library detected. Please use "pip install 'uvicorn[standard]'", or install 'websockets' or 'wsproto' manually.
+Jul 14 09:52:34 VM-7a18f394-4476-4cd4-ad3a-9451e0ca49c3 uvicorn[12038]: WARNING:  Unsupported upgrade request.
+Jul 14 09:52:34 VM-7a18f394-4476-4cd4-ad3a-9451e0ca49c3 uvicorn[12038]: WARNING:  No supported WebSocket library detected. Please use "pip install 'uvicorn[standard]'", or install 'websockets' or 'wsproto' manually.
+Jul 14 09:52:44 VM-7a18f394-4476-4cd4-ad3a-9451e0ca49c3 uvicorn[12038]: WARNING:  Unsupported upgrade request.
+Jul 14 09:52:44 VM-7a18f394-4476-4cd4-ad3a-9451e0ca49c3 uvicorn[12038]: WARNING:  No supported WebSocket library detected. Please use "pip install 'uvicorn[standard]'", or install 'websockets' or 'wsproto' manually.
+Jul 14 09:52:54 VM-7a18f394-4476-4cd4-ad3a-9451e0ca49c3 uvicorn[12038]: WARNING:  Unsupported upgrade request.
+Jul 14 09:52:54 VM-7a18f394-4476-4cd4-ad3a-9451e0ca49c3 uvicorn[12038]: WARNING:  No supported WebSocket library detected. Please use "pip install 'uvicorn[standard]'", or install 'websockets' or 'wsproto' manually.
+Jul 14 09:53:05 VM-7a18f394-4476-4cd4-ad3a-9451e0ca49c3 uvicorn[12038]: WARNING:  Unsupported upgrade request.
+Jul 14 09:53:05 VM-7a18f394-4476-4cd4-ad3a-9451e0ca49c3 uvicorn[12038]: WARNING:  No supported WebSocket library detected. Please use "pip install 'uvicorn[standard]'", or install 'websockets' or 'wsproto' manually.
+Jul 14 09:53:15 VM-7a18f394-4476-4cd4-ad3a-9451e0ca49c3 uvicorn[12038]: WARNING:  Unsupported upgrade request.
+Jul 14 09:53:15 VM-7a18f394-4476-4cd4-ad3a-9451e0ca49c3 uvicorn[12038]: WARNING:  No supported WebSocket library detected. Please use "pip install 'uvicorn[standard]'", or install 'websockets' or 'wsproto' manually.
+Jul 14 09:53:26 VM-7a18f394-4476-4cd4-ad3a-9451e0ca49c3 uvicorn[12038]: WARNING:  Unsupported upgrade request.
+Jul 14 09:53:26 VM-7a18f394-4476-4cd4-ad3a-9451e0ca49c3 uvicorn[12038]: WARNING:  No supported WebSocket library detected. Please use "pip install 'uvicorn[standard]'", or install 'websockets' or 'wsproto' manually.
+Jul 14 09:53:36 VM-7a18f394-4476-4cd4-ad3a-9451e0ca49c3 uvicorn[12038]: WARNING:  Unsupported upgrade request.
+Jul 14 09:53:36 VM-7a18f394-4476-4cd4-ad3a-9451e0ca49c3 uvicorn[12038]: WARNING:  No supported WebSocket library detected. Please use "pip install 'uvicorn[standard]'", or install 'websockets' or 'wsproto' manually.
+Jul 14 09:53:47 VM-7a18f394-4476-4cd4-ad3a-9451e0ca49c3 uvicorn[12038]: WARNING:  Unsupported upgrade request.
+Jul 14 09:53:47 VM-7a18f394-4476-4cd4-ad3a-9451e0ca49c3 uvicorn[12038]: WARNING:  No supported WebSocket library detected. Please use "pip install 'uvicorn[standard]'", or install 'websockets' or 'wsproto' manually.
+Jul 14 09:53:57 VM-7a18f394-4476-4cd4-ad3a-9451e0ca49c3 uvicorn[12038]: WARNING:  Unsupported upgrade request.
+Jul 14 09:53:57 VM-7a18f394-4476-4cd4-ad3a-9451e0ca49c3 uvicorn[12038]: WARNING:  No supported WebSocket library detected. Please use "pip install 'uvicorn[standard]'", or install 'websockets' or 'wsproto' manually.
+Jul 14 09:54:08 VM-7a18f394-4476-4cd4-ad3a-9451e0ca49c3 uvicorn[12038]: WARNING:  Unsupported upgrade request.
+Jul 14 09:54:08 VM-7a18f394-4476-4cd4-ad3a-9451e0ca49c3 uvicorn[12038]: WARNING:  No supported WebSocket library detected. Please use "pip install 'uvicorn[standard]'", or install 'websockets' or 'wsproto' manually.
+Jul 14 09:54:18 VM-7a18f394-4476-4cd4-ad3a-9451e0ca49c3 uvicorn[12038]: WARNING:  Unsupported upgrade request.
+Jul 14 09:54:18 VM-7a18f394-4476-4cd4-ad3a-9451e0ca49c3 uvicorn[12038]: WARNING:  No supported WebSocket library detected. Please use "pip install 'uvicorn[standard]'", or install 'websockets' or 'wsproto' manually.
+Jul 14 09:54:28 VM-7a18f394-4476-4cd4-ad3a-9451e0ca49c3 uvicorn[12038]: WARNING:  Unsupported upgrade request.
+Jul 14 09:54:28 VM-7a18f394-4476-4cd4-ad3a-9451e0ca49c3 uvicorn[12038]: WARNING:  No supported WebSocket library detected. Please use "pip install 'uvicorn[standard]'", or install 'websockets' or 'wsproto' manually.
+Jul 14 09:54:39 VM-7a18f394-4476-4cd4-ad3a-9451e0ca49c3 uvicorn[12038]: WARNING:  Unsupported upgrade request.
+Jul 14 09:54:39 VM-7a18f394-4476-4cd4-ad3a-9451e0ca49c3 uvicorn[12038]: WARNING:  No supported WebSocket library detected. Please use "pip install 'uvicorn[standard]'", or install 'websockets' or 'wsproto' manually.
+Jul 14 09:54:49 VM-7a18f394-4476-4cd4-ad3a-9451e0ca49c3 uvicorn[12038]: WARNING:  Unsupported upgrade request.
+Jul 14 09:54:49 VM-7a18f394-4476-4cd4-ad3a-9451e0ca49c3 uvicorn[12038]: WARNING:  No supported WebSocket library detected. Please use "pip install 'uvicorn[standard]'", or install 'websockets' or 'wsproto' manually.
+Jul 14 09:55:00 VM-7a18f394-4476-4cd4-ad3a-9451e0ca49c3 uvicorn[12038]: WARNING:  Unsupported upgrade request.
+Jul 14 09:55:00 VM-7a18f394-4476-4cd4-ad3a-9451e0ca49c3 uvicorn[12038]: WARNING:  No supported WebSocket library detected. Please use "pip install 'uvicorn[standard]'", or install 'websockets' or 'wsproto' manually.
+Jul 14 09:55:10 VM-7a18f394-4476-4cd4-ad3a-9451e0ca49c3 uvicorn[12038]: WARNING:  Unsupported upgrade request.
+Jul 14 09:55:10 VM-7a18f394-4476-4cd4-ad3a-9451e0ca49c3 uvicorn[12038]: WARNING:  No supported WebSocket library detected. Please use "pip install 'uvicorn[standard]'", or install 'websockets' or 'wsproto' manually.
+Jul 14 09:55:21 VM-7a18f394-4476-4cd4-ad3a-9451e0ca49c3 uvicorn[12038]: WARNING:  Unsupported upgrade request.
+Jul 14 09:55:21 VM-7a18f394-4476-4cd4-ad3a-9451e0ca49c3 uvicorn[12038]: WARNING:  No supported WebSocket library detected. Please use "pip install 'uvicorn[standard]'", or install 'websockets' or 'wsproto' manually.
+Jul 14 09:55:31 VM-7a18f394-4476-4cd4-ad3a-9451e0ca49c3 uvicorn[12038]: WARNING:  Unsupported upgrade request.
+Jul 14 09:55:31 VM-7a18f394-4476-4cd4-ad3a-9451e0ca49c3 uvicorn[12038]: WARNING:  No supported WebSocket library detected. Please use "pip install 'uvicorn[standard]'", or install 'websockets' or 'wsproto' manually.
+Jul 14 09:55:41 VM-7a18f394-4476-4cd4-ad3a-9451e0ca49c3 uvicorn[12038]: WARNING:  Unsupported upgrade request.
+Jul 14 09:55:41 VM-7a18f394-4476-4cd4-ad3a-9451e0ca49c3 uvicorn[12038]: WARNING:  No supported WebSocket library detected. Please use "pip install 'uvicorn[standard]'", or install 'websockets' or 'wsproto' manually.
+Jul 14 09:55:52 VM-7a18f394-4476-4cd4-ad3a-9451e0ca49c3 uvicorn[12038]: WARNING:  Unsupported upgrade request.
+Jul 14 09:55:52 VM-7a18f394-4476-4cd4-ad3a-9451e0ca49c3 uvicorn[12038]: WARNING:  No supported WebSocket library detected. Please use "pip install 'uvicorn[standard]'", or install 'websockets' or 'wsproto' manually.
+Jul 14 09:56:02 VM-7a18f394-4476-4cd4-ad3a-9451e0ca49c3 uvicorn[12038]: WARNING:  Unsupported upgrade request.
+Jul 14 09:56:02 VM-7a18f394-4476-4cd4-ad3a-9451e0ca49c3 uvicorn[12038]: WARNING:  No supported WebSocket library detected. Please use "pip install 'uvicorn[standard]'", or install 'websockets' or 'wsproto' manually.
+Jul 14 09:56:13 VM-7a18f394-4476-4cd4-ad3a-9451e0ca49c3 uvicorn[12038]: WARNING:  Unsupported upgrade request.
+Jul 14 09:56:13 VM-7a18f394-4476-4cd4-ad3a-9451e0ca49c3 uvicorn[12038]: WARNING:  No supported WebSocket library detected. Please use "pip install 'uvicorn[standard]'", or install 'websockets' or 'wsproto' manually.
+Jul 14 09:56:23 VM-7a18f394-4476-4cd4-ad3a-9451e0ca49c3 uvicorn[12038]: WARNING:  Unsupported upgrade request.
+Jul 14 09:56:23 VM-7a18f394-4476-4cd4-ad3a-9451e0ca49c3 uvicorn[12038]: WARNING:  No supported WebSocket library detected. Please use "pip install 'uvicorn[standard]'", or install 'websockets' or 'wsproto' manually.
+Jul 14 09:56:34 VM-7a18f394-4476-4cd4-ad3a-9451e0ca49c3 uvicorn[12038]: WARNING:  Unsupported upgrade request.
+Jul 14 09:56:34 VM-7a18f394-4476-4cd4-ad3a-9451e0ca49c3 uvicorn[12038]: WARNING:  No supported WebSocket library detected. Please use "pip install 'uvicorn[standard]'", or install 'websockets' or 'wsproto' manually.
+Jul 14 09:56:44 VM-7a18f394-4476-4cd4-ad3a-9451e0ca49c3 uvicorn[12038]: WARNING:  Unsupported upgrade request.
+Jul 14 09:56:44 VM-7a18f394-4476-4cd4-ad3a-9451e0ca49c3 uvicorn[12038]: WARNING:  No supported WebSocket library detected. Please use "pip install 'uvicorn[standard]'", or install 'websockets' or 'wsproto' manually.
+Jul 14 09:56:55 VM-7a18f394-4476-4cd4-ad3a-9451e0ca49c3 uvicorn[12038]: WARNING:  Unsupported upgrade request.
+Jul 14 09:56:55 VM-7a18f394-4476-4cd4-ad3a-9451e0ca49c3 uvicorn[12038]: WARNING:  No supported WebSocket library detected. Please use "pip install 'uvicorn[standard]'", or install 'websockets' or 'wsproto' manually.
+Jul 14 09:57:05 VM-7a18f394-4476-4cd4-ad3a-9451e0ca49c3 uvicorn[12038]: WARNING:  Unsupported upgrade request.
+Jul 14 09:57:05 VM-7a18f394-4476-4cd4-ad3a-9451e0ca49c3 uvicorn[12038]: WARNING:  No supported WebSocket library detected. Please use "pip install 'uvicorn[standard]'", or install 'websockets' or 'wsproto' manually.
+Jul 14 09:57:16 VM-7a18f394-4476-4cd4-ad3a-9451e0ca49c3 uvicorn[12038]: WARNING:  Unsupported upgrade request.
+Jul 14 09:57:16 VM-7a18f394-4476-4cd4-ad3a-9451e0ca49c3 uvicorn[12038]: WARNING:  No supported WebSocket library detected. Please use "pip install 'uvicorn[standard]'", or install 'websockets' or 'wsproto' manually.
+Jul 14 09:57:26 VM-7a18f394-4476-4cd4-ad3a-9451e0ca49c3 uvicorn[25685]: WARNING:  Unsupported upgrade request.
+Jul 14 09:57:26 VM-7a18f394-4476-4cd4-ad3a-9451e0ca49c3 uvicorn[25685]: WARNING:  No supported WebSocket library detected. Please use "pip install 'uvicorn[standard]'", or install 'websockets' or 'wsproto' manually.
+Jul 14 09:57:31 VM-7a18f394-4476-4cd4-ad3a-9451e0ca49c3 uvicorn[25685]: WARNING:  Unsupported upgrade request.
+Jul 14 09:57:31 VM-7a18f394-4476-4cd4-ad3a-9451e0ca49c3 uvicorn[25685]: WARNING:  No supported WebSocket library detected. Please use "pip install 'uvicorn[standard]'", or install 'websockets' or 'wsproto' manually.
+Jul 14 09:57:32 VM-7a18f394-4476-4cd4-ad3a-9451e0ca49c3 uvicorn[25685]: WARNING:  Unsupported upgrade request.
+Jul 14 09:57:32 VM-7a18f394-4476-4cd4-ad3a-9451e0ca49c3 uvicorn[25685]: WARNING:  No supported WebSocket library detected. Please use "pip install 'uvicorn[standard]'", or install 'websockets' or 'wsproto' manually.
+Jul 14 09:57:35 VM-7a18f394-4476-4cd4-ad3a-9451e0ca49c3 uvicorn[25685]: WARNING:  Unsupported upgrade request.
+Jul 14 09:57:35 VM-7a18f394-4476-4cd4-ad3a-9451e0ca49c3 uvicorn[25685]: WARNING:  No supported WebSocket library detected. Please use "pip install 'uvicorn[standard]'", or install 'websockets' or 'wsproto' manually.
+Jul 14 09:57:35 VM-7a18f394-4476-4cd4-ad3a-9451e0ca49c3 uvicorn[25685]: ERROR:    Exception in ASGI application
+Jul 14 09:57:35 VM-7a18f394-4476-4cd4-ad3a-9451e0ca49c3 uvicorn[25685]: Traceback (most recent call last):
+Jul 14 09:57:35 VM-7a18f394-4476-4cd4-ad3a-9451e0ca49c3 uvicorn[25685]: Traceback (most recent call last):
+Jul 14 09:57:55 VM-7a18f394-4476-4cd4-ad3a-9451e0ca49c3 uvicorn[25685]: WARNING:  Unsupported upgrade request.
+Jul 14 09:57:55 VM-7a18f394-4476-4cd4-ad3a-9451e0ca49c3 uvicorn[25685]: WARNING:  No supported WebSocket library detected. Please use "pip install 'uvicorn[standard]'", or install 'websockets' or 'wsproto' manually.
+Jul 14 09:58:01 VM-7a18f394-4476-4cd4-ad3a-9451e0ca49c3 uvicorn[25685]: ERROR:    Exception in ASGI application
+Jul 14 09:58:01 VM-7a18f394-4476-4cd4-ad3a-9451e0ca49c3 uvicorn[25685]: Traceback (most recent call last):
+Jul 14 09:58:01 VM-7a18f394-4476-4cd4-ad3a-9451e0ca49c3 uvicorn[25685]: Traceback (most recent call last):
+Jul 14 09:58:05 VM-7a18f394-4476-4cd4-ad3a-9451e0ca49c3 uvicorn[25685]: WARNING:  Unsupported upgrade request.
+Jul 14 09:58:05 VM-7a18f394-4476-4cd4-ad3a-9451e0ca49c3 uvicorn[25685]: WARNING:  No supported WebSocket library detected. Please use "pip install 'uvicorn[standard]'", or install 'websockets' or 'wsproto' manually.
+Jul 14 09:58:16 VM-7a18f394-4476-4cd4-ad3a-9451e0ca49c3 uvicorn[25685]: WARNING:  Unsupported upgrade request.
+Jul 14 09:58:16 VM-7a18f394-4476-4cd4-ad3a-9451e0ca49c3 uvicorn[25685]: WARNING:  No supported WebSocket library detected. Please use "pip install 'uvicorn[standard]'", or install 'websockets' or 'wsproto' manually.
+Jul 14 09:58:27 VM-7a18f394-4476-4cd4-ad3a-9451e0ca49c3 uvicorn[25685]: WARNING:  Unsupported upgrade request.
+Jul 14 09:58:27 VM-7a18f394-4476-4cd4-ad3a-9451e0ca49c3 uvicorn[25685]: WARNING:  No supported WebSocket library detected. Please use "pip install 'uvicorn[standard]'", or install 'websockets' or 'wsproto' manually.
+Jul 14 09:58:38 VM-7a18f394-4476-4cd4-ad3a-9451e0ca49c3 uvicorn[25685]: WARNING:  Unsupported upgrade request.
+Jul 14 09:58:38 VM-7a18f394-4476-4cd4-ad3a-9451e0ca49c3 uvicorn[25685]: WARNING:  No supported WebSocket library detected. Please use "pip install 'uvicorn[standard]'", or install 'websockets' or 'wsproto' manually.
+Jul 14 09:58:48 VM-7a18f394-4476-4cd4-ad3a-9451e0ca49c3 uvicorn[25685]: WARNING:  Unsupported upgrade request.
+Jul 14 09:58:48 VM-7a18f394-4476-4cd4-ad3a-9451e0ca49c3 uvicorn[25685]: WARNING:  No supported WebSocket library detected. Please use "pip install 'uvicorn[standard]'", or install 'websockets' or 'wsproto' manually.
+Jul 14 09:58:59 VM-7a18f394-4476-4cd4-ad3a-9451e0ca49c3 uvicorn[25685]: WARNING:  Unsupported upgrade request.
+Jul 14 09:58:59 VM-7a18f394-4476-4cd4-ad3a-9451e0ca49c3 uvicorn[25685]: WARNING:  No supported WebSocket library detected. Please use "pip install 'uvicorn[standard]'", or install 'websockets' or 'wsproto' manually.
+Jul 14 09:59:09 VM-7a18f394-4476-4cd4-ad3a-9451e0ca49c3 uvicorn[25685]: WARNING:  Unsupported upgrade request.
+Jul 14 09:59:09 VM-7a18f394-4476-4cd4-ad3a-9451e0ca49c3 uvicorn[25685]: WARNING:  No supported WebSocket library detected. Please use "pip install 'uvicorn[standard]'", or install 'websockets' or 'wsproto' manually.
+Jul 14 09:59:20 VM-7a18f394-4476-4cd4-ad3a-9451e0ca49c3 uvicorn[25685]: WARNING:  Unsupported upgrade request.
+Jul 14 09:59:20 VM-7a18f394-4476-4cd4-ad3a-9451e0ca49c3 uvicorn[25685]: WARNING:  No supported WebSocket library detected. Please use "pip install 'uvicorn[standard]'", or install 'websockets' or 'wsproto' manually.
+Jul 14 09:59:30 VM-7a18f394-4476-4cd4-ad3a-9451e0ca49c3 uvicorn[25685]: WARNING:  Unsupported upgrade request.
+Jul 14 09:59:30 VM-7a18f394-4476-4cd4-ad3a-9451e0ca49c3 uvicorn[25685]: WARNING:  No supported WebSocket library detected. Please use "pip install 'uvicorn[standard]'", or install 'websockets' or 'wsproto' manually.
+Jul 14 09:59:40 VM-7a18f394-4476-4cd4-ad3a-9451e0ca49c3 uvicorn[25685]: WARNING:  Unsupported upgrade request.
+Jul 14 09:59:40 VM-7a18f394-4476-4cd4-ad3a-9451e0ca49c3 uvicorn[25685]: WARNING:  No supported WebSocket library detected. Please use "pip install 'uvicorn[standard]'", or install 'websockets' or 'wsproto' manually.
+Jul 14 09:59:41 VM-7a18f394-4476-4cd4-ad3a-9451e0ca49c3 uvicorn[25685]: ERROR:    Exception in ASGI application
+Jul 14 09:59:41 VM-7a18f394-4476-4cd4-ad3a-9451e0ca49c3 uvicorn[25685]: Traceback (most recent call last):
+Jul 14 09:59:41 VM-7a18f394-4476-4cd4-ad3a-9451e0ca49c3 uvicorn[25685]: Traceback (most recent call last):
+Jul 14 09:59:51 VM-7a18f394-4476-4cd4-ad3a-9451e0ca49c3 uvicorn[25685]: WARNING:  Unsupported upgrade request.
+Jul 14 09:59:51 VM-7a18f394-4476-4cd4-ad3a-9451e0ca49c3 uvicorn[25685]: WARNING:  No supported WebSocket library detected. Please use "pip install 'uvicorn[standard]'", or install 'websockets' or 'wsproto' manually.
+Jul 14 10:00:01 VM-7a18f394-4476-4cd4-ad3a-9451e0ca49c3 uvicorn[25685]: WARNING:  Unsupported upgrade request.
+Jul 14 10:00:01 VM-7a18f394-4476-4cd4-ad3a-9451e0ca49c3 uvicorn[25685]: WARNING:  No supported WebSocket library detected. Please use "pip install 'uvicorn[standard]'", or install 'websockets' or 'wsproto' manually.
+Jul 14 10:00:01 VM-7a18f394-4476-4cd4-ad3a-9451e0ca49c3 uvicorn[25685]: 2026-07-14 10:00:01 [INFO] app.routers.webhook: Mensagem recebida de 554199692193: Oi
+Jul 14 10:00:02 VM-7a18f394-4476-4cd4-ad3a-9451e0ca49c3 uvicorn[25685]: 2026-07-14 10:00:02 [WARNING] app.services.whatsapp_service: WhatsApp API erro: {"error":{"message":"Unsupported post request. Object with ID '1136563242867085' does not exist, cannot be loaded due to missing permissions, or does not support this operation. Please read the Graph API documentation at https://developers.facebook.com/docs/graph-api","code":100,"type":"GraphMethodException","error_subcode":33,"fbtrace_id":"AgCjYyevNPW6CgUyPio3yjt"}}
+Jul 14 10:00:02 VM-7a18f394-4476-4cd4-ad3a-9451e0ca49c3 uvicorn[25685]: INFO:     69.171.230.44:0 - "POST /api/webhook HTTP/1.0" 200 OK
+Jul 14 10:00:12 VM-7a18f394-4476-4cd4-ad3a-9451e0ca49c3 uvicorn[25685]: WARNING:  Unsupported upgrade request.
+Jul 14 10:00:12 VM-7a18f394-4476-4cd4-ad3a-9451e0ca49c3 uvicorn[25685]: WARNING:  No supported WebSocket library detected. Please use "pip install 'uvicorn[standard]'", or install 'websockets' or 'wsproto' manually.
+Jul 14 10:00:22 VM-7a18f394-4476-4cd4-ad3a-9451e0ca49c3 uvicorn[25685]: WARNING:  Unsupported upgrade request.
+Jul 14 10:00:22 VM-7a18f394-4476-4cd4-ad3a-9451e0ca49c3 uvicorn[25685]: WARNING:  No supported WebSocket library detected. Please use "pip install 'uvicorn[standard]'", or install 'websockets' or 'wsproto' manually.
+Jul 14 10:00:33 VM-7a18f394-4476-4cd4-ad3a-9451e0ca49c3 uvicorn[25685]: WARNING:  Unsupported upgrade request.
+Jul 14 10:00:33 VM-7a18f394-4476-4cd4-ad3a-9451e0ca49c3 uvicorn[25685]: WARNING:  No supported WebSocket library detected. Please use "pip install 'uvicorn[standard]'", or install 'websockets' or 'wsproto' manually.
+Jul 14 10:00:43 VM-7a18f394-4476-4cd4-ad3a-9451e0ca49c3 uvicorn[25685]: WARNING:  Unsupported upgrade request.
+Jul 14 10:00:43 VM-7a18f394-4476-4cd4-ad3a-9451e0ca49c3 uvicorn[25685]: WARNING:  No supported WebSocket library detected. Please use "pip install 'uvicorn[standard]'", or install 'websockets' or 'wsproto' manually.
+Jul 14 10:00:54 VM-7a18f394-4476-4cd4-ad3a-9451e0ca49c3 uvicorn[25685]: WARNING:  Unsupported upgrade request.
+Jul 14 10:00:54 VM-7a18f394-4476-4cd4-ad3a-9451e0ca49c3 uvicorn[25685]: WARNING:  No supported WebSocket library detected. Please use "pip install 'uvicorn[standard]'", or install 'websockets' or 'wsproto' manually.
+Jul 14 10:01:04 VM-7a18f394-4476-4cd4-ad3a-9451e0ca49c3 uvicorn[25685]: WARNING:  Unsupported upgrade request.
+Jul 14 10:01:04 VM-7a18f394-4476-4cd4-ad3a-9451e0ca49c3 uvicorn[25685]: WARNING:  No supported WebSocket library detected. Please use "pip install 'uvicorn[standard]'", or install 'websockets' or 'wsproto' manually.
+Jul 14 10:01:14 VM-7a18f394-4476-4cd4-ad3a-9451e0ca49c3 uvicorn[25685]: WARNING:  Unsupported upgrade request.
+Jul 14 10:01:14 VM-7a18f394-4476-4cd4-ad3a-9451e0ca49c3 uvicorn[25685]: WARNING:  No supported WebSocket library detected. Please use "pip install 'uvicorn[standard]'", or install 'websockets' or 'wsproto' manually.
+Jul 14 10:01:25 VM-7a18f394-4476-4cd4-ad3a-9451e0ca49c3 uvicorn[25685]: WARNING:  Unsupported upgrade request.
+Jul 14 10:01:25 VM-7a18f394-4476-4cd4-ad3a-9451e0ca49c3 uvicorn[25685]: WARNING:  No supported WebSocket library detected. Please use "pip install 'uvicorn[standard]'", or install 'websockets' or 'wsproto' manually.
+Jul 14 10:01:35 VM-7a18f394-4476-4cd4-ad3a-9451e0ca49c3 uvicorn[25685]: WARNING:  Unsupported upgrade request.
+Jul 14 10:01:35 VM-7a18f394-4476-4cd4-ad3a-9451e0ca49c3 uvicorn[25685]: WARNING:  No supported WebSocket library detected. Please use "pip install 'uvicorn[standard]'", or install 'websockets' or 'wsproto' manually.
+Jul 14 10:01:46 VM-7a18f394-4476-4cd4-ad3a-9451e0ca49c3 uvicorn[25685]: WARNING:  Unsupported upgrade request.
+Jul 14 10:01:46 VM-7a18f394-4476-4cd4-ad3a-9451e0ca49c3 uvicorn[25685]: WARNING:  No supported WebSocket library detected. Please use "pip install 'uvicorn[standard]'", or install 'websockets' or 'wsproto' manually.
+Jul 14 10:01:56 VM-7a18f394-4476-4cd4-ad3a-9451e0ca49c3 uvicorn[25685]: WARNING:  Unsupported upgrade request.
+Jul 14 10:01:56 VM-7a18f394-4476-4cd4-ad3a-9451e0ca49c3 uvicorn[25685]: WARNING:  No supported WebSocket library detected. Please use "pip install 'uvicorn[standard]'", or install 'websockets' or 'wsproto' manually.
+Jul 14 10:02:07 VM-7a18f394-4476-4cd4-ad3a-9451e0ca49c3 uvicorn[25685]: WARNING:  Unsupported upgrade request.
+Jul 14 10:02:07 VM-7a18f394-4476-4cd4-ad3a-9451e0ca49c3 uvicorn[25685]: WARNING:  No supported WebSocket library detected. Please use "pip install 'uvicorn[standard]'", or install 'websockets' or 'wsproto' manually.
+Jul 14 10:02:17 VM-7a18f394-4476-4cd4-ad3a-9451e0ca49c3 uvicorn[25685]: WARNING:  Unsupported upgrade request.
+Jul 14 10:02:17 VM-7a18f394-4476-4cd4-ad3a-9451e0ca49c3 uvicorn[25685]: WARNING:  No supported WebSocket library detected. Please use "pip install 'uvicorn[standard]'", or install 'websockets' or 'wsproto' manually.
+Jul 14 10:02:27 VM-7a18f394-4476-4cd4-ad3a-9451e0ca49c3 uvicorn[25685]: WARNING:  Unsupported upgrade request.
+Jul 14 10:02:27 VM-7a18f394-4476-4cd4-ad3a-9451e0ca49c3 uvicorn[25685]: WARNING:  No supported WebSocket library detected. Please use "pip install 'uvicorn[standard]'", or install 'websockets' or 'wsproto' manually.
+Jul 14 10:02:38 VM-7a18f394-4476-4cd4-ad3a-9451e0ca49c3 uvicorn[25685]: WARNING:  Unsupported upgrade request.
+Jul 14 10:02:38 VM-7a18f394-4476-4cd4-ad3a-9451e0ca49c3 uvicorn[25685]: WARNING:  No supported WebSocket library detected. Please use "pip install 'uvicorn[standard]'", or install 'websockets' or 'wsproto' manually.
+Jul 14 10:02:48 VM-7a18f394-4476-4cd4-ad3a-9451e0ca49c3 uvicorn[25685]: WARNING:  Unsupported upgrade request.
+Jul 14 10:02:48 VM-7a18f394-4476-4cd4-ad3a-9451e0ca49c3 uvicorn[25685]: WARNING:  No supported WebSocket library detected. Please use "pip install 'uvicorn[standard]'", or install 'websockets' or 'wsproto' manually.
+Jul 14 10:02:59 VM-7a18f394-4476-4cd4-ad3a-9451e0ca49c3 uvicorn[25685]: WARNING:  Unsupported upgrade request.
+Jul 14 10:02:59 VM-7a18f394-4476-4cd4-ad3a-9451e0ca49c3 uvicorn[25685]: WARNING:  No supported WebSocket library detected. Please use "pip install 'uvicorn[standard]'", or install 'websockets' or 'wsproto' manually.
+Jul 14 10:03:09 VM-7a18f394-4476-4cd4-ad3a-9451e0ca49c3 uvicorn[25685]: WARNING:  Unsupported upgrade request.
+Jul 14 10:03:09 VM-7a18f394-4476-4cd4-ad3a-9451e0ca49c3 uvicorn[25685]: WARNING:  No supported WebSocket library detected. Please use "pip install 'uvicorn[standard]'", or install 'websockets' or 'wsproto' manually.
+Jul 14 10:03:20 VM-7a18f394-4476-4cd4-ad3a-9451e0ca49c3 uvicorn[25685]: WARNING:  Unsupported upgrade request.
+Jul 14 10:03:20 VM-7a18f394-4476-4cd4-ad3a-9451e0ca49c3 uvicorn[25685]: WARNING:  No supported WebSocket library detected. Please use "pip install 'uvicorn[standard]'", or install 'websockets' or 'wsproto' manually.
+Jul 14 10:03:30 VM-7a18f394-4476-4cd4-ad3a-9451e0ca49c3 uvicorn[25685]: WARNING:  Unsupported upgrade request.
+Jul 14 10:03:30 VM-7a18f394-4476-4cd4-ad3a-9451e0ca49c3 uvicorn[25685]: WARNING:  No supported WebSocket library detected. Please use "pip install 'uvicorn[standard]'", or install 'websockets' or 'wsproto' manually.
+Jul 14 10:03:41 VM-7a18f394-4476-4cd4-ad3a-9451e0ca49c3 uvicorn[25685]: WARNING:  Unsupported upgrade request.
+Jul 14 10:03:41 VM-7a18f394-4476-4cd4-ad3a-9451e0ca49c3 uvicorn[25685]: WARNING:  No supported WebSocket library detected. Please use "pip install 'uvicorn[standard]'", or install 'websockets' or 'wsproto' manually.
+Jul 14 10:03:51 VM-7a18f394-4476-4cd4-ad3a-9451e0ca49c3 uvicorn[25685]: WARNING:  Unsupported upgrade request.
+Jul 14 10:03:51 VM-7a18f394-4476-4cd4-ad3a-9451e0ca49c3 uvicorn[25685]: WARNING:  No supported WebSocket library detected. Please use "pip install 'uvicorn[standard]'", or install 'websockets' or 'wsproto' manually.
+Jul 14 10:04:01 VM-7a18f394-4476-4cd4-ad3a-9451e0ca49c3 uvicorn[25685]: WARNING:  Unsupported upgrade request.
+Jul 14 10:04:01 VM-7a18f394-4476-4cd4-ad3a-9451e0ca49c3 uvicorn[25685]: WARNING:  No supported WebSocket library detected. Please use "pip install 'uvicorn[standard]'", or install 'websockets' or 'wsproto' manually.
+Jul 14 10:04:12 VM-7a18f394-4476-4cd4-ad3a-9451e0ca49c3 uvicorn[25685]: WARNING:  Unsupported upgrade request.
+Jul 14 10:04:12 VM-7a18f394-4476-4cd4-ad3a-9451e0ca49c3 uvicorn[25685]: WARNING:  No supported WebSocket library detected. Please use "pip install 'uvicorn[standard]'", or install 'websockets' or 'wsproto' manually.
+Jul 14 10:04:22 VM-7a18f394-4476-4cd4-ad3a-9451e0ca49c3 uvicorn[25685]: WARNING:  Unsupported upgrade request.
+Jul 14 10:04:22 VM-7a18f394-4476-4cd4-ad3a-9451e0ca49c3 uvicorn[25685]: WARNING:  No supported WebSocket library detected. Please use "pip install 'uvicorn[standard]'", or install 'websockets' or 'wsproto' manually.
+Jul 14 10:04:33 VM-7a18f394-4476-4cd4-ad3a-9451e0ca49c3 uvicorn[25685]: WARNING:  Unsupported upgrade request.
+Jul 14 10:04:33 VM-7a18f394-4476-4cd4-ad3a-9451e0ca49c3 uvicorn[25685]: WARNING:  No supported WebSocket library detected. Please use "pip install 'uvicorn[standard]'", or install 'websockets' or 'wsproto' manually.
+Jul 14 10:04:43 VM-7a18f394-4476-4cd4-ad3a-9451e0ca49c3 uvicorn[25685]: WARNING:  Unsupported upgrade request.
+Jul 14 10:04:43 VM-7a18f394-4476-4cd4-ad3a-9451e0ca49c3 uvicorn[25685]: WARNING:  No supported WebSocket library detected. Please use "pip install 'uvicorn[standard]'", or install 'websockets' or 'wsproto' manually.
+Jul 14 10:04:54 VM-7a18f394-4476-4cd4-ad3a-9451e0ca49c3 uvicorn[25685]: WARNING:  Unsupported upgrade request.
+Jul 14 10:04:54 VM-7a18f394-4476-4cd4-ad3a-9451e0ca49c3 uvicorn[25685]: WARNING:  No supported WebSocket library detected. Please use "pip install 'uvicorn[standard]'", or install 'websockets' or 'wsproto' manually.
+Jul 14 10:05:04 VM-7a18f394-4476-4cd4-ad3a-9451e0ca49c3 uvicorn[25685]: WARNING:  Unsupported upgrade request.
+Jul 14 10:05:04 VM-7a18f394-4476-4cd4-ad3a-9451e0ca49c3 uvicorn[25685]: WARNING:  No supported WebSocket library detected. Please use "pip install 'uvicorn[standard]'", or install 'websockets' or 'wsproto' manually.
+Jul 14 10:05:15 VM-7a18f394-4476-4cd4-ad3a-9451e0ca49c3 uvicorn[25685]: WARNING:  Unsupported upgrade request.
+Jul 14 10:05:15 VM-7a18f394-4476-4cd4-ad3a-9451e0ca49c3 uvicorn[25685]: WARNING:  No supported WebSocket library detected. Please use "pip install 'uvicorn[standard]'", or install 'websockets' or 'wsproto' manually.
+Jul 14 10:05:25 VM-7a18f394-4476-4cd4-ad3a-9451e0ca49c3 uvicorn[25685]: WARNING:  Unsupported upgrade request.
+Jul 14 10:05:25 VM-7a18f394-4476-4cd4-ad3a-9451e0ca49c3 uvicorn[25685]: WARNING:  No supported WebSocket library detected. Please use "pip install 'uvicorn[standard]'", or install 'websockets' or 'wsproto' manually.
+Jul 14 10:05:36 VM-7a18f394-4476-4cd4-ad3a-9451e0ca49c3 uvicorn[25685]: WARNING:  Unsupported upgrade request.
+Jul 14 10:05:36 VM-7a18f394-4476-4cd4-ad3a-9451e0ca49c3 uvicorn[25685]: WARNING:  No supported WebSocket library detected. Please use "pip install 'uvicorn[standard]'", or install 'websockets' or 'wsproto' manually.
+Jul 14 10:05:46 VM-7a18f394-4476-4cd4-ad3a-9451e0ca49c3 uvicorn[25685]: WARNING:  Unsupported upgrade request.
+Jul 14 10:05:46 VM-7a18f394-4476-4cd4-ad3a-9451e0ca49c3 uvicorn[25685]: WARNING:  No supported WebSocket library detected. Please use "pip install 'uvicorn[standard]'", or install 'websockets' or 'wsproto' manually.
+Jul 14 10:05:56 VM-7a18f394-4476-4cd4-ad3a-9451e0ca49c3 uvicorn[25685]: WARNING:  Unsupported upgrade request.
+Jul 14 10:05:56 VM-7a18f394-4476-4cd4-ad3a-9451e0ca49c3 uvicorn[25685]: WARNING:  No supported WebSocket library detected. Please use "pip install 'uvicorn[standard]'", or install 'websockets' or 'wsproto' manually.
+Jul 14 10:06:07 VM-7a18f394-4476-4cd4-ad3a-9451e0ca49c3 uvicorn[25685]: WARNING:  Unsupported upgrade request.
+Jul 14 10:06:07 VM-7a18f394-4476-4cd4-ad3a-9451e0ca49c3 uvicorn[25685]: WARNING:  No supported WebSocket library detected. Please use "pip install 'uvicorn[standard]'", or install 'websockets' or 'wsproto' manually.
+Jul 14 10:06:17 VM-7a18f394-4476-4cd4-ad3a-9451e0ca49c3 uvicorn[25685]: WARNING:  Unsupported upgrade request.
+Jul 14 10:06:17 VM-7a18f394-4476-4cd4-ad3a-9451e0ca49c3 uvicorn[25685]: WARNING:  No supported WebSocket library detected. Please use "pip install 'uvicorn[standard]'", or install 'websockets' or 'wsproto' manually.
+Jul 14 10:06:28 VM-7a18f394-4476-4cd4-ad3a-9451e0ca49c3 uvicorn[25685]: WARNING:  Unsupported upgrade request.
+Jul 14 10:06:28 VM-7a18f394-4476-4cd4-ad3a-9451e0ca49c3 uvicorn[25685]: WARNING:  No supported WebSocket library detected. Please use "pip install 'uvicorn[standard]'", or install 'websockets' or 'wsproto' manually.
+Jul 14 10:06:38 VM-7a18f394-4476-4cd4-ad3a-9451e0ca49c3 uvicorn[25685]: WARNING:  Unsupported upgrade request.
+Jul 14 10:06:38 VM-7a18f394-4476-4cd4-ad3a-9451e0ca49c3 uvicorn[25685]: WARNING:  No supported WebSocket library detected. Please use "pip install 'uvicorn[standard]'", or install 'websockets' or 'wsproto' manually.
+Jul 14 10:06:49 VM-7a18f394-4476-4cd4-ad3a-9451e0ca49c3 uvicorn[25685]: WARNING:  Unsupported upgrade request.
+Jul 14 10:06:49 VM-7a18f394-4476-4cd4-ad3a-9451e0ca49c3 uvicorn[25685]: WARNING:  No supported WebSocket library detected. Please use "pip install 'uvicorn[standard]'", or install 'websockets' or 'wsproto' manually.
+Jul 14 10:06:59 VM-7a18f394-4476-4cd4-ad3a-9451e0ca49c3 uvicorn[25685]: WARNING:  Unsupported upgrade request.
+Jul 14 10:06:59 VM-7a18f394-4476-4cd4-ad3a-9451e0ca49c3 uvicorn[25685]: WARNING:  No supported WebSocket library detected. Please use "pip install 'uvicorn[standard]'", or install 'websockets' or 'wsproto' manually.
+Jul 14 10:07:10 VM-7a18f394-4476-4cd4-ad3a-9451e0ca49c3 uvicorn[25685]: WARNING:  Unsupported upgrade request.
+Jul 14 10:07:10 VM-7a18f394-4476-4cd4-ad3a-9451e0ca49c3 uvicorn[25685]: WARNING:  No supported WebSocket library detected. Please use "pip install 'uvicorn[standard]'", or install 'websockets' or 'wsproto' manually.
+Jul 14 10:07:20 VM-7a18f394-4476-4cd4-ad3a-9451e0ca49c3 uvicorn[25685]: WARNING:  Unsupported upgrade request.
+Jul 14 10:07:20 VM-7a18f394-4476-4cd4-ad3a-9451e0ca49c3 uvicorn[25685]: WARNING:  No supported WebSocket library detected. Please use "pip install 'uvicorn[standard]'", or install 'websockets' or 'wsproto' manually.
+Jul 14 10:07:30 VM-7a18f394-4476-4cd4-ad3a-9451e0ca49c3 uvicorn[25685]: WARNING:  Unsupported upgrade request.
+Jul 14 10:07:30 VM-7a18f394-4476-4cd4-ad3a-9451e0ca49c3 uvicorn[25685]: WARNING:  No supported WebSocket library detected. Please use "pip install 'uvicorn[standard]'", or install 'websockets' or 'wsproto' manually.
+Jul 14 10:07:41 VM-7a18f394-4476-4cd4-ad3a-9451e0ca49c3 uvicorn[25685]: WARNING:  Unsupported upgrade request.
+Jul 14 10:07:41 VM-7a18f394-4476-4cd4-ad3a-9451e0ca49c3 uvicorn[25685]: WARNING:  No supported WebSocket library detected. Please use "pip install 'uvicorn[standard]'", or install 'websockets' or 'wsproto' manually.
+Jul 14 10:07:51 VM-7a18f394-4476-4cd4-ad3a-9451e0ca49c3 uvicorn[25685]: WARNING:  Unsupported upgrade request.
+Jul 14 10:07:51 VM-7a18f394-4476-4cd4-ad3a-9451e0ca49c3 uvicorn[25685]: WARNING:  No supported WebSocket library detected. Please use "pip install 'uvicorn[standard]'", or install 'websockets' or 'wsproto' manually.
+Jul 14 10:08:02 VM-7a18f394-4476-4cd4-ad3a-9451e0ca49c3 uvicorn[25685]: WARNING:  Unsupported upgrade request.
+Jul 14 10:08:02 VM-7a18f394-4476-4cd4-ad3a-9451e0ca49c3 uvicorn[25685]: WARNING:  No supported WebSocket library detected. Please use "pip install 'uvicorn[standard]'", or install 'websockets' or 'wsproto' manually.
+Jul 14 10:08:12 VM-7a18f394-4476-4cd4-ad3a-9451e0ca49c3 uvicorn[25685]: WARNING:  Unsupported upgrade request.
+Jul 14 10:08:12 VM-7a18f394-4476-4cd4-ad3a-9451e0ca49c3 uvicorn[25685]: WARNING:  No supported WebSocket library detected. Please use "pip install 'uvicorn[standard]'", or install 'websockets' or 'wsproto' manually.
+Jul 14 10:08:23 VM-7a18f394-4476-4cd4-ad3a-9451e0ca49c3 uvicorn[25685]: WARNING:  Unsupported upgrade request.
+Jul 14 10:08:23 VM-7a18f394-4476-4cd4-ad3a-9451e0ca49c3 uvicorn[25685]: WARNING:  No supported WebSocket library detected. Please use "pip install 'uvicorn[standard]'", or install 'websockets' or 'wsproto' manually.
+Jul 14 10:08:33 VM-7a18f394-4476-4cd4-ad3a-9451e0ca49c3 uvicorn[25685]: WARNING:  Unsupported upgrade request.
+Jul 14 10:08:33 VM-7a18f394-4476-4cd4-ad3a-9451e0ca49c3 uvicorn[25685]: WARNING:  No supported WebSocket library detected. Please use "pip install 'uvicorn[standard]'", or install 'websockets' or 'wsproto' manually.
+Jul 14 10:08:44 VM-7a18f394-4476-4cd4-ad3a-9451e0ca49c3 uvicorn[25685]: WARNING:  Unsupported upgrade request.
+Jul 14 10:08:44 VM-7a18f394-4476-4cd4-ad3a-9451e0ca49c3 uvicorn[25685]: WARNING:  No supported WebSocket library detected. Please use "pip install 'uvicorn[standard]'", or install 'websockets' or 'wsproto' manually.
+Jul 14 10:08:54 VM-7a18f394-4476-4cd4-ad3a-9451e0ca49c3 uvicorn[25685]: WARNING:  Unsupported upgrade request.
+Jul 14 10:08:54 VM-7a18f394-4476-4cd4-ad3a-9451e0ca49c3 uvicorn[25685]: WARNING:  No supported WebSocket library detected. Please use "pip install 'uvicorn[standard]'", or install 'websockets' or 'wsproto' manually.
+Jul 14 10:09:04 VM-7a18f394-4476-4cd4-ad3a-9451e0ca49c3 uvicorn[25685]: WARNING:  Unsupported upgrade request.
+Jul 14 10:09:04 VM-7a18f394-4476-4cd4-ad3a-9451e0ca49c3 uvicorn[25685]: WARNING:  No supported WebSocket library detected. Please use "pip install 'uvicorn[standard]'", or install 'websockets' or 'wsproto' manually.
+Jul 14 10:09:15 VM-7a18f394-4476-4cd4-ad3a-9451e0ca49c3 uvicorn[25685]: WARNING:  Unsupported upgrade request.
+Jul 14 10:09:15 VM-7a18f394-4476-4cd4-ad3a-9451e0ca49c3 uvicorn[25685]: WARNING:  No supported WebSocket library detected. Please use "pip install 'uvicorn[standard]'", or install 'websockets' or 'wsproto' manually.
+Jul 14 10:09:25 VM-7a18f394-4476-4cd4-ad3a-9451e0ca49c3 uvicorn[25685]: WARNING:  Unsupported upgrade request.
+Jul 14 10:09:25 VM-7a18f394-4476-4cd4-ad3a-9451e0ca49c3 uvicorn[25685]: WARNING:  No supported WebSocket library detected. Please use "pip install 'uvicorn[standard]'", or install 'websockets' or 'wsproto' manually.
+Jul 14 10:09:36 VM-7a18f394-4476-4cd4-ad3a-9451e0ca49c3 uvicorn[25685]: WARNING:  Unsupported upgrade request.
+Jul 14 10:09:36 VM-7a18f394-4476-4cd4-ad3a-9451e0ca49c3 uvicorn[25685]: WARNING:  No supported WebSocket library detected. Please use "pip install 'uvicorn[standard]'", or install 'websockets' or 'wsproto' manually.
+Jul 14 10:09:46 VM-7a18f394-4476-4cd4-ad3a-9451e0ca49c3 uvicorn[25685]: WARNING:  Unsupported upgrade request.
+Jul 14 10:09:46 VM-7a18f394-4476-4cd4-ad3a-9451e0ca49c3 uvicorn[25685]: WARNING:  No supported WebSocket library detected. Please use "pip install 'uvicorn[standard]'", or install 'websockets' or 'wsproto' manually.
+Jul 14 10:09:57 VM-7a18f394-4476-4cd4-ad3a-9451e0ca49c3 uvicorn[25685]: WARNING:  Unsupported upgrade request.
+Jul 14 10:09:57 VM-7a18f394-4476-4cd4-ad3a-9451e0ca49c3 uvicorn[25685]: WARNING:  No supported WebSocket library detected. Please use "pip install 'uvicorn[standard]'", or install 'websockets' or 'wsproto' manually.
+Jul 14 10:10:07 VM-7a18f394-4476-4cd4-ad3a-9451e0ca49c3 uvicorn[25685]: WARNING:  Unsupported upgrade request.
+Jul 14 10:10:07 VM-7a18f394-4476-4cd4-ad3a-9451e0ca49c3 uvicorn[25685]: WARNING:  No supported WebSocket library detected. Please use "pip install 'uvicorn[standard]'", or install 'websockets' or 'wsproto' manually.
+Jul 14 10:10:17 VM-7a18f394-4476-4cd4-ad3a-9451e0ca49c3 uvicorn[25685]: WARNING:  Unsupported upgrade request.
+Jul 14 10:10:17 VM-7a18f394-4476-4cd4-ad3a-9451e0ca49c3 uvicorn[25685]: WARNING:  No supported WebSocket library detected. Please use "pip install 'uvicorn[standard]'", or install 'websockets' or 'wsproto' manually.
+Jul 14 10:10:28 VM-7a18f394-4476-4cd4-ad3a-9451e0ca49c3 uvicorn[25685]: WARNING:  Unsupported upgrade request.
+Jul 14 10:10:28 VM-7a18f394-4476-4cd4-ad3a-9451e0ca49c3 uvicorn[25685]: WARNING:  No supported WebSocket library detected. Please use "pip install 'uvicorn[standard]'", or install 'websockets' or 'wsproto' manually.
+Jul 14 10:10:38 VM-7a18f394-4476-4cd4-ad3a-9451e0ca49c3 uvicorn[25685]: WARNING:  Unsupported upgrade request.
+Jul 14 10:10:38 VM-7a18f394-4476-4cd4-ad3a-9451e0ca49c3 uvicorn[25685]: WARNING:  No supported WebSocket library detected. Please use "pip install 'uvicorn[standard]'", or install 'websockets' or 'wsproto' manually.
+Jul 14 10:10:49 VM-7a18f394-4476-4cd4-ad3a-9451e0ca49c3 uvicorn[25685]: WARNING:  Unsupported upgrade request.
+Jul 14 10:10:49 VM-7a18f394-4476-4cd4-ad3a-9451e0ca49c3 uvicorn[25685]: WARNING:  No supported WebSocket library detected. Please use "pip install 'uvicorn[standard]'", or install 'websockets' or 'wsproto' manually.
+Jul 14 10:10:59 VM-7a18f394-4476-4cd4-ad3a-9451e0ca49c3 uvicorn[25685]: WARNING:  Unsupported upgrade request.
+Jul 14 10:10:59 VM-7a18f394-4476-4cd4-ad3a-9451e0ca49c3 uvicorn[25685]: WARNING:  No supported WebSocket library detected. Please use "pip install 'uvicorn[standard]'", or install 'websockets' or 'wsproto' manually.
+Jul 14 10:11:10 VM-7a18f394-4476-4cd4-ad3a-9451e0ca49c3 uvicorn[25685]: WARNING:  Unsupported upgrade request.
+Jul 14 10:11:10 VM-7a18f394-4476-4cd4-ad3a-9451e0ca49c3 uvicorn[25685]: WARNING:  No supported WebSocket library detected. Please use "pip install 'uvicorn[standard]'", or install 'websockets' or 'wsproto' manually.
+Jul 14 10:11:20 VM-7a18f394-4476-4cd4-ad3a-9451e0ca49c3 uvicorn[25685]: WARNING:  Unsupported upgrade request.
+Jul 14 10:11:20 VM-7a18f394-4476-4cd4-ad3a-9451e0ca49c3 uvicorn[25685]: WARNING:  No supported WebSocket library detected. Please use "pip install 'uvicorn[standard]'", or install 'websockets' or 'wsproto' manually.
+Jul 14 10:11:30 VM-7a18f394-4476-4cd4-ad3a-9451e0ca49c3 uvicorn[25685]: WARNING:  Unsupported upgrade request.
+Jul 14 10:11:30 VM-7a18f394-4476-4cd4-ad3a-9451e0ca49c3 uvicorn[25685]: WARNING:  No supported WebSocket library detected. Please use "pip install 'uvicorn[standard]'", or install 'websockets' or 'wsproto' manually.
+Jul 14 10:11:41 VM-7a18f394-4476-4cd4-ad3a-9451e0ca49c3 uvicorn[25685]: WARNING:  Unsupported upgrade request.
+Jul 14 10:11:41 VM-7a18f394-4476-4cd4-ad3a-9451e0ca49c3 uvicorn[25685]: WARNING:  No supported WebSocket library detected. Please use "pip install 'uvicorn[standard]'", or install 'websockets' or 'wsproto' manually.
+Jul 14 10:11:51 VM-7a18f394-4476-4cd4-ad3a-9451e0ca49c3 uvicorn[25685]: WARNING:  Unsupported upgrade request.
+Jul 14 10:11:51 VM-7a18f394-4476-4cd4-ad3a-9451e0ca49c3 uvicorn[25685]: WARNING:  No supported WebSocket library detected. Please use "pip install 'uvicorn[standard]'", or install 'websockets' or 'wsproto' manually.
+Jul 14 10:12:02 VM-7a18f394-4476-4cd4-ad3a-9451e0ca49c3 uvicorn[25685]: WARNING:  Unsupported upgrade request.
+Jul 14 10:12:02 VM-7a18f394-4476-4cd4-ad3a-9451e0ca49c3 uvicorn[25685]: WARNING:  No supported WebSocket library detected. Please use "pip install 'uvicorn[standard]'", or install 'websockets' or 'wsproto' manually.
+Jul 14 10:12:12 VM-7a18f394-4476-4cd4-ad3a-9451e0ca49c3 uvicorn[25685]: WARNING:  Unsupported upgrade request.
+Jul 14 10:12:12 VM-7a18f394-4476-4cd4-ad3a-9451e0ca49c3 uvicorn[25685]: WARNING:  No supported WebSocket library detected. Please use "pip install 'uvicorn[standard]'", or install 'websockets' or 'wsproto' manually.
+Jul 14 10:12:23 VM-7a18f394-4476-4cd4-ad3a-9451e0ca49c3 uvicorn[25685]: WARNING:  Unsupported upgrade request.
+Jul 14 10:12:23 VM-7a18f394-4476-4cd4-ad3a-9451e0ca49c3 uvicorn[25685]: WARNING:  No supported WebSocket library detected. Please use "pip install 'uvicorn[standard]'", or install 'websockets' or 'wsproto' manually.
+Jul 14 10:12:33 VM-7a18f394-4476-4cd4-ad3a-9451e0ca49c3 uvicorn[25685]: WARNING:  Unsupported upgrade request.
+Jul 14 10:12:33 VM-7a18f394-4476-4cd4-ad3a-9451e0ca49c3 uvicorn[25685]: WARNING:  No supported WebSocket library detected. Please use "pip install 'uvicorn[standard]'", or install 'websockets' or 'wsproto' manually.
+Jul 14 10:12:44 VM-7a18f394-4476-4cd4-ad3a-9451e0ca49c3 uvicorn[25938]: WARNING:  Unsupported upgrade request.
+Jul 14 10:12:44 VM-7a18f394-4476-4cd4-ad3a-9451e0ca49c3 uvicorn[25938]: WARNING:  No supported WebSocket library detected. Please use "pip install 'uvicorn[standard]'", or install 'websockets' or 'wsproto' manually.
+Jul 14 10:12:54 VM-7a18f394-4476-4cd4-ad3a-9451e0ca49c3 uvicorn[25938]: WARNING:  Unsupported upgrade request.
+Jul 14 10:12:54 VM-7a18f394-4476-4cd4-ad3a-9451e0ca49c3 uvicorn[25938]: WARNING:  No supported WebSocket library detected. Please use "pip install 'uvicorn[standard]'", or install 'websockets' or 'wsproto' manually.
+Jul 14 10:13:05 VM-7a18f394-4476-4cd4-ad3a-9451e0ca49c3 uvicorn[25938]: WARNING:  Unsupported upgrade request.
+Jul 14 10:13:05 VM-7a18f394-4476-4cd4-ad3a-9451e0ca49c3 uvicorn[25938]: WARNING:  No supported WebSocket library detected. Please use "pip install 'uvicorn[standard]'", or install 'websockets' or 'wsproto' manually.
+Jul 14 10:13:15 VM-7a18f394-4476-4cd4-ad3a-9451e0ca49c3 uvicorn[25938]: WARNING:  Unsupported upgrade request.
+Jul 14 10:13:15 VM-7a18f394-4476-4cd4-ad3a-9451e0ca49c3 uvicorn[25938]: WARNING:  No supported WebSocket library detected. Please use "pip install 'uvicorn[standard]'", or install 'websockets' or 'wsproto' manually.
+Jul 14 10:13:25 VM-7a18f394-4476-4cd4-ad3a-9451e0ca49c3 uvicorn[25938]: WARNING:  Unsupported upgrade request.
+Jul 14 10:13:25 VM-7a18f394-4476-4cd4-ad3a-9451e0ca49c3 uvicorn[25938]: WARNING:  No supported WebSocket library detected. Please use "pip install 'uvicorn[standard]'", or install 'websockets' or 'wsproto' manually.
+Jul 14 10:13:28 VM-7a18f394-4476-4cd4-ad3a-9451e0ca49c3 uvicorn[25938]: ERROR:    Exception in ASGI application
+Jul 14 10:13:28 VM-7a18f394-4476-4cd4-ad3a-9451e0ca49c3 uvicorn[25938]: Traceback (most recent call last):
+Jul 14 10:13:28 VM-7a18f394-4476-4cd4-ad3a-9451e0ca49c3 uvicorn[25938]: Traceback (most recent call last):
+Jul 14 10:13:36 VM-7a18f394-4476-4cd4-ad3a-9451e0ca49c3 uvicorn[25938]: WARNING:  Unsupported upgrade request.
+Jul 14 10:13:36 VM-7a18f394-4476-4cd4-ad3a-9451e0ca49c3 uvicorn[25938]: WARNING:  No supported WebSocket library detected. Please use "pip install 'uvicorn[standard]'", or install 'websockets' or 'wsproto' manually.
+Jul 14 10:13:46 VM-7a18f394-4476-4cd4-ad3a-9451e0ca49c3 uvicorn[25938]: WARNING:  Unsupported upgrade request.
+Jul 14 10:13:46 VM-7a18f394-4476-4cd4-ad3a-9451e0ca49c3 uvicorn[25938]: WARNING:  No supported WebSocket library detected. Please use "pip install 'uvicorn[standard]'", or install 'websockets' or 'wsproto' manually.
+Jul 14 10:13:57 VM-7a18f394-4476-4cd4-ad3a-9451e0ca49c3 uvicorn[25938]: WARNING:  Unsupported upgrade request.
+Jul 14 10:13:57 VM-7a18f394-4476-4cd4-ad3a-9451e0ca49c3 uvicorn[25938]: WARNING:  No supported WebSocket library detected. Please use "pip install 'uvicorn[standard]'", or install 'websockets' or 'wsproto' manually.
+Jul 14 10:14:07 VM-7a18f394-4476-4cd4-ad3a-9451e0ca49c3 uvicorn[25938]: WARNING:  Unsupported upgrade request.
+Jul 14 10:14:07 VM-7a18f394-4476-4cd4-ad3a-9451e0ca49c3 uvicorn[25938]: WARNING:  No supported WebSocket library detected. Please use "pip install 'uvicorn[standard]'", or install 'websockets' or 'wsproto' manually.
+Jul 14 10:14:18 VM-7a18f394-4476-4cd4-ad3a-9451e0ca49c3 uvicorn[25938]: WARNING:  Unsupported upgrade request.
+Jul 14 10:14:18 VM-7a18f394-4476-4cd4-ad3a-9451e0ca49c3 uvicorn[25938]: WARNING:  No supported WebSocket library detected. Please use "pip install 'uvicorn[standard]'", or install 'websockets' or 'wsproto' manually.
+Jul 14 10:14:28 VM-7a18f394-4476-4cd4-ad3a-9451e0ca49c3 uvicorn[25938]: WARNING:  Unsupported upgrade request.
+Jul 14 10:14:28 VM-7a18f394-4476-4cd4-ad3a-9451e0ca49c3 uvicorn[25938]: WARNING:  No supported WebSocket library detected. Please use "pip install 'uvicorn[standard]'", or install 'websockets' or 'wsproto' manually.
+Jul 14 10:14:38 VM-7a18f394-4476-4cd4-ad3a-9451e0ca49c3 uvicorn[25938]: WARNING:  Unsupported upgrade request.
+Jul 14 10:14:38 VM-7a18f394-4476-4cd4-ad3a-9451e0ca49c3 uvicorn[25938]: WARNING:  No supported WebSocket library detected. Please use "pip install 'uvicorn[standard]'", or install 'websockets' or 'wsproto' manually.
+Jul 14 10:14:49 VM-7a18f394-4476-4cd4-ad3a-9451e0ca49c3 uvicorn[25938]: 2026-07-14 10:14:49 [INFO] app.routers.webhook: Mensagem recebida de 554199692193: Oi
+Jul 14 10:14:49 VM-7a18f394-4476-4cd4-ad3a-9451e0ca49c3 uvicorn[25938]: WARNING:  Unsupported upgrade request.
+Jul 14 10:14:49 VM-7a18f394-4476-4cd4-ad3a-9451e0ca49c3 uvicorn[25938]: WARNING:  No supported WebSocket library detected. Please use "pip install 'uvicorn[standard]'", or install 'websockets' or 'wsproto' manually.
+Jul 14 10:14:52 VM-7a18f394-4476-4cd4-ad3a-9451e0ca49c3 uvicorn[25938]: 2026-07-14 10:14:52 [WARNING] app.services.whatsapp_service: WhatsApp API erro: {"error":{"message":"Unsupported post request. Object with ID '1136563242867085' does not exist, cannot be loaded due to missing permissions, or does not support this operation. Please read the Graph API documentation at https://developers.facebook.com/docs/graph-api","code":100,"type":"GraphMethodException","error_subcode":33,"fbtrace_id":"AyKppjmMovGaCclkDbmTyG3"}}
+Jul 14 10:14:52 VM-7a18f394-4476-4cd4-ad3a-9451e0ca49c3 uvicorn[25938]: INFO:     173.252.95.59:0 - "POST /api/webhook HTTP/1.0" 200 OK
+Jul 14 10:15:00 VM-7a18f394-4476-4cd4-ad3a-9451e0ca49c3 uvicorn[25938]: WARNING:  Unsupported upgrade request.
+Jul 14 10:15:00 VM-7a18f394-4476-4cd4-ad3a-9451e0ca49c3 uvicorn[25938]: WARNING:  No supported WebSocket library detected. Please use "pip install 'uvicorn[standard]'", or install 'websockets' or 'wsproto' manually.
+Jul 14 10:15:10 VM-7a18f394-4476-4cd4-ad3a-9451e0ca49c3 uvicorn[25938]: WARNING:  Unsupported upgrade request.
+Jul 14 10:15:10 VM-7a18f394-4476-4cd4-ad3a-9451e0ca49c3 uvicorn[25938]: WARNING:  No supported WebSocket library detected. Please use "pip install 'uvicorn[standard]'", or install 'websockets' or 'wsproto' manually.
+Jul 14 10:15:21 VM-7a18f394-4476-4cd4-ad3a-9451e0ca49c3 uvicorn[25938]: WARNING:  Unsupported upgrade request.
+Jul 14 10:15:21 VM-7a18f394-4476-4cd4-ad3a-9451e0ca49c3 uvicorn[25938]: WARNING:  No supported WebSocket library detected. Please use "pip install 'uvicorn[standard]'", or install 'websockets' or 'wsproto' manually.
+Jul 14 10:15:31 VM-7a18f394-4476-4cd4-ad3a-9451e0ca49c3 uvicorn[25938]: WARNING:  Unsupported upgrade request.
+Jul 14 10:15:31 VM-7a18f394-4476-4cd4-ad3a-9451e0ca49c3 uvicorn[25938]: WARNING:  No supported WebSocket library detected. Please use "pip install 'uvicorn[standard]'", or install 'websockets' or 'wsproto' manually.
+Jul 14 10:15:41 VM-7a18f394-4476-4cd4-ad3a-9451e0ca49c3 uvicorn[25938]: WARNING:  Unsupported upgrade request.
+Jul 14 10:15:41 VM-7a18f394-4476-4cd4-ad3a-9451e0ca49c3 uvicorn[25938]: WARNING:  No supported WebSocket library detected. Please use "pip install 'uvicorn[standard]'", or install 'websockets' or 'wsproto' manually.
+Jul 14 10:15:52 VM-7a18f394-4476-4cd4-ad3a-9451e0ca49c3 uvicorn[25938]: WARNING:  Unsupported upgrade request.
+Jul 14 10:15:52 VM-7a18f394-4476-4cd4-ad3a-9451e0ca49c3 uvicorn[25938]: WARNING:  No supported WebSocket library detected. Please use "pip install 'uvicorn[standard]'", or install 'websockets' or 'wsproto' manually.
+Jul 14 10:16:02 VM-7a18f394-4476-4cd4-ad3a-9451e0ca49c3 uvicorn[25938]: WARNING:  Unsupported upgrade request.
+Jul 14 10:16:02 VM-7a18f394-4476-4cd4-ad3a-9451e0ca49c3 uvicorn[25938]: WARNING:  No supported WebSocket library detected. Please use "pip install 'uvicorn[standard]'", or install 'websockets' or 'wsproto' manually.
+Jul 14 10:16:13 VM-7a18f394-4476-4cd4-ad3a-9451e0ca49c3 uvicorn[25938]: WARNING:  Unsupported upgrade request.
+Jul 14 10:16:13 VM-7a18f394-4476-4cd4-ad3a-9451e0ca49c3 uvicorn[25938]: WARNING:  No supported WebSocket library detected. Please use "pip install 'uvicorn[standard]'", or install 'websockets' or 'wsproto' manually.
+Jul 14 10:16:23 VM-7a18f394-4476-4cd4-ad3a-9451e0ca49c3 uvicorn[25938]: WARNING:  Unsupported upgrade request.
+Jul 14 10:16:23 VM-7a18f394-4476-4cd4-ad3a-9451e0ca49c3 uvicorn[25938]: WARNING:  No supported WebSocket library detected. Please use "pip install 'uvicorn[standard]'", or install 'websockets' or 'wsproto' manually.
+Jul 14 10:16:34 VM-7a18f394-4476-4cd4-ad3a-9451e0ca49c3 uvicorn[25938]: WARNING:  Unsupported upgrade request.
+Jul 14 10:16:34 VM-7a18f394-4476-4cd4-ad3a-9451e0ca49c3 uvicorn[25938]: WARNING:  No supported WebSocket library detected. Please use "pip install 'uvicorn[standard]'", or install 'websockets' or 'wsproto' manually.
+Jul 14 10:16:44 VM-7a18f394-4476-4cd4-ad3a-9451e0ca49c3 uvicorn[25938]: WARNING:  Unsupported upgrade request.
+Jul 14 10:16:44 VM-7a18f394-4476-4cd4-ad3a-9451e0ca49c3 uvicorn[25938]: WARNING:  No supported WebSocket library detected. Please use "pip install 'uvicorn[standard]'", or install 'websockets' or 'wsproto' manually.
+Jul 14 10:16:54 VM-7a18f394-4476-4cd4-ad3a-9451e0ca49c3 uvicorn[25938]: WARNING:  Unsupported upgrade request.
+Jul 14 10:16:54 VM-7a18f394-4476-4cd4-ad3a-9451e0ca49c3 uvicorn[25938]: WARNING:  No supported WebSocket library detected. Please use "pip install 'uvicorn[standard]'", or install 'websockets' or 'wsproto' manually.
+Jul 14 10:17:05 VM-7a18f394-4476-4cd4-ad3a-9451e0ca49c3 uvicorn[25938]: WARNING:  Unsupported upgrade request.
+Jul 14 10:17:05 VM-7a18f394-4476-4cd4-ad3a-9451e0ca49c3 uvicorn[25938]: WARNING:  No supported WebSocket library detected. Please use "pip install 'uvicorn[standard]'", or install 'websockets' or 'wsproto' manually.
+Jul 14 10:17:15 VM-7a18f394-4476-4cd4-ad3a-9451e0ca49c3 uvicorn[25938]: WARNING:  Unsupported upgrade request.
+Jul 14 10:17:15 VM-7a18f394-4476-4cd4-ad3a-9451e0ca49c3 uvicorn[25938]: WARNING:  No supported WebSocket library detected. Please use "pip install 'uvicorn[standard]'", or install 'websockets' or 'wsproto' manually.
+Jul 14 10:17:26 VM-7a18f394-4476-4cd4-ad3a-9451e0ca49c3 uvicorn[25938]: WARNING:  Unsupported upgrade request.
+Jul 14 10:17:26 VM-7a18f394-4476-4cd4-ad3a-9451e0ca49c3 uvicorn[25938]: WARNING:  No supported WebSocket library detected. Please use "pip install 'uvicorn[standard]'", or install 'websockets' or 'wsproto' manually.
+Jul 14 10:17:36 VM-7a18f394-4476-4cd4-ad3a-9451e0ca49c3 uvicorn[25938]: WARNING:  Unsupported upgrade request.
+Jul 14 10:17:36 VM-7a18f394-4476-4cd4-ad3a-9451e0ca49c3 uvicorn[25938]: WARNING:  No supported WebSocket library detected. Please use "pip install 'uvicorn[standard]'", or install 'websockets' or 'wsproto' manually.
+Jul 14 10:17:47 VM-7a18f394-4476-4cd4-ad3a-9451e0ca49c3 uvicorn[25938]: WARNING:  Unsupported upgrade request.
+Jul 14 10:17:47 VM-7a18f394-4476-4cd4-ad3a-9451e0ca49c3 uvicorn[25938]: WARNING:  No supported WebSocket library detected. Please use "pip install 'uvicorn[standard]'", or install 'websockets' or 'wsproto' manually.
+Jul 14 10:17:57 VM-7a18f394-4476-4cd4-ad3a-9451e0ca49c3 uvicorn[25938]: WARNING:  Unsupported upgrade request.
+Jul 14 10:17:57 VM-7a18f394-4476-4cd4-ad3a-9451e0ca49c3 uvicorn[25938]: WARNING:  No supported WebSocket library detected. Please use "pip install 'uvicorn[standard]'", or install 'websockets' or 'wsproto' manually.
+Jul 14 10:18:08 VM-7a18f394-4476-4cd4-ad3a-9451e0ca49c3 uvicorn[25938]: WARNING:  Unsupported upgrade request.
+Jul 14 10:18:08 VM-7a18f394-4476-4cd4-ad3a-9451e0ca49c3 uvicorn[25938]: WARNING:  No supported WebSocket library detected. Please use "pip install 'uvicorn[standard]'", or install 'websockets' or 'wsproto' manually.
+Jul 14 10:18:18 VM-7a18f394-4476-4cd4-ad3a-9451e0ca49c3 uvicorn[25938]: WARNING:  Unsupported upgrade request.
+Jul 14 10:18:18 VM-7a18f394-4476-4cd4-ad3a-9451e0ca49c3 uvicorn[25938]: WARNING:  No supported WebSocket library detected. Please use "pip install 'uvicorn[standard]'", or install 'websockets' or 'wsproto' manually.
+Jul 14 10:18:28 VM-7a18f394-4476-4cd4-ad3a-9451e0ca49c3 uvicorn[25938]: WARNING:  Unsupported upgrade request.
+Jul 14 10:18:28 VM-7a18f394-4476-4cd4-ad3a-9451e0ca49c3 uvicorn[25938]: WARNING:  No supported WebSocket library detected. Please use "pip install 'uvicorn[standard]'", or install 'websockets' or 'wsproto' manually.
+Jul 14 10:18:39 VM-7a18f394-4476-4cd4-ad3a-9451e0ca49c3 uvicorn[25938]: WARNING:  Unsupported upgrade request.
+Jul 14 10:18:39 VM-7a18f394-4476-4cd4-ad3a-9451e0ca49c3 uvicorn[25938]: WARNING:  No supported WebSocket library detected. Please use "pip install 'uvicorn[standard]'", or install 'websockets' or 'wsproto' manually.
+Jul 14 10:18:49 VM-7a18f394-4476-4cd4-ad3a-9451e0ca49c3 uvicorn[25938]: WARNING:  Unsupported upgrade request.
+Jul 14 10:18:49 VM-7a18f394-4476-4cd4-ad3a-9451e0ca49c3 uvicorn[25938]: WARNING:  No supported WebSocket library detected. Please use "pip install 'uvicorn[standard]'", or install 'websockets' or 'wsproto' manually.
+Jul 14 10:19:00 VM-7a18f394-4476-4cd4-ad3a-9451e0ca49c3 uvicorn[25938]: WARNING:  Unsupported upgrade request.
+Jul 14 10:19:00 VM-7a18f394-4476-4cd4-ad3a-9451e0ca49c3 uvicorn[25938]: WARNING:  No supported WebSocket library detected. Please use "pip install 'uvicorn[standard]'", or install 'websockets' or 'wsproto' manually.
+Jul 14 10:19:10 VM-7a18f394-4476-4cd4-ad3a-9451e0ca49c3 uvicorn[25938]: WARNING:  Unsupported upgrade request.
+Jul 14 10:19:10 VM-7a18f394-4476-4cd4-ad3a-9451e0ca49c3 uvicorn[25938]: WARNING:  No supported WebSocket library detected. Please use "pip install 'uvicorn[standard]'", or install 'websockets' or 'wsproto' manually.
+Jul 14 10:19:21 VM-7a18f394-4476-4cd4-ad3a-9451e0ca49c3 uvicorn[25938]: WARNING:  Unsupported upgrade request.
+Jul 14 10:19:21 VM-7a18f394-4476-4cd4-ad3a-9451e0ca49c3 uvicorn[25938]: WARNING:  No supported WebSocket library detected. Please use "pip install 'uvicorn[standard]'", or install 'websockets' or 'wsproto' manually.
+Jul 14 10:19:31 VM-7a18f394-4476-4cd4-ad3a-9451e0ca49c3 uvicorn[25938]: WARNING:  Unsupported upgrade request.
+Jul 14 10:19:31 VM-7a18f394-4476-4cd4-ad3a-9451e0ca49c3 uvicorn[25938]: WARNING:  No supported WebSocket library detected. Please use "pip install 'uvicorn[standard]'", or install 'websockets' or 'wsproto' manually.
+Jul 14 10:19:42 VM-7a18f394-4476-4cd4-ad3a-9451e0ca49c3 uvicorn[25938]: WARNING:  Unsupported upgrade request.
+Jul 14 10:19:42 VM-7a18f394-4476-4cd4-ad3a-9451e0ca49c3 uvicorn[25938]: WARNING:  No supported WebSocket library detected. Please use "pip install 'uvicorn[standard]'", or install 'websockets' or 'wsproto' manually.
+Jul 14 10:19:52 VM-7a18f394-4476-4cd4-ad3a-9451e0ca49c3 uvicorn[25938]: WARNING:  Unsupported upgrade request.
+Jul 14 10:19:52 VM-7a18f394-4476-4cd4-ad3a-9451e0ca49c3 uvicorn[25938]: WARNING:  No supported WebSocket library detected. Please use "pip install 'uvicorn[standard]'", or install 'websockets' or 'wsproto' manually.
+Jul 14 10:20:02 VM-7a18f394-4476-4cd4-ad3a-9451e0ca49c3 uvicorn[25938]: WARNING:  Unsupported upgrade request.
+Jul 14 10:20:02 VM-7a18f394-4476-4cd4-ad3a-9451e0ca49c3 uvicorn[25938]: WARNING:  No supported WebSocket library detected. Please use "pip install 'uvicorn[standard]'", or install 'websockets' or 'wsproto' manually.
+Jul 14 10:20:13 VM-7a18f394-4476-4cd4-ad3a-9451e0ca49c3 uvicorn[25938]: WARNING:  Unsupported upgrade request.
+Jul 14 10:20:13 VM-7a18f394-4476-4cd4-ad3a-9451e0ca49c3 uvicorn[25938]: WARNING:  No supported WebSocket library detected. Please use "pip install 'uvicorn[standard]'", or install 'websockets' or 'wsproto' manually.
+Jul 14 10:20:23 VM-7a18f394-4476-4cd4-ad3a-9451e0ca49c3 uvicorn[25938]: WARNING:  Unsupported upgrade request.
+Jul 14 10:20:23 VM-7a18f394-4476-4cd4-ad3a-9451e0ca49c3 uvicorn[25938]: WARNING:  No supported WebSocket library detected. Please use "pip install 'uvicorn[standard]'", or install 'websockets' or 'wsproto' manually.
+Jul 14 10:20:34 VM-7a18f394-4476-4cd4-ad3a-9451e0ca49c3 uvicorn[25938]: WARNING:  Unsupported upgrade request.
+Jul 14 10:20:34 VM-7a18f394-4476-4cd4-ad3a-9451e0ca49c3 uvicorn[25938]: WARNING:  No supported WebSocket library detected. Please use "pip install 'uvicorn[standard]'", or install 'websockets' or 'wsproto' manually.
+Jul 14 10:20:44 VM-7a18f394-4476-4cd4-ad3a-9451e0ca49c3 uvicorn[25938]: WARNING:  Unsupported upgrade request.
+Jul 14 10:20:44 VM-7a18f394-4476-4cd4-ad3a-9451e0ca49c3 uvicorn[25938]: WARNING:  No supported WebSocket library detected. Please use "pip install 'uvicorn[standard]'", or install 'websockets' or 'wsproto' manually.
+Jul 14 10:20:55 VM-7a18f394-4476-4cd4-ad3a-9451e0ca49c3 uvicorn[25938]: WARNING:  Unsupported upgrade request.
+Jul 14 10:20:55 VM-7a18f394-4476-4cd4-ad3a-9451e0ca49c3 uvicorn[25938]: WARNING:  No supported WebSocket library detected. Please use "pip install 'uvicorn[standard]'", or install 'websockets' or 'wsproto' manually.
+Jul 14 10:21:05 VM-7a18f394-4476-4cd4-ad3a-9451e0ca49c3 uvicorn[25938]: WARNING:  Unsupported upgrade request.
+Jul 14 10:21:05 VM-7a18f394-4476-4cd4-ad3a-9451e0ca49c3 uvicorn[25938]: WARNING:  No supported WebSocket library detected. Please use "pip install 'uvicorn[standard]'", or install 'websockets' or 'wsproto' manually.
+Jul 14 10:21:16 VM-7a18f394-4476-4cd4-ad3a-9451e0ca49c3 uvicorn[25938]: WARNING:  Unsupported upgrade request.
+Jul 14 10:21:16 VM-7a18f394-4476-4cd4-ad3a-9451e0ca49c3 uvicorn[25938]: WARNING:  No supported WebSocket library detected. Please use "pip install 'uvicorn[standard]'", or install 'websockets' or 'wsproto' manually.
+Jul 14 10:21:26 VM-7a18f394-4476-4cd4-ad3a-9451e0ca49c3 uvicorn[25938]: WARNING:  Unsupported upgrade request.
+Jul 14 10:21:26 VM-7a18f394-4476-4cd4-ad3a-9451e0ca49c3 uvicorn[25938]: WARNING:  No supported WebSocket library detected. Please use "pip install 'uvicorn[standard]'", or install 'websockets' or 'wsproto' manually.
+Jul 14 10:21:36 VM-7a18f394-4476-4cd4-ad3a-9451e0ca49c3 uvicorn[25938]: WARNING:  Unsupported upgrade request.
+Jul 14 10:21:36 VM-7a18f394-4476-4cd4-ad3a-9451e0ca49c3 uvicorn[25938]: WARNING:  No supported WebSocket library detected. Please use "pip install 'uvicorn[standard]'", or install 'websockets' or 'wsproto' manually.
+Jul 14 10:21:47 VM-7a18f394-4476-4cd4-ad3a-9451e0ca49c3 uvicorn[25938]: WARNING:  Unsupported upgrade request.
+Jul 14 10:21:47 VM-7a18f394-4476-4cd4-ad3a-9451e0ca49c3 uvicorn[25938]: WARNING:  No supported WebSocket library detected. Please use "pip install 'uvicorn[standard]'", or install 'websockets' or 'wsproto' manually.
+Jul 14 10:21:57 VM-7a18f394-4476-4cd4-ad3a-9451e0ca49c3 uvicorn[25938]: WARNING:  Unsupported upgrade request.
+Jul 14 10:21:57 VM-7a18f394-4476-4cd4-ad3a-9451e0ca49c3 uvicorn[25938]: WARNING:  No supported WebSocket library detected. Please use "pip install 'uvicorn[standard]'", or install 'websockets' or 'wsproto' manually.
+Jul 14 10:22:08 VM-7a18f394-4476-4cd4-ad3a-9451e0ca49c3 uvicorn[26442]: WARNING:  Unsupported upgrade request.
+Jul 14 10:22:08 VM-7a18f394-4476-4cd4-ad3a-9451e0ca49c3 uvicorn[26442]: WARNING:  No supported WebSocket library detected. Please use "pip install 'uvicorn[standard]'", or install 'websockets' or 'wsproto' manually.
+Jul 14 10:22:18 VM-7a18f394-4476-4cd4-ad3a-9451e0ca49c3 uvicorn[26442]: WARNING:  Unsupported upgrade request.
+Jul 14 10:22:18 VM-7a18f394-4476-4cd4-ad3a-9451e0ca49c3 uvicorn[26442]: WARNING:  No supported WebSocket library detected. Please use "pip install 'uvicorn[standard]'", or install 'websockets' or 'wsproto' manually.
+Jul 14 10:22:29 VM-7a18f394-4476-4cd4-ad3a-9451e0ca49c3 uvicorn[26442]: WARNING:  Unsupported upgrade request.
+Jul 14 10:22:29 VM-7a18f394-4476-4cd4-ad3a-9451e0ca49c3 uvicorn[26442]: WARNING:  No supported WebSocket library detected. Please use "pip install 'uvicorn[standard]'", or install 'websockets' or 'wsproto' manually.
+Jul 14 10:22:39 VM-7a18f394-4476-4cd4-ad3a-9451e0ca49c3 uvicorn[26442]: WARNING:  Unsupported upgrade request.
+Jul 14 10:22:39 VM-7a18f394-4476-4cd4-ad3a-9451e0ca49c3 uvicorn[26442]: WARNING:  No supported WebSocket library detected. Please use "pip install 'uvicorn[standard]'", or install 'websockets' or 'wsproto' manually.
+Jul 14 10:22:50 VM-7a18f394-4476-4cd4-ad3a-9451e0ca49c3 uvicorn[26442]: WARNING:  Unsupported upgrade request.
+Jul 14 10:22:50 VM-7a18f394-4476-4cd4-ad3a-9451e0ca49c3 uvicorn[26442]: WARNING:  No supported WebSocket library detected. Please use "pip install 'uvicorn[standard]'", or install 'websockets' or 'wsproto' manually.
+Jul 14 10:23:00 VM-7a18f394-4476-4cd4-ad3a-9451e0ca49c3 uvicorn[26442]: WARNING:  Unsupported upgrade request.
+Jul 14 10:23:00 VM-7a18f394-4476-4cd4-ad3a-9451e0ca49c3 uvicorn[26442]: WARNING:  No supported WebSocket library detected. Please use "pip install 'uvicorn[standard]'", or install 'websockets' or 'wsproto' manually.
+Jul 14 10:23:10 VM-7a18f394-4476-4cd4-ad3a-9451e0ca49c3 uvicorn[26442]: WARNING:  Unsupported upgrade request.
+Jul 14 10:23:10 VM-7a18f394-4476-4cd4-ad3a-9451e0ca49c3 uvicorn[26442]: WARNING:  No supported WebSocket library detected. Please use "pip install 'uvicorn[standard]'", or install 'websockets' or 'wsproto' manually.
+Jul 14 10:23:21 VM-7a18f394-4476-4cd4-ad3a-9451e0ca49c3 uvicorn[26442]: WARNING:  Unsupported upgrade request.
+Jul 14 10:23:21 VM-7a18f394-4476-4cd4-ad3a-9451e0ca49c3 uvicorn[26442]: WARNING:  No supported WebSocket library detected. Please use "pip install 'uvicorn[standard]'", or install 'websockets' or 'wsproto' manually.
+Jul 14 10:23:31 VM-7a18f394-4476-4cd4-ad3a-9451e0ca49c3 uvicorn[26442]: WARNING:  Unsupported upgrade request.
+Jul 14 10:23:31 VM-7a18f394-4476-4cd4-ad3a-9451e0ca49c3 uvicorn[26442]: WARNING:  No supported WebSocket library detected. Please use "pip install 'uvicorn[standard]'", or install 'websockets' or 'wsproto' manually.
+Jul 14 10:23:42 VM-7a18f394-4476-4cd4-ad3a-9451e0ca49c3 uvicorn[26442]: WARNING:  Unsupported upgrade request.
+Jul 14 10:23:42 VM-7a18f394-4476-4cd4-ad3a-9451e0ca49c3 uvicorn[26442]: WARNING:  No supported WebSocket library detected. Please use "pip install 'uvicorn[standard]'", or install 'websockets' or 'wsproto' manually.
+Jul 14 10:23:52 VM-7a18f394-4476-4cd4-ad3a-9451e0ca49c3 uvicorn[26442]: WARNING:  Unsupported upgrade request.
+Jul 14 10:23:52 VM-7a18f394-4476-4cd4-ad3a-9451e0ca49c3 uvicorn[26442]: WARNING:  No supported WebSocket library detected. Please use "pip install 'uvicorn[standard]'", or install 'websockets' or 'wsproto' manually.
+Jul 14 10:24:03 VM-7a18f394-4476-4cd4-ad3a-9451e0ca49c3 uvicorn[26442]: WARNING:  Unsupported upgrade request.
+Jul 14 10:24:03 VM-7a18f394-4476-4cd4-ad3a-9451e0ca49c3 uvicorn[26442]: WARNING:  No supported WebSocket library detected. Please use "pip install 'uvicorn[standard]'", or install 'websockets' or 'wsproto' manually.
+Jul 14 10:24:13 VM-7a18f394-4476-4cd4-ad3a-9451e0ca49c3 uvicorn[26442]: WARNING:  Unsupported upgrade request.
+Jul 14 10:24:13 VM-7a18f394-4476-4cd4-ad3a-9451e0ca49c3 uvicorn[26442]: WARNING:  No supported WebSocket library detected. Please use "pip install 'uvicorn[standard]'", or install 'websockets' or 'wsproto' manually.
+Jul 14 10:24:24 VM-7a18f394-4476-4cd4-ad3a-9451e0ca49c3 uvicorn[26442]: WARNING:  Unsupported upgrade request.
+Jul 14 10:24:24 VM-7a18f394-4476-4cd4-ad3a-9451e0ca49c3 uvicorn[26442]: WARNING:  No supported WebSocket library detected. Please use "pip install 'uvicorn[standard]'", or install 'websockets' or 'wsproto' manually.
+Jul 14 10:24:34 VM-7a18f394-4476-4cd4-ad3a-9451e0ca49c3 uvicorn[26442]: WARNING:  Unsupported upgrade request.
+Jul 14 10:24:34 VM-7a18f394-4476-4cd4-ad3a-9451e0ca49c3 uvicorn[26442]: WARNING:  No supported WebSocket library detected. Please use "pip install 'uvicorn[standard]'", or install 'websockets' or 'wsproto' manually.
+Jul 14 10:24:44 VM-7a18f394-4476-4cd4-ad3a-9451e0ca49c3 uvicorn[26442]: WARNING:  Unsupported upgrade request.
+Jul 14 10:24:44 VM-7a18f394-4476-4cd4-ad3a-9451e0ca49c3 uvicorn[26442]: WARNING:  No supported WebSocket library detected. Please use "pip install 'uvicorn[standard]'", or install 'websockets' or 'wsproto' manually.
+Jul 14 10:24:55 VM-7a18f394-4476-4cd4-ad3a-9451e0ca49c3 uvicorn[26442]: WARNING:  Unsupported upgrade request.
+Jul 14 10:24:55 VM-7a18f394-4476-4cd4-ad3a-9451e0ca49c3 uvicorn[26442]: WARNING:  No supported WebSocket library detected. Please use "pip install 'uvicorn[standard]'", or install 'websockets' or 'wsproto' manually.
+Jul 14 10:25:05 VM-7a18f394-4476-4cd4-ad3a-9451e0ca49c3 uvicorn[26442]: WARNING:  Unsupported upgrade request.
+Jul 14 10:25:05 VM-7a18f394-4476-4cd4-ad3a-9451e0ca49c3 uvicorn[26442]: WARNING:  No supported WebSocket library detected. Please use "pip install 'uvicorn[standard]'", or install 'websockets' or 'wsproto' manually.
+Jul 14 10:25:16 VM-7a18f394-4476-4cd4-ad3a-9451e0ca49c3 uvicorn[26442]: WARNING:  Unsupported upgrade request.
+Jul 14 10:25:16 VM-7a18f394-4476-4cd4-ad3a-9451e0ca49c3 uvicorn[26442]: WARNING:  No supported WebSocket library detected. Please use "pip install 'uvicorn[standard]'", or install 'websockets' or 'wsproto' manually.
+Jul 14 10:25:26 VM-7a18f394-4476-4cd4-ad3a-9451e0ca49c3 uvicorn[27006]: WARNING:  Unsupported upgrade request.
+Jul 14 10:25:26 VM-7a18f394-4476-4cd4-ad3a-9451e0ca49c3 uvicorn[27006]: WARNING:  No supported WebSocket library detected. Please use "pip install 'uvicorn[standard]'", or install 'websockets' or 'wsproto' manually.
+Jul 14 10:25:35 VM-7a18f394-4476-4cd4-ad3a-9451e0ca49c3 uvicorn[27006]: 2026-07-14 10:25:35 [INFO] app.routers.webhook: Mensagem recebida de 554199692193: Oi
+Jul 14 10:25:37 VM-7a18f394-4476-4cd4-ad3a-9451e0ca49c3 uvicorn[27006]: WARNING:  Unsupported upgrade request.
+Jul 14 10:25:37 VM-7a18f394-4476-4cd4-ad3a-9451e0ca49c3 uvicorn[27006]: WARNING:  No supported WebSocket library detected. Please use "pip install 'uvicorn[standard]'", or install 'websockets' or 'wsproto' manually.
+Jul 14 10:25:38 VM-7a18f394-4476-4cd4-ad3a-9451e0ca49c3 uvicorn[27006]: 2026-07-14 10:25:38 [WARNING] app.services.whatsapp_service: WhatsApp API erro: {"error":{"message":"Unsupported post request. Object with ID '1136563242867085' does not exist, cannot be loaded due to missing permissions, or does not support this operation. Please read the Graph API documentation at https://developers.facebook.com/docs/graph-api","code":100,"type":"GraphMethodException","error_subcode":33,"fbtrace_id":"APULguVAjK4hSp8Wcz0xvQu"}}
+Jul 14 10:25:38 VM-7a18f394-4476-4cd4-ad3a-9451e0ca49c3 uvicorn[27006]: INFO:     173.252.127.14:0 - "POST /api/webhook HTTP/1.0" 200 OK
+Jul 14 10:25:47 VM-7a18f394-4476-4cd4-ad3a-9451e0ca49c3 uvicorn[27006]: WARNING:  Unsupported upgrade request.
+Jul 14 10:25:47 VM-7a18f394-4476-4cd4-ad3a-9451e0ca49c3 uvicorn[27006]: WARNING:  No supported WebSocket library detected. Please use "pip install 'uvicorn[standard]'", or install 'websockets' or 'wsproto' manually.
+Jul 14 10:25:58 VM-7a18f394-4476-4cd4-ad3a-9451e0ca49c3 uvicorn[27006]: WARNING:  Unsupported upgrade request.
+Jul 14 10:25:58 VM-7a18f394-4476-4cd4-ad3a-9451e0ca49c3 uvicorn[27006]: WARNING:  No supported WebSocket library detected. Please use "pip install 'uvicorn[standard]'", or install 'websockets' or 'wsproto' manually.
+Jul 14 10:26:08 VM-7a18f394-4476-4cd4-ad3a-9451e0ca49c3 uvicorn[27006]: WARNING:  Unsupported upgrade request.
+Jul 14 10:26:08 VM-7a18f394-4476-4cd4-ad3a-9451e0ca49c3 uvicorn[27006]: WARNING:  No supported WebSocket library detected. Please use "pip install 'uvicorn[standard]'", or install 'websockets' or 'wsproto' manually.
+Jul 14 10:26:18 VM-7a18f394-4476-4cd4-ad3a-9451e0ca49c3 uvicorn[27006]: WARNING:  Unsupported upgrade request.
+Jul 14 10:26:18 VM-7a18f394-4476-4cd4-ad3a-9451e0ca49c3 uvicorn[27006]: WARNING:  No supported WebSocket library detected. Please use "pip install 'uvicorn[standard]'", or install 'websockets' or 'wsproto' manually.
+Jul 14 10:26:29 VM-7a18f394-4476-4cd4-ad3a-9451e0ca49c3 uvicorn[27006]: WARNING:  Unsupported upgrade request.
+Jul 14 10:26:29 VM-7a18f394-4476-4cd4-ad3a-9451e0ca49c3 uvicorn[27006]: WARNING:  No supported WebSocket library detected. Please use "pip install 'uvicorn[standard]'", or install 'websockets' or 'wsproto' manually.
+Jul 14 10:26:39 VM-7a18f394-4476-4cd4-ad3a-9451e0ca49c3 uvicorn[27006]: WARNING:  Unsupported upgrade request.
+Jul 14 10:26:39 VM-7a18f394-4476-4cd4-ad3a-9451e0ca49c3 uvicorn[27006]: WARNING:  No supported WebSocket library detected. Please use "pip install 'uvicorn[standard]'", or install 'websockets' or 'wsproto' manually.
+Jul 14 10:26:50 VM-7a18f394-4476-4cd4-ad3a-9451e0ca49c3 uvicorn[27006]: WARNING:  Unsupported upgrade request.
+Jul 14 10:26:50 VM-7a18f394-4476-4cd4-ad3a-9451e0ca49c3 uvicorn[27006]: WARNING:  No supported WebSocket library detected. Please use "pip install 'uvicorn[standard]'", or install 'websockets' or 'wsproto' manually.
+Jul 14 10:27:00 VM-7a18f394-4476-4cd4-ad3a-9451e0ca49c3 uvicorn[27006]: WARNING:  Unsupported upgrade request.
+Jul 14 10:27:00 VM-7a18f394-4476-4cd4-ad3a-9451e0ca49c3 uvicorn[27006]: WARNING:  No supported WebSocket library detected. Please use "pip install 'uvicorn[standard]'", or install 'websockets' or 'wsproto' manually.
+Jul 14 10:27:11 VM-7a18f394-4476-4cd4-ad3a-9451e0ca49c3 uvicorn[27006]: WARNING:  Unsupported upgrade request.
+Jul 14 10:27:11 VM-7a18f394-4476-4cd4-ad3a-9451e0ca49c3 uvicorn[27006]: WARNING:  No supported WebSocket library detected. Please use "pip install 'uvicorn[standard]'", or install 'websockets' or 'wsproto' manually.
+Jul 14 10:27:21 VM-7a18f394-4476-4cd4-ad3a-9451e0ca49c3 uvicorn[27006]: WARNING:  Unsupported upgrade request.
+Jul 14 10:27:21 VM-7a18f394-4476-4cd4-ad3a-9451e0ca49c3 uvicorn[27006]: WARNING:  No supported WebSocket library detected. Please use "pip install 'uvicorn[standard]'", or install 'websockets' or 'wsproto' manually.
+Jul 14 10:27:32 VM-7a18f394-4476-4cd4-ad3a-9451e0ca49c3 uvicorn[27006]: WARNING:  Unsupported upgrade request.
+Jul 14 10:27:32 VM-7a18f394-4476-4cd4-ad3a-9451e0ca49c3 uvicorn[27006]: WARNING:  No supported WebSocket library detected. Please use "pip install 'uvicorn[standard]'", or install 'websockets' or 'wsproto' manually.
+Jul 14 10:27:42 VM-7a18f394-4476-4cd4-ad3a-9451e0ca49c3 uvicorn[27006]: WARNING:  Unsupported upgrade request.
+Jul 14 10:27:42 VM-7a18f394-4476-4cd4-ad3a-9451e0ca49c3 uvicorn[27006]: WARNING:  No supported WebSocket library detected. Please use "pip install 'uvicorn[standard]'", or install 'websockets' or 'wsproto' manually.
+Jul 14 10:27:53 VM-7a18f394-4476-4cd4-ad3a-9451e0ca49c3 uvicorn[27006]: WARNING:  Unsupported upgrade request.
+Jul 14 10:27:53 VM-7a18f394-4476-4cd4-ad3a-9451e0ca49c3 uvicorn[27006]: WARNING:  No supported WebSocket library detected. Please use "pip install 'uvicorn[standard]'", or install 'websockets' or 'wsproto' manually.
+Jul 14 10:28:03 VM-7a18f394-4476-4cd4-ad3a-9451e0ca49c3 uvicorn[27006]: WARNING:  Unsupported upgrade request.
+Jul 14 10:28:03 VM-7a18f394-4476-4cd4-ad3a-9451e0ca49c3 uvicorn[27006]: WARNING:  No supported WebSocket library detected. Please use "pip install 'uvicorn[standard]'", or install 'websockets' or 'wsproto' manually.
+Jul 14 10:28:13 VM-7a18f394-4476-4cd4-ad3a-9451e0ca49c3 uvicorn[27006]: WARNING:  Unsupported upgrade request.
+Jul 14 10:28:13 VM-7a18f394-4476-4cd4-ad3a-9451e0ca49c3 uvicorn[27006]: WARNING:  No supported WebSocket library detected. Please use "pip install 'uvicorn[standard]'", or install 'websockets' or 'wsproto' manually.
+Jul 14 10:28:24 VM-7a18f394-4476-4cd4-ad3a-9451e0ca49c3 uvicorn[27006]: WARNING:  Unsupported upgrade request.
+Jul 14 10:28:24 VM-7a18f394-4476-4cd4-ad3a-9451e0ca49c3 uvicorn[27006]: WARNING:  No supported WebSocket library detected. Please use "pip install 'uvicorn[standard]'", or install 'websockets' or 'wsproto' manually.
+Jul 14 10:28:34 VM-7a18f394-4476-4cd4-ad3a-9451e0ca49c3 uvicorn[27006]: WARNING:  Unsupported upgrade request.
+Jul 14 10:28:34 VM-7a18f394-4476-4cd4-ad3a-9451e0ca49c3 uvicorn[27006]: WARNING:  No supported WebSocket library detected. Please use "pip install 'uvicorn[standard]'", or install 'websockets' or 'wsproto' manually.
+Jul 14 10:28:45 VM-7a18f394-4476-4cd4-ad3a-9451e0ca49c3 uvicorn[27006]: WARNING:  Unsupported upgrade request.
+Jul 14 10:28:45 VM-7a18f394-4476-4cd4-ad3a-9451e0ca49c3 uvicorn[27006]: WARNING:  No supported WebSocket library detected. Please use "pip install 'uvicorn[standard]'", or install 'websockets' or 'wsproto' manually.
+Jul 14 10:28:55 VM-7a18f394-4476-4cd4-ad3a-9451e0ca49c3 uvicorn[27006]: WARNING:  Unsupported upgrade request.
+Jul 14 10:28:55 VM-7a18f394-4476-4cd4-ad3a-9451e0ca49c3 uvicorn[27006]: WARNING:  No supported WebSocket library detected. Please use "pip install 'uvicorn[standard]'", or install 'websockets' or 'wsproto' manually.
+Jul 14 10:29:06 VM-7a18f394-4476-4cd4-ad3a-9451e0ca49c3 uvicorn[27006]: WARNING:  Unsupported upgrade request.
+Jul 14 10:29:06 VM-7a18f394-4476-4cd4-ad3a-9451e0ca49c3 uvicorn[27006]: WARNING:  No supported WebSocket library detected. Please use "pip install 'uvicorn[standard]'", or install 'websockets' or 'wsproto' manually.
+Jul 14 10:29:16 VM-7a18f394-4476-4cd4-ad3a-9451e0ca49c3 uvicorn[27006]: WARNING:  Unsupported upgrade request.
+Jul 14 10:29:16 VM-7a18f394-4476-4cd4-ad3a-9451e0ca49c3 uvicorn[27006]: WARNING:  No supported WebSocket library detected. Please use "pip install 'uvicorn[standard]'", or install 'websockets' or 'wsproto' manually.
+Jul 14 10:29:27 VM-7a18f394-4476-4cd4-ad3a-9451e0ca49c3 uvicorn[27006]: WARNING:  Unsupported upgrade request.
+Jul 14 10:29:27 VM-7a18f394-4476-4cd4-ad3a-9451e0ca49c3 uvicorn[27006]: WARNING:  No supported WebSocket library detected. Please use "pip install 'uvicorn[standard]'", or install 'websockets' or 'wsproto' manually.
+Jul 14 10:29:37 VM-7a18f394-4476-4cd4-ad3a-9451e0ca49c3 uvicorn[27006]: WARNING:  Unsupported upgrade request.
+Jul 14 10:29:37 VM-7a18f394-4476-4cd4-ad3a-9451e0ca49c3 uvicorn[27006]: WARNING:  No supported WebSocket library detected. Please use "pip install 'uvicorn[standard]'", or install 'websockets' or 'wsproto' manually.
+Jul 14 10:29:47 VM-7a18f394-4476-4cd4-ad3a-9451e0ca49c3 uvicorn[27006]: WARNING:  Unsupported upgrade request.
+Jul 14 10:29:47 VM-7a18f394-4476-4cd4-ad3a-9451e0ca49c3 uvicorn[27006]: WARNING:  No supported WebSocket library detected. Please use "pip install 'uvicorn[standard]'", or install 'websockets' or 'wsproto' manually.
+Jul 14 10:29:58 VM-7a18f394-4476-4cd4-ad3a-9451e0ca49c3 uvicorn[27006]: WARNING:  Unsupported upgrade request.
+Jul 14 10:29:58 VM-7a18f394-4476-4cd4-ad3a-9451e0ca49c3 uvicorn[27006]: WARNING:  No supported WebSocket library detected. Please use "pip install 'uvicorn[standard]'", or install 'websockets' or 'wsproto' manually.
+Jul 14 10:30:08 VM-7a18f394-4476-4cd4-ad3a-9451e0ca49c3 uvicorn[27006]: WARNING:  Unsupported upgrade request.
+Jul 14 10:30:08 VM-7a18f394-4476-4cd4-ad3a-9451e0ca49c3 uvicorn[27006]: WARNING:  No supported WebSocket library detected. Please use "pip install 'uvicorn[standard]'", or install 'websockets' or 'wsproto' manually.
+Jul 14 10:30:19 VM-7a18f394-4476-4cd4-ad3a-9451e0ca49c3 uvicorn[27006]: WARNING:  Unsupported upgrade request.
+Jul 14 10:30:19 VM-7a18f394-4476-4cd4-ad3a-9451e0ca49c3 uvicorn[27006]: WARNING:  No supported WebSocket library detected. Please use "pip install 'uvicorn[standard]'", or install 'websockets' or 'wsproto' manually.
+Jul 14 10:30:29 VM-7a18f394-4476-4cd4-ad3a-9451e0ca49c3 uvicorn[27006]: WARNING:  Unsupported upgrade request.
+Jul 14 10:30:29 VM-7a18f394-4476-4cd4-ad3a-9451e0ca49c3 uvicorn[27006]: WARNING:  No supported WebSocket library detected. Please use "pip install 'uvicorn[standard]'", or install 'websockets' or 'wsproto' manually.
+Jul 14 10:30:40 VM-7a18f394-4476-4cd4-ad3a-9451e0ca49c3 uvicorn[27006]: WARNING:  Unsupported upgrade request.
+Jul 14 10:30:40 VM-7a18f394-4476-4cd4-ad3a-9451e0ca49c3 uvicorn[27006]: WARNING:  No supported WebSocket library detected. Please use "pip install 'uvicorn[standard]'", or install 'websockets' or 'wsproto' manually.
+Jul 14 10:30:50 VM-7a18f394-4476-4cd4-ad3a-9451e0ca49c3 uvicorn[27006]: WARNING:  Unsupported upgrade request.
+Jul 14 10:30:50 VM-7a18f394-4476-4cd4-ad3a-9451e0ca49c3 uvicorn[27006]: WARNING:  No supported WebSocket library detected. Please use "pip install 'uvicorn[standard]'", or install 'websockets' or 'wsproto' manually.
+Jul 14 10:31:01 VM-7a18f394-4476-4cd4-ad3a-9451e0ca49c3 uvicorn[27006]: WARNING:  Unsupported upgrade request.
+Jul 14 10:31:01 VM-7a18f394-4476-4cd4-ad3a-9451e0ca49c3 uvicorn[27006]: WARNING:  No supported WebSocket library detected. Please use "pip install 'uvicorn[standard]'", or install 'websockets' or 'wsproto' manually.
+Jul 14 10:31:11 VM-7a18f394-4476-4cd4-ad3a-9451e0ca49c3 uvicorn[27006]: WARNING:  Unsupported upgrade request.
+Jul 14 10:31:11 VM-7a18f394-4476-4cd4-ad3a-9451e0ca49c3 uvicorn[27006]: WARNING:  No supported WebSocket library detected. Please use "pip install 'uvicorn[standard]'", or install 'websockets' or 'wsproto' manually.
+Jul 14 10:31:22 VM-7a18f394-4476-4cd4-ad3a-9451e0ca49c3 uvicorn[27006]: WARNING:  Unsupported upgrade request.
+Jul 14 10:31:22 VM-7a18f394-4476-4cd4-ad3a-9451e0ca49c3 uvicorn[27006]: WARNING:  No supported WebSocket library detected. Please use "pip install 'uvicorn[standard]'", or install 'websockets' or 'wsproto' manually.
+Jul 14 10:31:32 VM-7a18f394-4476-4cd4-ad3a-9451e0ca49c3 uvicorn[27006]: WARNING:  Unsupported upgrade request.
+Jul 14 10:31:32 VM-7a18f394-4476-4cd4-ad3a-9451e0ca49c3 uvicorn[27006]: WARNING:  No supported WebSocket library detected. Please use "pip install 'uvicorn[standard]'", or install 'websockets' or 'wsproto' manually.
+Jul 14 10:31:42 VM-7a18f394-4476-4cd4-ad3a-9451e0ca49c3 uvicorn[27006]: WARNING:  Unsupported upgrade request.
+Jul 14 10:31:42 VM-7a18f394-4476-4cd4-ad3a-9451e0ca49c3 uvicorn[27006]: WARNING:  No supported WebSocket library detected. Please use "pip install 'uvicorn[standard]'", or install 'websockets' or 'wsproto' manually.
+Jul 14 10:31:53 VM-7a18f394-4476-4cd4-ad3a-9451e0ca49c3 uvicorn[27006]: WARNING:  Unsupported upgrade request.
+Jul 14 10:31:53 VM-7a18f394-4476-4cd4-ad3a-9451e0ca49c3 uvicorn[27006]: WARNING:  No supported WebSocket library detected. Please use "pip install 'uvicorn[standard]'", or install 'websockets' or 'wsproto' manually.
+Jul 14 10:32:03 VM-7a18f394-4476-4cd4-ad3a-9451e0ca49c3 uvicorn[27006]: WARNING:  Unsupported upgrade request.
+Jul 14 10:32:03 VM-7a18f394-4476-4cd4-ad3a-9451e0ca49c3 uvicorn[27006]: WARNING:  No supported WebSocket library detected. Please use "pip install 'uvicorn[standard]'", or install 'websockets' or 'wsproto' manually.
+Jul 14 10:32:14 VM-7a18f394-4476-4cd4-ad3a-9451e0ca49c3 uvicorn[27006]: WARNING:  Unsupported upgrade request.
+Jul 14 10:32:14 VM-7a18f394-4476-4cd4-ad3a-9451e0ca49c3 uvicorn[27006]: WARNING:  No supported WebSocket library detected. Please use "pip install 'uvicorn[standard]'", or install 'websockets' or 'wsproto' manually.
+Jul 14 10:32:24 VM-7a18f394-4476-4cd4-ad3a-9451e0ca49c3 uvicorn[27006]: WARNING:  Unsupported upgrade request.
+Jul 14 10:32:24 VM-7a18f394-4476-4cd4-ad3a-9451e0ca49c3 uvicorn[27006]: WARNING:  No supported WebSocket library detected. Please use "pip install 'uvicorn[standard]'", or install 'websockets' or 'wsproto' manually.
+Jul 14 10:32:35 VM-7a18f394-4476-4cd4-ad3a-9451e0ca49c3 uvicorn[27006]: WARNING:  Unsupported upgrade request.
+Jul 14 10:32:35 VM-7a18f394-4476-4cd4-ad3a-9451e0ca49c3 uvicorn[27006]: WARNING:  No supported WebSocket library detected. Please use "pip install 'uvicorn[standard]'", or install 'websockets' or 'wsproto' manually.
+Jul 14 10:32:45 VM-7a18f394-4476-4cd4-ad3a-9451e0ca49c3 uvicorn[27006]: WARNING:  Unsupported upgrade request.
+Jul 14 10:32:45 VM-7a18f394-4476-4cd4-ad3a-9451e0ca49c3 uvicorn[27006]: WARNING:  No supported WebSocket library detected. Please use "pip install 'uvicorn[standard]'", or install 'websockets' or 'wsproto' manually.
+Jul 14 10:32:55 VM-7a18f394-4476-4cd4-ad3a-9451e0ca49c3 uvicorn[27006]: WARNING:  Unsupported upgrade request.
+Jul 14 10:32:55 VM-7a18f394-4476-4cd4-ad3a-9451e0ca49c3 uvicorn[27006]: WARNING:  No supported WebSocket library detected. Please use "pip install 'uvicorn[standard]'", or install 'websockets' or 'wsproto' manually.
+Jul 14 10:33:06 VM-7a18f394-4476-4cd4-ad3a-9451e0ca49c3 uvicorn[27006]: WARNING:  Unsupported upgrade request.
+Jul 14 10:33:06 VM-7a18f394-4476-4cd4-ad3a-9451e0ca49c3 uvicorn[27006]: WARNING:  No supported WebSocket library detected. Please use "pip install 'uvicorn[standard]'", or install 'websockets' or 'wsproto' manually.
+Jul 14 10:33:16 VM-7a18f394-4476-4cd4-ad3a-9451e0ca49c3 uvicorn[27006]: WARNING:  Unsupported upgrade request.
+Jul 14 10:33:16 VM-7a18f394-4476-4cd4-ad3a-9451e0ca49c3 uvicorn[27006]: WARNING:  No supported WebSocket library detected. Please use "pip install 'uvicorn[standard]'", or install 'websockets' or 'wsproto' manually.
+Jul 14 10:33:27 VM-7a18f394-4476-4cd4-ad3a-9451e0ca49c3 uvicorn[27006]: WARNING:  Unsupported upgrade request.
+Jul 14 10:33:27 VM-7a18f394-4476-4cd4-ad3a-9451e0ca49c3 uvicorn[27006]: WARNING:  No supported WebSocket library detected. Please use "pip install 'uvicorn[standard]'", or install 'websockets' or 'wsproto' manually.
+Jul 14 10:33:37 VM-7a18f394-4476-4cd4-ad3a-9451e0ca49c3 uvicorn[27006]: WARNING:  Unsupported upgrade request.
+Jul 14 10:33:37 VM-7a18f394-4476-4cd4-ad3a-9451e0ca49c3 uvicorn[27006]: WARNING:  No supported WebSocket library detected. Please use "pip install 'uvicorn[standard]'", or install 'websockets' or 'wsproto' manually.
+Jul 14 10:33:48 VM-7a18f394-4476-4cd4-ad3a-9451e0ca49c3 uvicorn[27006]: WARNING:  Unsupported upgrade request.
+Jul 14 10:33:48 VM-7a18f394-4476-4cd4-ad3a-9451e0ca49c3 uvicorn[27006]: WARNING:  No supported WebSocket library detected. Please use "pip install 'uvicorn[standard]'", or install 'websockets' or 'wsproto' manually.
+Jul 14 10:33:58 VM-7a18f394-4476-4cd4-ad3a-9451e0ca49c3 uvicorn[27006]: WARNING:  Unsupported upgrade request.
+Jul 14 10:33:58 VM-7a18f394-4476-4cd4-ad3a-9451e0ca49c3 uvicorn[27006]: WARNING:  No supported WebSocket library detected. Please use "pip install 'uvicorn[standard]'", or install 'websockets' or 'wsproto' manually.
+Jul 14 10:34:09 VM-7a18f394-4476-4cd4-ad3a-9451e0ca49c3 uvicorn[27006]: WARNING:  Unsupported upgrade request.
+Jul 14 10:34:09 VM-7a18f394-4476-4cd4-ad3a-9451e0ca49c3 uvicorn[27006]: WARNING:  No supported WebSocket library detected. Please use "pip install 'uvicorn[standard]'", or install 'websockets' or 'wsproto' manually.
+Jul 14 10:34:19 VM-7a18f394-4476-4cd4-ad3a-9451e0ca49c3 uvicorn[27006]: WARNING:  Unsupported upgrade request.
+Jul 14 10:34:19 VM-7a18f394-4476-4cd4-ad3a-9451e0ca49c3 uvicorn[27006]: WARNING:  No supported WebSocket library detected. Please use "pip install 'uvicorn[standard]'", or install 'websockets' or 'wsproto' manually.
+Jul 14 10:34:20 VM-7a18f394-4476-4cd4-ad3a-9451e0ca49c3 uvicorn[27006]: 2026-07-14 10:34:20 [INFO] app.routers.webhook: Mensagem recebida de 554199692193: Oi
+Jul 14 10:34:22 VM-7a18f394-4476-4cd4-ad3a-9451e0ca49c3 uvicorn[27006]: 2026-07-14 10:34:22 [WARNING] app.services.whatsapp_service: WhatsApp API erro: {"error":{"message":"Unsupported post request. Object with ID '1136563242867085' does not exist, cannot be loaded due to missing permissions, or does not support this operation. Please read the Graph API documentation at https://developers.facebook.com/docs/graph-api","code":100,"type":"GraphMethodException","error_subcode":33,"fbtrace_id":"AEa7Y6NeIp9KJUrOkW-utRy"}}
+Jul 14 10:34:22 VM-7a18f394-4476-4cd4-ad3a-9451e0ca49c3 uvicorn[27006]: INFO:     173.252.79.9:0 - "POST /api/webhook HTTP/1.0" 200 OK
+Jul 14 10:34:22 VM-7a18f394-4476-4cd4-ad3a-9451e0ca49c3 uvicorn[27006]: 2026-07-14 10:34:22 [INFO] app.routers.webhook: Mensagem recebida de 554199692193: Oi
+Jul 14 10:34:24 VM-7a18f394-4476-4cd4-ad3a-9451e0ca49c3 uvicorn[27006]: 2026-07-14 10:34:24 [INFO] app.routers.webhook: Mensagem recebida de 554199692193: Oi
+Jul 14 10:34:24 VM-7a18f394-4476-4cd4-ad3a-9451e0ca49c3 uvicorn[27006]: 2026-07-14 10:34:24 [WARNING] app.services.whatsapp_service: WhatsApp API erro: {"error":{"message":"Unsupported post request. Object with ID '1136563242867085' does not exist, cannot be loaded due to missing permissions, or does not support this operation. Please read the Graph API documentation at https://developers.facebook.com/docs/graph-api","code":100,"type":"GraphMethodException","error_subcode":33,"fbtrace_id":"AhT3RvuJ140qKSsOD8KmJcY"}}
+Jul 14 10:34:24 VM-7a18f394-4476-4cd4-ad3a-9451e0ca49c3 uvicorn[27006]: INFO:     69.171.230.5:0 - "POST /api/webhook HTTP/1.0" 200 OK
+Jul 14 10:34:26 VM-7a18f394-4476-4cd4-ad3a-9451e0ca49c3 uvicorn[27006]: 2026-07-14 10:34:26 [WARNING] app.services.whatsapp_service: WhatsApp API erro: {"error":{"message":"Unsupported post request. Object with ID '1136563242867085' does not exist, cannot be loaded due to missing permissions, or does not support this operation. Please read the Graph API documentation at https://developers.facebook.com/docs/graph-api","code":100,"type":"GraphMethodException","error_subcode":33,"fbtrace_id":"AvGvjdLuKk5lnfH6jjIfMFh"}}
+Jul 14 10:34:26 VM-7a18f394-4476-4cd4-ad3a-9451e0ca49c3 uvicorn[27006]: INFO:     173.252.79.112:0 - "POST /api/webhook HTTP/1.0" 200 OK
+Jul 14 10:34:29 VM-7a18f394-4476-4cd4-ad3a-9451e0ca49c3 uvicorn[27006]: WARNING:  Unsupported upgrade request.
+Jul 14 10:34:29 VM-7a18f394-4476-4cd4-ad3a-9451e0ca49c3 uvicorn[27006]: WARNING:  No supported WebSocket library detected. Please use "pip install 'uvicorn[standard]'", or install 'websockets' or 'wsproto' manually.
+Jul 14 10:34:40 VM-7a18f394-4476-4cd4-ad3a-9451e0ca49c3 uvicorn[27006]: WARNING:  Unsupported upgrade request.
+Jul 14 10:34:40 VM-7a18f394-4476-4cd4-ad3a-9451e0ca49c3 uvicorn[27006]: WARNING:  No supported WebSocket library detected. Please use "pip install 'uvicorn[standard]'", or install 'websockets' or 'wsproto' manually.
+Jul 14 10:34:50 VM-7a18f394-4476-4cd4-ad3a-9451e0ca49c3 uvicorn[27006]: WARNING:  Unsupported upgrade request.
+Jul 14 10:34:50 VM-7a18f394-4476-4cd4-ad3a-9451e0ca49c3 uvicorn[27006]: WARNING:  No supported WebSocket library detected. Please use "pip install 'uvicorn[standard]'", or install 'websockets' or 'wsproto' manually.
+Jul 14 10:35:01 VM-7a18f394-4476-4cd4-ad3a-9451e0ca49c3 uvicorn[27006]: WARNING:  Unsupported upgrade request.
+Jul 14 10:35:01 VM-7a18f394-4476-4cd4-ad3a-9451e0ca49c3 uvicorn[27006]: WARNING:  No supported WebSocket library detected. Please use "pip install 'uvicorn[standard]'", or install 'websockets' or 'wsproto' manually.

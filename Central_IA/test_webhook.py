@@ -12,8 +12,8 @@ payload = {
                     "value": {
                         "messaging_product": "whatsapp",
                         "metadata": {
-                            "display_phone_number": "5511999999999",
-                            "phone_number_id": "5511999999999"
+                            "display_phone_number": "4188894240",
+                            "phone_number_id": "4188894240"
                         },
                         "contacts": [
                             {

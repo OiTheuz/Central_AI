@@ -12,6 +12,8 @@ class Merchant(Base):
     codigo_loja = Column(String(50), unique=True, index=True)
     telefone_contato = Column(String(50))
     numero_whatsapp = Column(String(20), nullable=True)  # not unique: sub-users share None
+    numero_chefe = Column(String(20), nullable=True)     # boss/assistant number
+    nome_chefe = Column(String(100), nullable=True)      # boss/assistant name
     nome_do_schema = Column(String(50), unique=True, nullable=False)
     area_atuacao = Column(String(100))
     foto_perfil = Column(String(500), nullable=True)

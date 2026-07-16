@@ -1,0 +1,100 @@
+Jul 14 15:05:18 VM-7a18f394-4476-4cd4-ad3a-9451e0ca49c3 uvicorn[35125]: WARNING:  Unsupported upgrade request.
+Jul 14 15:05:18 VM-7a18f394-4476-4cd4-ad3a-9451e0ca49c3 uvicorn[35125]: WARNING:  No supported WebSocket library detected. Please use "pip install 'uvicorn[standard]'", or install 'websockets' or 'wsproto' manually.
+Jul 14 15:05:18 VM-7a18f394-4476-4cd4-ad3a-9451e0ca49c3 uvicorn[35125]: INFO:     189.45.129.92:0 - "GET /ws/chat/?token=eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJtZXJjaGFudF9pZCI6MSwic2NoZW1hIjoiamVzc2llbHlfbW91cmEiLCJhY3RpbmdfYXMiOiJwZXQwMSIsImV4cCI6MTc4NDMxMTIzNH0.SioGREtROPAw0hO6zyajWDykbdRjg8liy8tpaNijXCQ HTTP/1.0" 404 Not Found
+Jul 14 15:05:19 VM-7a18f394-4476-4cd4-ad3a-9451e0ca49c3 uvicorn[35125]: WARNING:  Unsupported upgrade request.
+Jul 14 15:05:19 VM-7a18f394-4476-4cd4-ad3a-9451e0ca49c3 uvicorn[35125]: WARNING:  No supported WebSocket library detected. Please use "pip install 'uvicorn[standard]'", or install 'websockets' or 'wsproto' manually.
+Jul 14 15:05:19 VM-7a18f394-4476-4cd4-ad3a-9451e0ca49c3 uvicorn[35125]: INFO:     189.45.129.92:0 - "GET /ws/notificacoes?token=eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJtZXJjaGFudF9pZCI6MSwic2NoZW1hIjoiamVzc2llbHlfbW91cmEiLCJhY3RpbmdfYXMiOiJwZXQwMSIsImV4cCI6MTc4NDMxMTIzNH0.SioGREtROPAw0hO6zyajWDykbdRjg8liy8tpaNijXCQ HTTP/1.0" 404 Not Found
+Jul 14 15:05:19 VM-7a18f394-4476-4cd4-ad3a-9451e0ca49c3 uvicorn[35125]: !!! DEBUG GET_DB: conectando ao schema -> petshop_demo para merchant 30 (loja_pai: None)
+Jul 14 15:05:19 VM-7a18f394-4476-4cd4-ad3a-9451e0ca49c3 uvicorn[35125]: INFO:     189.45.129.92:0 - "GET /api/mobile/agendamentos/pendentes HTTP/1.0" 200 OK
+Jul 14 15:05:25 VM-7a18f394-4476-4cd4-ad3a-9451e0ca49c3 uvicorn[35125]: !!! DEBUG GET_DB: conectando ao schema -> petshop_demo para merchant 30 (loja_pai: None)
+Jul 14 15:05:25 VM-7a18f394-4476-4cd4-ad3a-9451e0ca49c3 uvicorn[35125]: INFO:     189.45.129.92:0 - "GET /api/mobile/agendamentos/pendentes HTTP/1.0" 200 OK
+Jul 14 15:05:27 VM-7a18f394-4476-4cd4-ad3a-9451e0ca49c3 uvicorn[35125]: WARNING:  Unsupported upgrade request.
+Jul 14 15:05:27 VM-7a18f394-4476-4cd4-ad3a-9451e0ca49c3 uvicorn[35125]: WARNING:  No supported WebSocket library detected. Please use "pip install 'uvicorn[standard]'", or install 'websockets' or 'wsproto' manually.
+Jul 14 15:05:27 VM-7a18f394-4476-4cd4-ad3a-9451e0ca49c3 uvicorn[35125]: INFO:     189.45.129.92:0 - "GET /ws/notificacoes?token=eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJtZXJjaGFudF9pZCI6MSwic2NoZW1hIjoiamVzc2llbHlfbW91cmEiLCJhY3RpbmdfYXMiOiJwZXQwMSIsImV4cCI6MTc4NDMxMTIzNH0.SioGREtROPAw0hO6zyajWDykbdRjg8liy8tpaNijXCQ HTTP/1.0" 404 Not Found
+Jul 14 15:05:30 VM-7a18f394-4476-4cd4-ad3a-9451e0ca49c3 uvicorn[35125]: WARNING:  Unsupported upgrade request.
+Jul 14 15:05:30 VM-7a18f394-4476-4cd4-ad3a-9451e0ca49c3 uvicorn[35125]: WARNING:  No supported WebSocket library detected. Please use "pip install 'uvicorn[standard]'", or install 'websockets' or 'wsproto' manually.
+Jul 14 15:05:30 VM-7a18f394-4476-4cd4-ad3a-9451e0ca49c3 uvicorn[35125]: INFO:     189.45.129.92:0 - "GET /ws/notificacoes?token=eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJtZXJjaGFudF9pZCI6MSwic2NoZW1hIjoiamVzc2llbHlfbW91cmEiLCJhY3RpbmdfYXMiOiJwZXQwMSIsImV4cCI6MTc4NDMxMTIzNH0.SioGREtROPAw0hO6zyajWDykbdRjg8liy8tpaNijXCQ HTTP/1.0" 404 Not Found
+Jul 14 15:05:32 VM-7a18f394-4476-4cd4-ad3a-9451e0ca49c3 uvicorn[35125]: [2026-07-14] Iniciando verificação de lembretes de petshop...
+Jul 14 15:05:32 VM-7a18f394-4476-4cd4-ad3a-9451e0ca49c3 uvicorn[35125]: Loja petshop_demo não tem credenciais do WhatsApp. Pulando.
+Jul 14 15:05:32 VM-7a18f394-4476-4cd4-ad3a-9451e0ca49c3 uvicorn[35125]: [2026-07-14 15:05:30.148921] Iniciando verificação de lembretes pré-serviço (todos os schemas)...
+Jul 14 15:05:32 VM-7a18f394-4476-4cd4-ad3a-9451e0ca49c3 uvicorn[35125]: INFO:     127.0.0.1:54252 - "GET /.git/config HTTP/1.0" 404 Not Found
+Jul 14 15:05:32 VM-7a18f394-4476-4cd4-ad3a-9451e0ca49c3 uvicorn[35125]: INFO:     127.0.0.1:54260 - "GET /.git/HEAD HTTP/1.0" 404 Not Found
+Jul 14 15:05:32 VM-7a18f394-4476-4cd4-ad3a-9451e0ca49c3 uvicorn[35125]: INFO:     127.0.0.1:54266 - "GET / HTTP/1.0" 200 OK
+Jul 14 15:05:32 VM-7a18f394-4476-4cd4-ad3a-9451e0ca49c3 uvicorn[35125]: INFO:     127.0.0.1:54274 - "GET /.env.local HTTP/1.0" 404 Not Found
+Jul 14 15:05:32 VM-7a18f394-4476-4cd4-ad3a-9451e0ca49c3 uvicorn[35125]: INFO:     127.0.0.1:54290 - "GET /.env.production HTTP/1.0" 404 Not Found
+Jul 14 15:05:32 VM-7a18f394-4476-4cd4-ad3a-9451e0ca49c3 uvicorn[35125]: INFO:     127.0.0.1:54282 - "GET /.env HTTP/1.0" 404 Not Found
+Jul 14 15:05:32 VM-7a18f394-4476-4cd4-ad3a-9451e0ca49c3 uvicorn[35125]: INFO:     127.0.0.1:54292 - "GET /.env.development HTTP/1.0" 404 Not Found
+Jul 14 15:05:32 VM-7a18f394-4476-4cd4-ad3a-9451e0ca49c3 uvicorn[35125]: INFO:     127.0.0.1:54298 - "GET /.env.bak HTTP/1.0" 404 Not Found
+Jul 14 15:05:32 VM-7a18f394-4476-4cd4-ad3a-9451e0ca49c3 uvicorn[35125]: INFO:     127.0.0.1:54310 - "GET /.env.backup HTTP/1.0" 404 Not Found
+Jul 14 15:05:32 VM-7a18f394-4476-4cd4-ad3a-9451e0ca49c3 uvicorn[35125]: INFO:     127.0.0.1:54316 - "GET /robots.txt HTTP/1.0" 404 Not Found
+Jul 14 15:05:32 VM-7a18f394-4476-4cd4-ad3a-9451e0ca49c3 uvicorn[35125]: INFO:     127.0.0.1:54320 - "GET /sitemap.xml HTTP/1.0" 404 Not Found
+Jul 14 15:05:32 VM-7a18f394-4476-4cd4-ad3a-9451e0ca49c3 uvicorn[35125]: INFO:     127.0.0.1:54336 - "GET /config.json HTTP/1.0" 404 Not Found
+Jul 14 15:05:32 VM-7a18f394-4476-4cd4-ad3a-9451e0ca49c3 uvicorn[35125]: INFO:     127.0.0.1:54342 - "GET /firebase-adminsdk.json HTTP/1.0" 404 Not Found
+Jul 14 15:05:32 VM-7a18f394-4476-4cd4-ad3a-9451e0ca49c3 uvicorn[35125]: INFO:     127.0.0.1:54356 - "GET /google-credentials.json HTTP/1.0" 404 Not Found
+Jul 14 15:05:32 VM-7a18f394-4476-4cd4-ad3a-9451e0ca49c3 uvicorn[35125]: INFO:     127.0.0.1:54364 - "GET /appsettings.json HTTP/1.0" 404 Not Found
+Jul 14 15:05:32 VM-7a18f394-4476-4cd4-ad3a-9451e0ca49c3 uvicorn[35125]: INFO:     127.0.0.1:54372 - "GET /credentials.json HTTP/1.0" 404 Not Found
+Jul 14 15:05:32 VM-7a18f394-4476-4cd4-ad3a-9451e0ca49c3 uvicorn[35125]: INFO:     127.0.0.1:54384 - "GET /secrets.json HTTP/1.0" 404 Not Found
+Jul 14 15:05:32 VM-7a18f394-4476-4cd4-ad3a-9451e0ca49c3 uvicorn[35125]: INFO:     127.0.0.1:54386 - "GET /actuator/env HTTP/1.0" 404 Not Found
+Jul 14 15:05:32 VM-7a18f394-4476-4cd4-ad3a-9451e0ca49c3 uvicorn[35125]: INFO:     127.0.0.1:54392 - "GET /api/config HTTP/1.0" 404 Not Found
+Jul 14 15:05:32 VM-7a18f394-4476-4cd4-ad3a-9451e0ca49c3 uvicorn[35125]: INFO:     127.0.0.1:54406 - "GET /firebase.json HTTP/1.0" 404 Not Found
+Jul 14 15:05:32 VM-7a18f394-4476-4cd4-ad3a-9451e0ca49c3 uvicorn[35125]: INFO:     127.0.0.1:54418 - "GET /key.json HTTP/1.0" 404 Not Found
+Jul 14 15:05:32 VM-7a18f394-4476-4cd4-ad3a-9451e0ca49c3 uvicorn[35125]: INFO:     127.0.0.1:54430 - "GET /api/env HTTP/1.0" 404 Not Found
+Jul 14 15:05:32 VM-7a18f394-4476-4cd4-ad3a-9451e0ca49c3 uvicorn[35125]: INFO:     127.0.0.1:54438 - "GET /keyfile.json HTTP/1.0" 404 Not Found
+Jul 14 15:05:32 VM-7a18f394-4476-4cd4-ad3a-9451e0ca49c3 uvicorn[35125]: INFO:     127.0.0.1:54454 - "GET /account.json HTTP/1.0" 404 Not Found
+Jul 14 15:05:32 VM-7a18f394-4476-4cd4-ad3a-9451e0ca49c3 uvicorn[35125]: INFO:     127.0.0.1:54460 - "GET /service-account.json HTTP/1.0" 404 Not Found
+Jul 14 15:05:32 VM-7a18f394-4476-4cd4-ad3a-9451e0ca49c3 uvicorn[35125]: INFO:     127.0.0.1:54472 - "GET /gcp-credentials.json HTTP/1.0" 404 Not Found
+Jul 14 15:05:34 VM-7a18f394-4476-4cd4-ad3a-9451e0ca49c3 uvicorn[35125]: !!! DEBUG GET_DB: conectando ao schema -> petshop_demo para merchant 30 (loja_pai: None)
+Jul 14 15:05:34 VM-7a18f394-4476-4cd4-ad3a-9451e0ca49c3 uvicorn[35125]: INFO:     189.45.129.92:0 - "GET /api/mobile/agendamentos/pendentes HTTP/1.0" 200 OK
+Jul 14 15:05:38 VM-7a18f394-4476-4cd4-ad3a-9451e0ca49c3 uvicorn[35125]: WARNING:  Unsupported upgrade request.
+Jul 14 15:05:38 VM-7a18f394-4476-4cd4-ad3a-9451e0ca49c3 uvicorn[35125]: WARNING:  No supported WebSocket library detected. Please use "pip install 'uvicorn[standard]'", or install 'websockets' or 'wsproto' manually.
+Jul 14 15:05:38 VM-7a18f394-4476-4cd4-ad3a-9451e0ca49c3 uvicorn[35125]: INFO:     189.45.129.92:0 - "GET /ws/notificacoes?token=eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJtZXJjaGFudF9pZCI6MSwic2NoZW1hIjoiamVzc2llbHlfbW91cmEiLCJhY3RpbmdfYXMiOiJwZXQwMSIsImV4cCI6MTc4NDMxMTIzNH0.SioGREtROPAw0hO6zyajWDykbdRjg8liy8tpaNijXCQ HTTP/1.0" 404 Not Found
+Jul 14 15:05:40 VM-7a18f394-4476-4cd4-ad3a-9451e0ca49c3 uvicorn[35125]: !!! DEBUG GET_DB: conectando ao schema -> petshop_demo para merchant 30 (loja_pai: None)
+Jul 14 15:05:40 VM-7a18f394-4476-4cd4-ad3a-9451e0ca49c3 uvicorn[35125]: INFO:     189.45.129.92:0 - "GET /api/mobile/agendamentos/pendentes HTTP/1.0" 200 OK
+Jul 14 15:05:41 VM-7a18f394-4476-4cd4-ad3a-9451e0ca49c3 uvicorn[35125]: WARNING:  Unsupported upgrade request.
+Jul 14 15:05:41 VM-7a18f394-4476-4cd4-ad3a-9451e0ca49c3 uvicorn[35125]: WARNING:  No supported WebSocket library detected. Please use "pip install 'uvicorn[standard]'", or install 'websockets' or 'wsproto' manually.
+Jul 14 15:05:41 VM-7a18f394-4476-4cd4-ad3a-9451e0ca49c3 uvicorn[35125]: INFO:     189.45.129.92:0 - "GET /ws/notificacoes?token=eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJtZXJjaGFudF9pZCI6MSwic2NoZW1hIjoiamVzc2llbHlfbW91cmEiLCJhY3RpbmdfYXMiOiJwZXQwMSIsImV4cCI6MTc4NDMxMTIzNH0.SioGREtROPAw0hO6zyajWDykbdRjg8liy8tpaNijXCQ HTTP/1.0" 404 Not Found
+Jul 14 15:05:42 VM-7a18f394-4476-4cd4-ad3a-9451e0ca49c3 uvicorn[35125]: WARNING:  Unsupported upgrade request.
+Jul 14 15:05:42 VM-7a18f394-4476-4cd4-ad3a-9451e0ca49c3 uvicorn[35125]: WARNING:  No supported WebSocket library detected. Please use "pip install 'uvicorn[standard]'", or install 'websockets' or 'wsproto' manually.
+Jul 14 15:05:42 VM-7a18f394-4476-4cd4-ad3a-9451e0ca49c3 uvicorn[35125]: INFO:     189.45.129.92:0 - "GET /ws/chat/?token=eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJtZXJjaGFudF9pZCI6MSwic2NoZW1hIjoiamVzc2llbHlfbW91cmEiLCJhY3RpbmdfYXMiOiJwZXQwMSIsImV4cCI6MTc4NDMxMTIzNH0.SioGREtROPAw0hO6zyajWDykbdRjg8liy8tpaNijXCQ HTTP/1.0" 404 Not Found
+Jul 14 15:05:48 VM-7a18f394-4476-4cd4-ad3a-9451e0ca49c3 uvicorn[35125]: WARNING:  Unsupported upgrade request.
+Jul 14 15:05:48 VM-7a18f394-4476-4cd4-ad3a-9451e0ca49c3 uvicorn[35125]: WARNING:  No supported WebSocket library detected. Please use "pip install 'uvicorn[standard]'", or install 'websockets' or 'wsproto' manually.
+Jul 14 15:05:48 VM-7a18f394-4476-4cd4-ad3a-9451e0ca49c3 uvicorn[35125]: INFO:     189.45.129.92:0 - "GET /ws/notificacoes?token=eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJtZXJjaGFudF9pZCI6MSwic2NoZW1hIjoiamVzc2llbHlfbW91cmEiLCJhY3RpbmdfYXMiOiJwZXQwMSIsImV4cCI6MTc4NDMxMTIzNH0.SioGREtROPAw0hO6zyajWDykbdRjg8liy8tpaNijXCQ HTTP/1.0" 404 Not Found
+Jul 14 15:05:49 VM-7a18f394-4476-4cd4-ad3a-9451e0ca49c3 uvicorn[35125]: !!! DEBUG GET_DB: conectando ao schema -> petshop_demo para merchant 30 (loja_pai: None)
+Jul 14 15:05:49 VM-7a18f394-4476-4cd4-ad3a-9451e0ca49c3 uvicorn[35125]: INFO:     189.45.129.92:0 - "GET /api/mobile/agendamentos/pendentes HTTP/1.0" 200 OK
+Jul 14 15:05:53 VM-7a18f394-4476-4cd4-ad3a-9451e0ca49c3 uvicorn[35125]: WARNING:  Unsupported upgrade request.
+Jul 14 15:05:53 VM-7a18f394-4476-4cd4-ad3a-9451e0ca49c3 uvicorn[35125]: WARNING:  No supported WebSocket library detected. Please use "pip install 'uvicorn[standard]'", or install 'websockets' or 'wsproto' manually.
+Jul 14 15:05:53 VM-7a18f394-4476-4cd4-ad3a-9451e0ca49c3 uvicorn[35125]: INFO:     189.45.129.92:0 - "GET /ws/notificacoes?token=eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJtZXJjaGFudF9pZCI6MSwic2NoZW1hIjoiamVzc2llbHlfbW91cmEiLCJhY3RpbmdfYXMiOiJwZXQwMSIsImV4cCI6MTc4NDMwOTQyNn0.KqE34de450x4HThUyVXnzuk5pgVbF0Xpv5fcQYB3EwE HTTP/1.0" 404 Not Found
+Jul 14 15:05:53 VM-7a18f394-4476-4cd4-ad3a-9451e0ca49c3 uvicorn[35125]: !!! DEBUG GET_DB: conectando ao schema -> petshop_demo para merchant 30 (loja_pai: None)
+Jul 14 15:05:53 VM-7a18f394-4476-4cd4-ad3a-9451e0ca49c3 uvicorn[35125]: INFO:     189.45.129.92:0 - "GET /api/mobile/agendamentos/pendentes HTTP/1.0" 200 OK
+Jul 14 15:05:53 VM-7a18f394-4476-4cd4-ad3a-9451e0ca49c3 uvicorn[35125]: WARNING:  Unsupported upgrade request.
+Jul 14 15:05:53 VM-7a18f394-4476-4cd4-ad3a-9451e0ca49c3 uvicorn[35125]: WARNING:  No supported WebSocket library detected. Please use "pip install 'uvicorn[standard]'", or install 'websockets' or 'wsproto' manually.
+Jul 14 15:05:53 VM-7a18f394-4476-4cd4-ad3a-9451e0ca49c3 uvicorn[35125]: INFO:     189.45.129.92:0 - "GET /ws/chat/?token=eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJtZXJjaGFudF9pZCI6MSwic2NoZW1hIjoiamVzc2llbHlfbW91cmEiLCJhY3RpbmdfYXMiOiJwZXQwMSIsImV4cCI6MTc4NDMwOTQyNn0.KqE34de450x4HThUyVXnzuk5pgVbF0Xpv5fcQYB3EwE HTTP/1.0" 404 Not Found
+Jul 14 15:05:55 VM-7a18f394-4476-4cd4-ad3a-9451e0ca49c3 uvicorn[35125]: INFO:     189.45.129.92:0 - "OPTIONS /api/mobile/agendamentos/hoje HTTP/1.0" 200 OK
+Jul 14 15:05:55 VM-7a18f394-4476-4cd4-ad3a-9451e0ca49c3 uvicorn[35125]: INFO:     189.45.129.92:0 - "OPTIONS /api/mobile/metricas/hoje HTTP/1.0" 200 OK
+Jul 14 15:05:55 VM-7a18f394-4476-4cd4-ad3a-9451e0ca49c3 uvicorn[35125]: WARNING:  Unsupported upgrade request.
+Jul 14 15:05:55 VM-7a18f394-4476-4cd4-ad3a-9451e0ca49c3 uvicorn[35125]: WARNING:  No supported WebSocket library detected. Please use "pip install 'uvicorn[standard]'", or install 'websockets' or 'wsproto' manually.
+Jul 14 15:05:55 VM-7a18f394-4476-4cd4-ad3a-9451e0ca49c3 uvicorn[35125]: INFO:     189.45.129.92:0 - "GET /ws/chat/?token=eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJtZXJjaGFudF9pZCI6MSwic2NoZW1hIjoiamVzc2llbHlfbW91cmEiLCJhY3RpbmdfYXMiOiJwZXQwMSIsImV4cCI6MTc4NDMwOTQyNn0.KqE34de450x4HThUyVXnzuk5pgVbF0Xpv5fcQYB3EwE HTTP/1.0" 404 Not Found
+Jul 14 15:05:56 VM-7a18f394-4476-4cd4-ad3a-9451e0ca49c3 uvicorn[35125]: !!! DEBUG GET_DB: conectando ao schema -> petshop_demo para merchant 30 (loja_pai: None)
+Jul 14 15:05:56 VM-7a18f394-4476-4cd4-ad3a-9451e0ca49c3 uvicorn[35125]: INFO:     189.45.129.92:0 - "GET /api/mobile/agendamentos/pendentes HTTP/1.0" 200 OK
+Jul 14 15:05:56 VM-7a18f394-4476-4cd4-ad3a-9451e0ca49c3 uvicorn[35125]: !!! DEBUG GET_DB: conectando ao schema -> petshop_demo para merchant 30 (loja_pai: None)
+Jul 14 15:05:56 VM-7a18f394-4476-4cd4-ad3a-9451e0ca49c3 uvicorn[35125]: INFO:     189.45.129.92:0 - "GET /api/mobile/agendamentos/hoje HTTP/1.0" 200 OK
+Jul 14 15:05:56 VM-7a18f394-4476-4cd4-ad3a-9451e0ca49c3 uvicorn[35125]: !!! DEBUG GET_DB: conectando ao schema -> petshop_demo para merchant 30 (loja_pai: None)
+Jul 14 15:05:56 VM-7a18f394-4476-4cd4-ad3a-9451e0ca49c3 uvicorn[35125]: INFO:     189.45.129.92:0 - "GET /api/mobile/metricas/hoje HTTP/1.0" 200 OK
+Jul 14 15:05:56 VM-7a18f394-4476-4cd4-ad3a-9451e0ca49c3 uvicorn[35125]: WARNING:  Unsupported upgrade request.
+Jul 14 15:05:56 VM-7a18f394-4476-4cd4-ad3a-9451e0ca49c3 uvicorn[35125]: WARNING:  No supported WebSocket library detected. Please use "pip install 'uvicorn[standard]'", or install 'websockets' or 'wsproto' manually.
+Jul 14 15:05:56 VM-7a18f394-4476-4cd4-ad3a-9451e0ca49c3 uvicorn[35125]: INFO:     189.45.129.92:0 - "GET /ws/notificacoes?token=eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJtZXJjaGFudF9pZCI6MSwic2NoZW1hIjoiamVzc2llbHlfbW91cmEiLCJhY3RpbmdfYXMiOiJwZXQwMSIsImV4cCI6MTc4NDMwOTQyNn0.KqE34de450x4HThUyVXnzuk5pgVbF0Xpv5fcQYB3EwE HTTP/1.0" 404 Not Found
+Jul 14 15:06:53 VM-7a18f394-4476-4cd4-ad3a-9451e0ca49c3 systemd[1]: Stopping central_ai.service - Gunicorn/Uvicorn Daemon para a Central de IA...
+Jul 14 15:06:53 VM-7a18f394-4476-4cd4-ad3a-9451e0ca49c3 uvicorn[35125]: INFO:     Shutting down
+Jul 14 15:06:53 VM-7a18f394-4476-4cd4-ad3a-9451e0ca49c3 uvicorn[35125]: INFO:     Waiting for application shutdown.
+Jul 14 15:06:53 VM-7a18f394-4476-4cd4-ad3a-9451e0ca49c3 uvicorn[35125]: 2026-07-14 15:06:53 [INFO] app.main: Encerrando background tasks...
+Jul 14 15:06:53 VM-7a18f394-4476-4cd4-ad3a-9451e0ca49c3 uvicorn[35125]: INFO:     Application shutdown complete.
+Jul 14 15:06:53 VM-7a18f394-4476-4cd4-ad3a-9451e0ca49c3 uvicorn[35125]: INFO:     Finished server process [35125]
+Jul 14 15:06:53 VM-7a18f394-4476-4cd4-ad3a-9451e0ca49c3 systemd[1]: central_ai.service: Deactivated successfully.
+Jul 14 15:06:53 VM-7a18f394-4476-4cd4-ad3a-9451e0ca49c3 systemd[1]: Stopped central_ai.service - Gunicorn/Uvicorn Daemon para a Central de IA.
+Jul 14 15:06:53 VM-7a18f394-4476-4cd4-ad3a-9451e0ca49c3 systemd[1]: central_ai.service: Consumed 2.041s CPU time over 2min 24.457s wall clock time, 103.6M memory peak.
+Jul 14 15:06:53 VM-7a18f394-4476-4cd4-ad3a-9451e0ca49c3 systemd[1]: Started central_ai.service - Gunicorn/Uvicorn Daemon para a Central de IA.
+Jul 14 15:06:54 VM-7a18f394-4476-4cd4-ad3a-9451e0ca49c3 uvicorn[35298]: INFO:     Started server process [35298]
+Jul 14 15:06:54 VM-7a18f394-4476-4cd4-ad3a-9451e0ca49c3 uvicorn[35298]: INFO:     Waiting for application startup.
+Jul 14 15:06:54 VM-7a18f394-4476-4cd4-ad3a-9451e0ca49c3 uvicorn[35298]: 2026-07-14 15:06:54 [INFO] app.main: Iniciando background tasks (Timeouts e Lembretes)...
+Jul 14 15:06:54 VM-7a18f394-4476-4cd4-ad3a-9451e0ca49c3 uvicorn[35298]: INFO:     Application startup complete.
+Jul 14 15:06:54 VM-7a18f394-4476-4cd4-ad3a-9451e0ca49c3 uvicorn[35298]: INFO:     Uvicorn running on http://0.0.0.0:8000 (Press CTRL+C to quit)

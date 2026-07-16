@@ -26,13 +26,18 @@ class ConnectionManager:
                 del self.active_connections[schema]
 
     async def broadcast_to_schema(self, schema: str, message: dict):
-        if schema in self.active_connections:
-            # Create a copy of the list to avoid RuntimeError if a client disconnects during broadcast
-            connections = list(self.active_connections[schema])
-            for connection in connections:
-                try:
-                    await connection.send_text(json.dumps(message))
-                except Exception as e:
-                    logger.warning(f"Falha ao enviar mensagem WebSocket no schema {schema}: {e}")
+        schemas_to_notify = {schema}
+        if schema != "public":
+            schemas_to_notify.add("public")
+            
+        for s in schemas_to_notify:
+            if s in self.active_connections:
+                # Create a copy of the list to avoid RuntimeError if a client disconnects during broadcast
+                connections = list(self.active_connections[s])
+                for connection in connections:
+                    try:
+                        await connection.send_text(json.dumps(message))
+                    except Exception as e:
+                        logger.warning(f"Falha ao enviar mensagem WebSocket no schema {s}: {e}")
 
 manager = ConnectionManager()
