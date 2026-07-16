@@ -17,7 +17,7 @@ from app.database import engine, Base, SessionLocal
 from app.models import Merchant, ActiveSession  # noqa: F401
 
 # Importa os routers
-from app.routers import webhook_router, lojistas_router, agendamentos_router, custos, chat_router, ws_chat_router, onboarding
+from app.routers import webhook_router, lojistas_router, agendamentos_router, custos, chat_router, ws_chat_router, onboarding, billing
 
 # =========================================================
 # LOGGING — substitui print() por logs estruturados
@@ -348,6 +348,7 @@ app.include_router(custos.router)
 app.include_router(chat_router)
 app.include_router(ws_chat_router)
 app.include_router(onboarding.router)
+app.include_router(billing.router, prefix="/api")
 
 # =========================================================
 # HEALTH CHECK E ARQUIVOS ESTÁTICOS

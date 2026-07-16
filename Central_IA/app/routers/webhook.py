@@ -205,6 +205,14 @@ async def receive_message(request: Request, db: Session = Depends(get_public_db)
                 logger.warning("Mensagem recebida para número/ID não registrado: %s / %s", display_limpo, phone_id_limpo)
                 # Responde 200 para que a Meta não fique retentando indefinidamente
                 return JSONResponse(content={"status": "numero_nao_registrado"}, status_code=200)
+
+            # =========================================================
+            # TRAVA DE SEGURANÇA SAAS (Verifica Inadimplência)
+            # =========================================================
+            status_ass = getattr(lojista, 'status_assinatura', 'ativo')
+            if status_ass == 'inativo':
+                logger.warning(f"Lojista {lojista.nome_loja} (ID {lojista.id}) está INATIVO por falta de pagamento. Ignorando WhatsApp.")
+                return JSONResponse(content={"status": "assinatura_inativa"}, status_code=200)
             
             # Seta as credenciais específicas do lojista no contexto.
             if getattr(lojista, 'meta_access_token', None):

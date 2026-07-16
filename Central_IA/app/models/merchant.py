@@ -26,6 +26,12 @@ class Merchant(Base):
     cupom_usado = Column(String(50), nullable=True)
     como_conheceu = Column(String(100), nullable=True)
 
+    # Assinatura SaaS (Asaas)
+    asaas_customer_id = Column(String(255), nullable=True)
+    asaas_subscription_id = Column(String(255), nullable=True)
+    status_assinatura = Column(String(50), default="ativo", nullable=False, server_default="ativo")
+    data_vencimento = Column(String(50), nullable=True) # ou DateTime
+
     # Autenticação (login do lojista no app)
     email = Column(String(255), unique=True, nullable=True)
     senha_hash = Column(String(255), nullable=True)
