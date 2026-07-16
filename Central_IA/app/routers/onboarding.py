@@ -6,6 +6,7 @@ import re
 
 from app.database import get_public_db
 from app.models.merchant import Merchant
+from app.models.whatsapp_log import WhatsappMessageLog
 from app.services.auth_service import hash_senha
 from app.services.schema_service import criar_novo_estabelecimento
 
@@ -83,25 +84,40 @@ def get_admin_merchants(db: Session = Depends(get_public_db)):
     """
     lojas = db.query(Merchant).filter(Merchant.loja_pai_id.is_(None)).order_by(Merchant.id.desc()).all()
     
-    # Calcular métricas básicas
     total_lojas = len(lojas)
+    
+    # Busca mensagens reais (no banco public, tabela whatsapp_message_log)
+    total_mensagens = db.query(WhatsappMessageLog).count()
+
+    total_agendamentos = 0
+    merchants_data = []
+
+    for l in lojas:
+        # Conta agendamentos reais em cada schema isolado
+        agendamentos_loja = 0
+        try:
+            if l.nome_do_schema:
+                res = db.execute(text(f"SELECT count(*) FROM {l.nome_do_schema}.appointments"))
+                agendamentos_loja = res.scalar() or 0
+                total_agendamentos += agendamentos_loja
+        except Exception:
+            pass # Ignora caso a tabela ainda não exista
+
+        merchants_data.append({
+            "id": l.id,
+            "name": l.nome_loja,
+            "niche": l.area_atuacao or "Geral",
+            "status": "Ativo" if l.meta_access_token else "Pendente (Sem WhatsApp)",
+            "date": "Cadastrado"
+        })
     
     return {
         "stats": {
             "total_lojas": total_lojas,
-            "mensagens_processadas": total_lojas * 150, # Mock de uso
-            "agendamentos_hoje": total_lojas * 5, # Mock de uso
-            "receita_mrr": f"R$ {total_lojas * 150},00" # Mock assumindo R$ 150/mês
+            "mensagens_processadas": total_mensagens,
+            "agendamentos_hoje": total_agendamentos, # Total de agendamentos no sistema
+            "receita_mrr": f"R$ {total_lojas * 150},00" # Custo fixo da assinatura
         },
-        "merchants": [
-            {
-                "id": l.id,
-                "name": l.nome_loja,
-                "niche": l.area_atuacao or "Geral",
-                "status": "Ativo" if l.nome_do_schema else "Pendente",
-                "date": "Hoje" # Depois pegar data de criacao real
-            }
-            for l in lojas
-        ]
+        "merchants": merchants_data
     }
 
