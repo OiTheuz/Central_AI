@@ -270,13 +270,13 @@ async def _loop_de_lembretes_diarios():
 # =========================================================
 
 async def _loop_de_lembretes_1_minuto():
-    from scripts.check_lembretes_petshop import run_lembretes
+    from scripts.check_lembretes_pos import run_lembretes
     from scripts.check_lembretes_pre import run_lembretes_pre
     while True:
         try:
             await run_lembretes()
         except Exception as e:
-            logger.error("Erro no loop de lembretes petshop (pos): %s", e)
+            logger.error("Erro no loop de lembretes pos-servico: %s", e)
             
         try:
             await run_lembretes_pre()
