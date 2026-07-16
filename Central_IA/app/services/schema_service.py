@@ -1,5 +1,6 @@
 import logging
 from typing import List
+from app.utils.niche_templates import get_services_for_niche
 
 from sqlalchemy import text
 
@@ -29,22 +30,7 @@ def criar_novo_estabelecimento(schema_nome: str, tabelas: List[str], nicho: str 
             usar_dados = False
             
             if nicho:
-                # Sanitizar nome do nicho para evitar SQL Injection (já que vamos interpolar)
-                import re
-                nicho_limpo = re.sub(r'[^a-zA-Z0-9_]', '', nicho.lower())
-                nome_template = f"template_{nicho_limpo}"
-                
-                # Verifica se o template existe no banco
-                result = conn.execute(text(
-                    "SELECT schema_name FROM information_schema.schemata WHERE schema_name = :schema_name"
-                ), {"schema_name": nome_template})
-                
-                if result.fetchone():
-                    schema_base = nome_template
-                    usar_dados = True  # Para templates específicos, copiamos os dados (ex: serviços)
-                    logger.info("Usando template específico para nicho: %s", schema_base)
-                else:
-                    logger.info("Template %s não encontrado. Usando moura_schema", nome_template)
+                logger.info("Usando map em código para nicho: %s. Banco base: moura_schema", nicho)
             
             # 2. Cria o novo schema
             logger.info("Criando schema %s", schema)
@@ -69,6 +55,25 @@ def criar_novo_estabelecimento(schema_nome: str, tabelas: List[str], nicho: str 
                     conn.execute(text(f"INSERT INTO {schema}.{tabela} SELECT * FROM {schema_base}.{tabela}"))
                 else:
                     conn.execute(text(f"TRUNCATE {schema}.{tabela}"))
+            
+            # 4. Insere os serviços mapeados para o nicho (se houver)
+            if nicho:
+                servicos = get_services_for_niche(nicho)
+                for svc in servicos:
+                    conn.execute(text(
+                        f"""
+                        INSERT INTO {schema}.services 
+                        (nome, preco, duracao_minutos, lembrete_ativo, lembrete_valor_intervalo, lembrete_tipo_intervalo) 
+                        VALUES (:nome, :preco, :duracao, :lembrete_ativo, :lembrete_valor, :lembrete_tipo)
+                        """
+                    ), {
+                        "nome": svc["nome"],
+                        "preco": svc["preco"],
+                        "duracao": svc["duracao_minutos"],
+                        "lembrete_ativo": svc["lembrete_ativo"],
+                        "lembrete_valor": svc["lembrete_valor"],
+                        "lembrete_tipo": svc["lembrete_tipo"]
+                    })
                     
         logger.info("Schema %s criado com sucesso baseado em %s", schema, schema_base)
     except Exception as e:
