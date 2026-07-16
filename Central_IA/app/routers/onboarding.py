@@ -21,6 +21,8 @@ class SimulatePaymentRequest(BaseModel):
     senha: str
     nicho: str
     telefone: str = None
+    cupom: str = None
+    como_conheceu: str = None
 
 @router.post("/simulate-payment")
 def simulate_payment(body: SimulatePaymentRequest, db: Session = Depends(get_public_db)):
@@ -62,6 +64,8 @@ def simulate_payment(body: SimulatePaymentRequest, db: Session = Depends(get_pub
         nome_do_schema=schema_nome,
         area_atuacao=body.nicho,
         telefone_contato=body.telefone,
+        cupom_usado=body.cupom,
+        como_conheceu=body.como_conheceu,
         is_admin=False,
         tem_dashboard=True,
     )

@@ -22,6 +22,9 @@ class Merchant(Base):
     pode_editar_servicos = Column(Boolean, default=True, nullable=False, server_default="true")
     loja_pai_id = Column(Integer, ForeignKey('merchant.id'), nullable=True)
 
+    # Marketing e Onboarding
+    cupom_usado = Column(String(50), nullable=True)
+    como_conheceu = Column(String(100), nullable=True)
 
     # Autenticação (login do lojista no app)
     email = Column(String(255), unique=True, nullable=True)
