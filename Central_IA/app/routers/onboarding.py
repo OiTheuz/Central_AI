@@ -121,3 +121,31 @@ def get_admin_merchants(db: Session = Depends(get_public_db)):
         "merchants": merchants_data
     }
 
+class SetupWizardRequest(BaseModel):
+    lojista_id: int
+    horario_abertura: str
+    horario_fechamento: str
+    horario_almoco_inicio: str = None
+    horario_almoco_fim: str = None
+    dias_fechados: str = None
+    instrucoes_ia: str = None
+
+@router.put("/setup-wizard")
+def setup_wizard(body: SetupWizardRequest, db: Session = Depends(get_public_db)):
+    """
+    Salva as configurações iniciais definidas no Setup Wizard da web.
+    """
+    merchant = db.query(Merchant).filter(Merchant.id == body.lojista_id).first()
+    if not merchant:
+        raise HTTPException(status_code=404, detail="Lojista não encontrado.")
+
+    merchant.horario_abertura = body.horario_abertura
+    merchant.horario_fechamento = body.horario_fechamento
+    merchant.horario_almoco_inicio = body.horario_almoco_inicio
+    merchant.horario_almoco_fim = body.horario_almoco_fim
+    merchant.dias_fechados = body.dias_fechados
+    merchant.instrucoes_ia = body.instrucoes_ia
+
+    db.commit()
+    return {"status": "sucesso", "mensagem": "Configurações salvas com sucesso!"}
+

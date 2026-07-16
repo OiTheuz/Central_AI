@@ -1393,7 +1393,8 @@ async def receive_message(request: Request, db: Session = Depends(get_public_db)
                 nome_loja=nome_loja, 
                 data_nascimento_conhecida=dt_nascimento_conhecida,
                 regras_agenda=regras_texto,
-                area_atuacao=lojista.area_atuacao or ""
+                area_atuacao=lojista.area_atuacao or "",
+                instrucoes_ia=lojista.instrucoes_ia or ""
             )
             
             texto_ia = resposta_ia.get("mensagem_resposta")

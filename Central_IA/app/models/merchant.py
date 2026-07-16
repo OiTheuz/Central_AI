@@ -1,4 +1,4 @@
-from sqlalchemy import Column, Integer, String, Boolean, ForeignKey
+from sqlalchemy import Column, Integer, String, Boolean, ForeignKey, Text
 
 from app.database import Base
 
@@ -38,6 +38,9 @@ class Merchant(Base):
     permitir_sobreposicao = Column(Boolean, default=False, nullable=False, server_default="false")
     horario_abertura = Column(String(5), default="08:00", nullable=False, server_default="08:00")
     horario_fechamento = Column(String(5), default="18:00", nullable=False, server_default="18:00")
+    
+    # Comportamento da IA
+    instrucoes_ia = Column(Text, nullable=True)
     
     # Bloqueios e Almoço
     dias_fechados = Column(String(50), nullable=True)  # "0,6" onde 0=Segunda, 6=Domingo

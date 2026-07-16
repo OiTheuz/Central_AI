@@ -30,7 +30,8 @@ async def analisar_mensagem_com_ia(
     nome_loja: str = "Loja",
     data_nascimento_conhecida: bool = False,
     regras_agenda: str = "",
-    area_atuacao: str = ""
+    area_atuacao: str = "",
+    instrucoes_ia: str = ""
 ) -> dict:
     """
     Analisa as mensagens e extrai os dados em formato JSON puro.
@@ -56,13 +57,16 @@ async def analisar_mensagem_com_ia(
         proximos_dias.append(f"  - {nome_dia}: {d.strftime('%Y-%m-%d')}")
     calendario_referencia = "\n".join(proximos_dias)
     
+    # Regras do negócio adicionais injetadas do painel do lojista
+    regras_adicionais = f"\n    REGRAS DO NEGÓCIO DEFINIDAS PELO LOJISTA:\n    {instrucoes_ia}\n" if instrucoes_ia else ""
+
     prompt_sistema = f"""Você é a Lau, a secretária virtual exclusiva e oficial da loja '{nome_loja}'.
     Você é altamente objetiva, profissional e assertiva em agendamentos.
     Agora é exatamente {data_hora_atual}. Hoje é {dia_semana_hoje}.
 
     CALENDÁRIO DE REFERÊNCIA (próximos 14 dias):
 {calendario_referencia}
-
+{regras_adicionais}
     Use essa referência para interpretar expressões como:
     - "hoje" → {hoje.strftime('%Y-%m-%d')}
     - "amanhã" → {(hoje + timedelta(days=1)).strftime('%Y-%m-%d')}
