@@ -168,6 +168,23 @@ def change_password(
     db.commit()
     return {"status": "sucesso", "mensagem": "Senha alterada com sucesso!"}
 
+class UpdateMetaTokenRequest(BaseModel):
+    meta_access_token: str
+    meta_phone_id: str
+
+@router.post("/update-meta-token")
+def update_meta_token(
+    body: UpdateMetaTokenRequest,
+    merchant: Merchant = Depends(get_lojista_atual),
+    db: Session = Depends(get_public_db)
+):
+    """Atualiza as credenciais do WhatsApp Oficial (Token e Phone ID)."""
+    merchant.meta_access_token = body.meta_access_token
+    merchant.meta_phone_id = body.meta_phone_id
+    db.commit()
+    return {"status": "sucesso", "mensagem": "WhatsApp conectado com sucesso!"}
+
+
 
 # ─── Definição de senha — protegida por JWT do lojista ───────
 # Exige autenticação prévia (lojista já logado via token temporário).
