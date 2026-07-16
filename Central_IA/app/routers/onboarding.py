@@ -9,6 +9,7 @@ from app.models.merchant import Merchant
 from app.models.whatsapp_log import WhatsappMessageLog
 from app.services.auth_service import hash_senha
 from app.services.schema_service import criar_novo_estabelecimento
+from app.services.asaas_service import criar_cliente, criar_assinatura_pix
 
 router = APIRouter(
     prefix="/api/onboarding",
@@ -54,7 +55,14 @@ def simulate_payment(body: SimulatePaymentRequest, db: Session = Depends(get_pub
     except Exception as e:
         raise HTTPException(status_code=500, detail=f"Erro ao criar banco de dados: {str(e)}")
 
-    # 4. Registra no public.merchant
+    # 4. Integração Real Asaas: Criar Cliente e Assinatura
+    try:
+        asaas_customer_id = criar_cliente(nome=body.nome_loja, email=body.email, telefone=body.telefone)
+        asaas_pix_data = criar_assinatura_pix(customer_id=asaas_customer_id, valor=150.00)
+    except Exception as e:
+        raise HTTPException(status_code=502, detail=f"Erro de comunicação com Asaas: {str(e)}")
+
+    # 5. Registra no public.merchant com status pendente (inativo) até pagar
     novo_lojista = Merchant(
         nome_loja=body.nome_loja,
         nome_usuario=body.nome_loja,
@@ -68,6 +76,9 @@ def simulate_payment(body: SimulatePaymentRequest, db: Session = Depends(get_pub
         como_conheceu=body.como_conheceu,
         is_admin=False,
         tem_dashboard=True,
+        asaas_customer_id=asaas_customer_id,
+        asaas_subscription_id=asaas_pix_data['subscription_id'],
+        status_assinatura='inativo' # Começa inativo até pagar o pix!
     )
     db.add(novo_lojista)
     db.commit()
@@ -75,9 +86,11 @@ def simulate_payment(body: SimulatePaymentRequest, db: Session = Depends(get_pub
 
     return {
         "status": "sucesso",
-        "mensagem": "Pagamento confirmado e Loja criada com sucesso!",
+        "mensagem": "Cobrança gerada com sucesso! Aguardando pagamento.",
         "lojista_id": novo_lojista.id,
-        "schema": schema_nome
+        "schema": schema_nome,
+        "asaas_pix_payload": asaas_pix_data['pix_payload'],
+        "asaas_pix_qrcode": asaas_pix_data['pix_qrcode_image']
     }
 
 @router.get("/admin-merchants")
@@ -152,4 +165,17 @@ def setup_wizard(body: SetupWizardRequest, db: Session = Depends(get_public_db))
 
     db.commit()
     return {"status": "sucesso", "mensagem": "Configurações salvas com sucesso!"}
+
+@router.get("/check-payment/{lojista_id}")
+def check_payment(lojista_id: int, db: Session = Depends(get_public_db)):
+    """
+    Retorna o status da assinatura do lojista para o front-end saber se o PIX já caiu.
+    """
+    merchant = db.query(Merchant).filter(Merchant.id == lojista_id).first()
+    if not merchant:
+        raise HTTPException(status_code=404, detail="Lojista não encontrado.")
+
+    return {
+        "status_assinatura": merchant.status_assinatura
+    }
 
