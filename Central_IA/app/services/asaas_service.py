@@ -87,3 +87,36 @@ def criar_assinatura_pix(customer_id: str, valor: float = 150.00):
         "pix_payload": pix_data.get("payload"), # Copia e cola
         "pix_qrcode_image": pix_data.get("encodedImage") # Base64 da imagem
     }
+
+def recuperar_qrcode_pix(subscription_id: str):
+    """
+    Recupera o QR Code da primeira fatura pendente de uma assinatura existente.
+    """
+    # 1. Pegar o pagamento (fatura)
+    url_payments = f"{ASAAS_BASE_URL}/payments?subscription={subscription_id}"
+    res_pay = requests.get(url_payments, headers=get_headers())
+    pay_data = res_pay.json()
+    
+    if not pay_data.get("data"):
+        raise Exception("Nenhum pagamento gerado para esta assinatura.")
+        
+    primeiro_pagamento_id = pay_data["data"][0]["id"]
+    status_pagamento = pay_data["data"][0]["status"]
+    
+    if status_pagamento in ["RECEIVED", "CONFIRMED"]:
+        return {"status": "pago"}
+    
+    # 2. Gerar o payload do PIX (QR Code e Linha Digitável)
+    url_pix = f"{ASAAS_BASE_URL}/payments/{primeiro_pagamento_id}/pixQrCode"
+    res_pix = requests.get(url_pix, headers=get_headers())
+    
+    if res_pix.status_code not in [200, 201]:
+        raise Exception(f"Erro ao gerar QR Code: {res_pix.text}")
+        
+    pix_data = res_pix.json()
+    
+    return {
+        "status": "pendente",
+        "pix_payload": pix_data.get("payload"),
+        "pix_qrcode_image": pix_data.get("encodedImage")
+    }

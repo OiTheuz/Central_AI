@@ -24,6 +24,7 @@ from app.services.auth_service import get_lojista_atual
 from app.services.whatsapp_service import enviar_mensagem_whatsapp
 from app.services.push_service import enviar_notificacao_push
 from app.services.websocket_manager import manager
+from app.services.asaas_service import recuperar_qrcode_pix
 
 logger = logging.getLogger(__name__)
 
@@ -165,6 +166,39 @@ def atualizar_preferencias_notificacao(
         db.rollback()
         logger.error("Erro ao salvar preferências de notificação: %s", e)
         raise HTTPException(status_code=500, detail=str(e))
+
+# =========================================================
+# STATUS DA ASSINATURA (PORTAL WEB E APP)
+# =========================================================
+
+@router.get("/assinatura")
+def obter_status_assinatura(
+    db: Session = Depends(get_db),
+    merchant: Merchant = Depends(get_lojista_atual),
+):
+    """Retorna o status da assinatura e, se pendente, o QR Code do PIX."""
+    if merchant.status_assinatura == 'ativo':
+        return {"status": "ativo"}
+        
+    if not merchant.asaas_subscription_id:
+        return {"status": "inativo", "mensagem": "Sem assinatura configurada."}
+        
+    try:
+        dados_pix = recuperar_qrcode_pix(merchant.asaas_subscription_id)
+        if dados_pix["status"] == "pago":
+            # Atualiza o banco se o webhook falhou
+            merchant.status_assinatura = "ativo"
+            db.commit()
+            return {"status": "ativo"}
+            
+        return {
+            "status": "pendente",
+            "pix_payload": dados_pix["pix_payload"],
+            "pix_qrcode": dados_pix["pix_qrcode_image"]
+        }
+    except Exception as e:
+        logger.error(f"Erro ao recuperar pix: {e}")
+        return {"status": "inativo", "mensagem": "Erro ao carregar cobrança."}
 
 # =========================================================
 # AGENDAMENTOS DE HOJE (status aprovado/confirmado)
