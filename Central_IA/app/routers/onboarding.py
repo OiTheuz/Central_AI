@@ -20,10 +20,12 @@ class SimulatePaymentRequest(BaseModel):
     nome_loja: str
     email: str
     senha: str
+    cpf: str
     nicho: str
     telefone: str = None
     cupom: str = None
     como_conheceu: str = None
+    recaptcha_token: str = None
 
 @router.post("/simulate-payment")
 def simulate_payment(body: SimulatePaymentRequest, db: Session = Depends(get_public_db)):
@@ -33,6 +35,24 @@ def simulate_payment(body: SimulatePaymentRequest, db: Session = Depends(get_pub
     2. Cria o schema da loja e copia tabelas.
     3. Registra na tabela public.merchant.
     """
+    import os
+    import requests
+
+    # 0. Valida reCAPTCHA se o token e a chave secreta existirem
+    secret_key = os.getenv("RECAPTCHA_SECRET_KEY")
+    if secret_key and body.recaptcha_token:
+        try:
+            r = requests.post("https://www.google.com/recaptcha/api/siteverify", data={
+                "secret": secret_key,
+                "response": body.recaptcha_token
+            })
+            result = r.json()
+            if not result.get("success"):
+                raise HTTPException(status_code=400, detail="Falha na validação do reCAPTCHA.")
+        except requests.RequestException:
+            raise HTTPException(status_code=500, detail="Erro ao comunicar com o servidor de validação.")
+    elif secret_key and not body.recaptcha_token:
+        raise HTTPException(status_code=400, detail="Validação de segurança (reCAPTCHA) é obrigatória.")
     # 1. Verifica se email já existe
     if db.query(Merchant).filter(Merchant.email == body.email).first():
         raise HTTPException(status_code=400, detail="Email já cadastrado.")
@@ -55,12 +75,24 @@ def simulate_payment(body: SimulatePaymentRequest, db: Session = Depends(get_pub
     except Exception as e:
         raise HTTPException(status_code=500, detail=f"Erro ao criar banco de dados: {str(e)}")
 
-    # 4. Integração Real Asaas: Criar Cliente e Assinatura
-    try:
-        asaas_customer_id = criar_cliente(nome=body.nome_loja, email=body.email, telefone=body.telefone)
-        asaas_pix_data = criar_assinatura_pix(customer_id=asaas_customer_id, valor=150.00)
-    except Exception as e:
-        raise HTTPException(status_code=502, detail=f"Erro de comunicação com Asaas: {str(e)}")
+    # 4. Integração Real Asaas ou Cupom Grátis
+    is_free = body.cupom and body.cupom.upper() == "LAUTZ100"
+
+    if is_free:
+        asaas_customer_id = None
+        asaas_pix_data = {'subscription_id': None, 'pix_payload': None, 'pix_qrcode_image': None}
+        status_final = 'ativo'
+    else:
+        try:
+            asaas_customer_id = criar_cliente(nome=body.nome_loja, email=body.email, telefone=body.telefone, cpfCnpj=body.cpf)
+            asaas_pix_data = criar_assinatura_pix(customer_id=asaas_customer_id, valor=57.00)
+            status_final = 'inativo'
+        except Exception as e:
+            # Rollback: se der erro no Asaas, deleta a tabela/schema que acabou de criar
+            from sqlalchemy import text
+            db.execute(text(f"DROP SCHEMA IF EXISTS {schema_nome} CASCADE"))
+            db.commit()
+            raise HTTPException(status_code=502, detail=f"Erro de comunicação com Asaas: {str(e)}")
 
     # 5. Registra no public.merchant com status pendente (inativo) até pagar
     novo_lojista = Merchant(
@@ -78,7 +110,7 @@ def simulate_payment(body: SimulatePaymentRequest, db: Session = Depends(get_pub
         tem_dashboard=True,
         asaas_customer_id=asaas_customer_id,
         asaas_subscription_id=asaas_pix_data['subscription_id'],
-        status_assinatura='inativo' # Começa inativo até pagar o pix!
+        status_assinatura=status_final # Ativo se for LAUTZ100, senão inativo
     )
     db.add(novo_lojista)
     db.commit()
