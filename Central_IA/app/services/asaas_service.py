@@ -14,7 +14,7 @@ def get_headers():
         "access_token": ASAAS_API_KEY
     }
 
-def criar_cliente(nome: str, email: str, telefone: str = None) -> str:
+def criar_cliente(nome: str, email: str, telefone: str = None, cpfCnpj: str = None) -> str:
     """
     Cria um cliente no Asaas e retorna o customer_id.
     """
@@ -26,6 +26,8 @@ def criar_cliente(nome: str, email: str, telefone: str = None) -> str:
     }
     if telefone:
         payload["mobilePhone"] = telefone
+    if cpfCnpj:
+        payload["cpfCnpj"] = cpfCnpj
 
     response = requests.post(url, json=payload, headers=get_headers())
     
@@ -35,7 +37,7 @@ def criar_cliente(nome: str, email: str, telefone: str = None) -> str:
     else:
         raise Exception(f"Erro ao criar cliente no Asaas: {response.text}")
 
-def criar_assinatura_pix(customer_id: str, valor: float = 150.00):
+def criar_assinatura_pix(customer_id: str, valor: float = 57.00):
     """
     Cria uma assinatura mensal no PIX e retorna os dados do QRCode da primeira fatura.
     """

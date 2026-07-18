@@ -4,9 +4,9 @@ echo ===================================================
 echo   ATUALIZANDO BACKEND (CENTRAL IA) NA VPS
 echo ===================================================
 echo.
-echo [1/2] Enviando a pasta 'app' atualizada para a nuvem...
+echo [1/3] Enviando a pasta 'app' e o '.env' para a nuvem...
 scp -r app root@184.107.88.20:/var/www/central_ai/
-scp -r scripts root@184.107.88.20:/var/www/central_ai/
+scp .env root@184.107.88.20:/var/www/central_ai/.env
 if %ERRORLEVEL% NEQ 0 (
     echo [ERRO] Falha ao enviar arquivos.
     pause
@@ -14,18 +14,14 @@ if %ERRORLEVEL% NEQ 0 (
 )
 
 echo.
-echo [1.3/2] Executando migracao do banco de dados (colunas novas)...
-ssh root@184.107.88.20 "cd /var/www/central_ai && venv/bin/python scripts/add_subuser_columns.py"
-ssh root@184.107.88.20 "cd /var/www/central_ai && venv/bin/python scripts/fix_petshop_token.py"
+echo [2/3] Instalando novas bibliotecas (se houver)...
+ssh root@184.107.88.20 "cd /var/www/central_ai && venv/bin/pip install -r requirements.txt"
 
 echo.
-echo [1.5/2] Atualizando Nginx e Systemd (WebSockets Fix)...
-scp fix_ws.py root@184.107.88.20:/root/fix_ws.py
-scp central_ai.service root@184.107.88.20:/etc/systemd/system/central_ai.service
-ssh root@184.107.88.20 "chmod +x /root/fix_ws.py && /root/fix_ws.py"
+echo [3/3] Reiniciando a Inteligência Artificial...
+ssh root@184.107.88.20 "systemctl restart central_ai"
+
 echo ===================================================
 echo   TUDO PRONTO! BACKEND ATUALIZADO COM SUCESSO!
 echo ===================================================
 pause
-
-

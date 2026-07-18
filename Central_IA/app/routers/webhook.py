@@ -294,12 +294,44 @@ async def receive_message(request: Request, db: Session = Depends(get_public_db)
                 estado_atual = dados_sessao.get("state")
                 historico = dados_sessao.get("historico", [])
                 
-                if not sessao_chefe or estado_atual != "BOSS_CONVERSATION":
+                if not sessao_chefe or estado_atual not in ["BOSS_CONVERSATION", "ESPERANDO_EMAIL_CHEFE"]:
                     estado_atual = "BOSS_CONVERSATION"
                     historico = []
                     
+                # Fluxo especial: Coleta de Email do Chefe
+                if estado_atual == "ESPERANDO_EMAIL_CHEFE":
+                    import re
+                    email_match = re.search(r'[\w\.-]+@[\w\.-]+\.\w+', texto_cliente)
+                    
+                    if email_match:
+                        novo_email = email_match.group(0).lower()
+                        from app.services.auth_service import hash_senha
+                        
+                        db.execute(
+                            text("UPDATE merchant SET email = :email, senha_hash = :senha, tem_dashboard = true, status_assinatura = 'ativo', deve_trocar_senha = true WHERE id = :mid"),
+                            {"email": novo_email, "senha": hash_senha("123456"), "mid": lojista.id}
+                        )
+                        db.commit()
+                        
+                        enviar_mensagem_whatsapp(
+                            numero_destino=telefone_cliente,
+                            texto="Tudo certo! E-mail cadastrado com sucesso. 🎉\n\nAcesse *https://www.openchatz.com.br* e clique em 'Portal do Cliente'.\nSeu login é o seu e-mail, e a senha temporária é *123456*.\nA mesma senha serve para o aplicativo do seu celular!",
+                            phone_number_id=phone_number_id,
+                            token=meta_token
+                        )
+                        atualizar_sessao_cliente(db, telefone_cliente, schema_alvo, "BOSS_CONVERSATION", [])
+                    else:
+                        enviar_mensagem_whatsapp(
+                            numero_destino=telefone_cliente,
+                            texto="Hum, não consegui reconhecer o formato do e-mail. Pode digitar apenas o e-mail válido, por favor?",
+                            phone_number_id=phone_number_id,
+                            token=meta_token
+                        )
+                    return {"status": "ok"}
+
                 # Adiciona a mensagem atual do chefe no histórico
                 historico.append({"role": "user", "content": texto_cliente})
+
                 
                 # Se for um contato enviado, vamos cadastrá-arlo imediatamente
                 if "[CONTATO ENVIADO:" in texto_cliente:

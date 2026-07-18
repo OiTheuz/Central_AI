@@ -35,6 +35,7 @@ class Merchant(Base):
     # Autenticação (login do lojista no app)
     email = Column(String(255), unique=True, nullable=True)
     senha_hash = Column(String(255), nullable=True)
+    deve_trocar_senha = Column(Boolean, default=False, nullable=False, server_default="false")
     
     # Notificações Push
     push_token = Column(String(255), nullable=True)

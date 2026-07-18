@@ -34,6 +34,7 @@ class LoginRequest(BaseModel):
 class LoginResponse(BaseModel):
     token: str
     lojista: dict
+    must_change_password: bool = False
 
 
 class SetPasswordRequest(BaseModel):
@@ -110,6 +111,7 @@ def login(body: LoginRequest, db: Session = Depends(get_public_db)):
             "loja_pai_id": merchant.loja_pai_id,
             "foto_perfil": getattr(merchant, 'foto_perfil', None),
         },
+        "must_change_password": getattr(merchant, 'deve_trocar_senha', False)
     }
 
 
@@ -190,6 +192,20 @@ def update_meta_token(
 # Exige autenticação prévia (lojista já logado via token temporário).
 # Para o primeiro acesso, usar o script add_push_token.py ou um
 # processo de onboarding administrativo separado.
+
+@router.post("/trocar-senha")
+def trocar_senha_obrigatoria(body: ChangePasswordRequest, db: Session = Depends(get_public_db), merchant: Merchant = Depends(get_lojista_atual)):
+    """
+    Permite a troca da senha provisória logo no primeiro login.
+    """
+    if not body.nova_senha or len(body.nova_senha) < 6:
+        raise HTTPException(status_code=400, detail="Senha deve ter no mínimo 6 caracteres.")
+        
+    merchant.senha_hash = hash_senha(body.nova_senha)
+    merchant.deve_trocar_senha = False
+    db.commit()
+    
+    return {"status": "sucesso", "mensagem": "Senha alterada com sucesso!"}
 
 @router.post("/set-password")
 def set_password(
