@@ -172,7 +172,7 @@ def change_password(
 
 class UpdateMetaTokenRequest(BaseModel):
     meta_access_token: str
-    meta_phone_id: str
+    meta_phone_id: str | None = None
 
 @router.post("/update-meta-token")
 def update_meta_token(
@@ -182,7 +182,8 @@ def update_meta_token(
 ):
     """Atualiza as credenciais do WhatsApp Oficial (Token e Phone ID)."""
     merchant.meta_access_token = body.meta_access_token
-    merchant.meta_phone_id = body.meta_phone_id
+    if body.meta_phone_id:
+        merchant.meta_phone_id = body.meta_phone_id
     db.commit()
     return {"status": "sucesso", "mensagem": "WhatsApp conectado com sucesso!"}
 
