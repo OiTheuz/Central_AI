@@ -319,7 +319,8 @@ async def receive_message(request: Request, db: Session = Depends(get_public_db)
                             phone_number_id=phone_number_id,
                             token=meta_token
                         )
-                        atualizar_sessao_cliente(db, telefone_cliente, schema_alvo, "BOSS_CONVERSATION", [])
+                        from app.services.session_service import salvar_sessao_cliente
+                        salvar_sessao_cliente(db, telefone_cliente, str(schema_alvo), {"state": "BOSS_CONVERSATION", "historico": []})
                     else:
                         enviar_mensagem_whatsapp(
                             numero_destino=telefone_cliente,
