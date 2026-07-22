@@ -113,7 +113,10 @@ def simulate_payment(body: SimulatePaymentRequest, db: Session = Depends(get_pub
     try:
         criar_novo_estabelecimento(schema_nome, tabelas_base, nicho=body.nicho)
     except Exception as e:
-        raise HTTPException(status_code=500, detail=f"Erro ao criar banco de dados: {str(e)}")
+        erro_msg = str(e)
+        if "DuplicateTable" in erro_msg or "already exists" in erro_msg or "DuplicateSchema" in erro_msg:
+            raise HTTPException(status_code=400, detail="Já existe uma loja registrada com este nome exato no sistema. Por favor, adicione um sobrenome, número ou altere o nome da loja.")
+        raise HTTPException(status_code=500, detail=f"Erro ao criar banco de dados: {erro_msg}")
 
     # 4. Integração Real Asaas ou Cupom Grátis
     is_free = body.cupom and body.cupom.upper() == "LAUTZ100"
