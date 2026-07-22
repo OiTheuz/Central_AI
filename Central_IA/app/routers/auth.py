@@ -181,9 +181,9 @@ def update_meta_token(
     db: Session = Depends(get_public_db)
 ):
     """Atualiza as credenciais do WhatsApp Oficial (Token e Phone ID)."""
-    merchant.meta_access_token = body.meta_access_token
+    merchant.meta_access_token = body.meta_access_token  # type: ignore
     if body.meta_phone_id:
-        merchant.meta_phone_id = body.meta_phone_id
+        merchant.meta_phone_id = body.meta_phone_id  # type: ignore
     db.commit()
     return {"status": "sucesso", "mensagem": "WhatsApp conectado com sucesso!"}
 
@@ -202,8 +202,8 @@ def trocar_senha_obrigatoria(body: ChangePasswordRequest, db: Session = Depends(
     if not body.nova_senha or len(body.nova_senha) < 6:
         raise HTTPException(status_code=400, detail="Senha deve ter no mínimo 6 caracteres.")
         
-    merchant.senha_hash = hash_senha(body.nova_senha)
-    merchant.deve_trocar_senha = False
+    merchant.senha_hash = hash_senha(body.nova_senha)  # type: ignore
+    merchant.deve_trocar_senha = False  # type: ignore
     db.commit()
     
     return {"status": "sucesso", "mensagem": "Senha alterada com sucesso!"}

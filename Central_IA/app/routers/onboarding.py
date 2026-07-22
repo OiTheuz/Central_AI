@@ -7,6 +7,7 @@ import re
 from app.database import get_public_db
 from app.models.merchant import Merchant
 from app.models.whatsapp_log import WhatsappMessageLog
+from app.models.lead import Lead
 from app.services.auth_service import hash_senha
 from app.services.schema_service import criar_novo_estabelecimento
 from app.services.asaas_service import criar_cliente, criar_assinatura_pix
@@ -26,6 +27,45 @@ class SimulatePaymentRequest(BaseModel):
     cupom: str = None
     como_conheceu: str = None
     recaptcha_token: str = None
+
+class PartialLeadRequest(BaseModel):
+    nome: str = None
+    telefone: str = None
+    email: str = None
+    nicho: str = None
+    como_conheceu: str = None
+
+@router.post("/lead")
+def save_partial_lead(body: PartialLeadRequest, db: Session = Depends(get_public_db)):
+    """Salva os dados digitados do lead antes da finalização do cadastro."""
+    if not body.email and not body.telefone:
+        return {"status": "ignorado"}
+        
+    lead = None
+    if body.email:
+        lead = db.query(Lead).filter(Lead.email == body.email).first()
+    
+    if not lead and body.telefone:
+        lead = db.query(Lead).filter(Lead.telefone == body.telefone).first()
+        
+    if lead:
+        if body.nome: lead.nome = body.nome
+        if body.telefone: lead.telefone = body.telefone
+        if body.email: lead.email = body.email
+        if body.nicho: lead.nicho = body.nicho
+        if body.como_conheceu: lead.como_conheceu = body.como_conheceu
+    else:
+        lead = Lead(
+            nome=body.nome,
+            telefone=body.telefone,
+            email=body.email,
+            nicho=body.nicho,
+            como_conheceu=body.como_conheceu
+        )
+        db.add(lead)
+        
+    db.commit()
+    return {"status": "salvo"}
 
 @router.post("/simulate-payment")
 def simulate_payment(body: SimulatePaymentRequest, db: Session = Depends(get_public_db)):
@@ -85,8 +125,8 @@ def simulate_payment(body: SimulatePaymentRequest, db: Session = Depends(get_pub
     else:
         try:
             asaas_customer_id = criar_cliente(nome=body.nome_loja, email=body.email, telefone=body.telefone, cpfCnpj=body.cpf)
-            asaas_pix_data = criar_assinatura_pix(customer_id=asaas_customer_id, valor=57.00)
-            status_final = 'inativo'
+            asaas_pix_data = criar_assinatura_pix(customer_id=asaas_customer_id, valor=57.00, dias_trial=7)
+            status_final = 'trial'
         except Exception as e:
             # Rollback: se der erro no Asaas, deleta a tabela/schema que acabou de criar
             from sqlalchemy import text
@@ -116,13 +156,19 @@ def simulate_payment(body: SimulatePaymentRequest, db: Session = Depends(get_pub
     db.commit()
     db.refresh(novo_lojista)
 
+    # Marca o lead como convertido
+    lead = db.query(Lead).filter(Lead.email == body.email).first()
+    if lead:
+        lead.convertido = 1
+        db.commit()
+
     return {
         "status": "sucesso",
-        "mensagem": "Cobrança gerada com sucesso! Aguardando pagamento.",
+        "mensagem": "Conta criada com sucesso! Trial de 7 dias ativado.",
         "lojista_id": novo_lojista.id,
         "schema": schema_nome,
-        "asaas_pix_payload": asaas_pix_data['pix_payload'],
-        "asaas_pix_qrcode": asaas_pix_data['pix_qrcode_image']
+        "asaas_pix_payload": None,
+        "asaas_pix_qrcode": None
     }
 
 @router.get("/admin-merchants")

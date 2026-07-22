@@ -133,6 +133,64 @@ def enviar_mensagem_whatsapp(numero_destino: str, texto: str, phone_number_id: s
         logger.error("WhatsApp: falha inesperada ao enviar para %s: %s", numero_destino, e)
         return None
 
+def enviar_botoes_whatsapp(numero_destino: str, texto: str, botoes: list[dict], phone_number_id: str | None = None, token: str | None = None) -> dict | None:
+    """
+    Envia uma mensagem com botões interativos (máx 3 botões).
+    botoes deve ser uma lista de dicts no formato: [{"id": "id1", "title": "Sim"}, {"id": "id2", "title": "Não"}]
+    """
+    numero_destino = sanitizar_numero_whatsapp(numero_destino)
+    if not numero_destino:
+        return None
+
+    TOKEN_META = get_token(token)
+    PHONE_NUMBER_ID = get_phone_id(phone_number_id)
+
+    if not TOKEN_META or not PHONE_NUMBER_ID:
+        return None
+
+    url = f"https://graph.facebook.com/{GRAPH_API_VERSION}/{PHONE_NUMBER_ID}/messages"
+    headers = {
+        "Authorization": f"Bearer {TOKEN_META}",
+        "Content-Type": "application/json"
+    }
+
+    formatted_buttons = []
+    for btn in botoes[:3]:
+        formatted_buttons.append({
+            "type": "reply",
+            "reply": {
+                "id": btn["id"],
+                "title": btn["title"][:20] # Max 20 chars
+            }
+        })
+
+    data = {
+        "messaging_product": "whatsapp",
+        "to": numero_destino,
+        "type": "interactive",
+        "interactive": {
+            "type": "button",
+            "body": {
+                "text": texto
+            },
+            "action": {
+                "buttons": formatted_buttons
+            }
+        }
+    }
+
+    try:
+        response = requests.post(url, headers=headers, json=data, timeout=10)
+        logger.info("WhatsApp (Botões) → %s | status=%s", numero_destino, response.status_code)
+        if not response.ok:
+            logger.warning("WhatsApp API erro (Botões): %s", response.text)
+        else:
+            _log_message(numero_destino, "service")
+        return response.json()
+    except Exception as e:
+        logger.error("WhatsApp: falha ao enviar botões para %s: %s", numero_destino, e)
+        return None
+
 def enviar_menu_lojas_whatsapp(numero_destino: str, texto: str, lojas: list, phone_number_id: str | None = None) -> dict | None:
     """
     Envia uma mensagem interativa de lista com as lojas disponíveis.

@@ -35,6 +35,99 @@ def _notificar_atualizacao(schema: str):
         logger.error(f"Erro ao disparar websocket: {e}")
 
 # =========================================================
+# LÓGICA DO MASTER BOT (OPENCHATZ)
+# =========================================================
+async def processar_resposta_master(mensagem: dict, telefone_cliente: str, db: Session, meta_phone_id: str, meta_token: str):
+    """
+    Processa mensagens enviadas diretamente para o Número Oficial da OpenChatz.
+    """
+    import os
+    import requests
+    from app.services.asaas_service import get_headers, ASAAS_BASE_URL
+    
+    # 1. Identificar quem é o Lojista remetente
+    lojista = db.query(Merchant).filter(
+        (Merchant.telefone_contato == telefone_cliente) | 
+        (Merchant.numero_whatsapp == telefone_cliente) |
+        (Merchant.numero_chefe == telefone_cliente)
+    ).first()
+    
+    if not lojista:
+        enviar_mensagem_whatsapp(
+            numero_destino=telefone_cliente, 
+            texto="Olá! Não conseguimos localizar uma conta na OpenChatz associada a este número de telefone.", 
+            phone_number_id=meta_phone_id, token=meta_token
+        )
+        return JSONResponse(content={"status": "desconhecido"}, status_code=200)
+
+    # 2. Extrair o texto
+    texto_cliente = ""
+    botao_id = ""
+    if mensagem["type"] == "text":
+        texto_cliente = mensagem["text"]["body"].lower().strip()
+    elif mensagem["type"] == "interactive" and mensagem["interactive"]["type"] == "button_reply":
+        botao_id = mensagem["interactive"]["button_reply"]["id"]
+        
+    quer_continuar = ("sim" in texto_cliente or "quero" in texto_cliente) or botao_id == "trial_continuar_sim"
+    quer_cancelar = ("não" in texto_cliente or "nao" in texto_cliente) or botao_id == "trial_continuar_nao"
+        
+    if quer_continuar:
+        if lojista.status_assinatura != 'trial':
+            enviar_mensagem_whatsapp(
+                numero_destino=telefone_cliente, 
+                texto=f"Sua assinatura atual já está no status: {lojista.status_assinatura}.", 
+                phone_number_id=meta_phone_id, token=meta_token
+            )
+            return JSONResponse(content={"status": "nao_e_trial"}, status_code=200)
+
+        # Buscar a fatura no Asaas
+        hoje = datetime.now().strftime("%Y-%m-%d")
+        url_payments = f"{ASAAS_BASE_URL}/payments?status=PENDING&customer={lojista.asaas_customer_id}"
+        res = requests.get(url_payments, headers=get_headers())
+        
+        if res.status_code == 200:
+            payments = res.json().get("data", [])
+            if payments:
+                payment_id = payments[0]["id"]
+                url_pix = f"{ASAAS_BASE_URL}/payments/{payment_id}/pixQrCode"
+                res_pix = requests.get(url_pix, headers=get_headers())
+                
+                if res_pix.status_code == 200:
+                    pix_payload = res_pix.json().get("payload")
+                    enviar_mensagem_whatsapp(
+                        numero_destino=telefone_cliente, 
+                        texto="Que notícia maravilhosa! 🎉 Para continuar com a gente e liberar seu acesso definitivo, basta realizar o pagamento pela chave PIX Copia e Cola abaixo:", 
+                        phone_number_id=meta_phone_id, token=meta_token
+                    )
+                    # Envia o payload separado
+                    enviar_mensagem_whatsapp(
+                        numero_destino=telefone_cliente, 
+                        texto=pix_payload, 
+                        phone_number_id=meta_phone_id, token=meta_token
+                    )
+                    return JSONResponse(content={"status": "pix_enviado"}, status_code=200)
+                    
+        enviar_mensagem_whatsapp(
+            numero_destino=telefone_cliente, 
+            texto="Ops, ocorreu um erro ao gerar sua fatura. Por favor, acesse o painel pelo computador para realizar o pagamento.", 
+            phone_number_id=meta_phone_id, token=meta_token
+        )
+    elif quer_cancelar:
+        enviar_mensagem_whatsapp(
+            numero_destino=telefone_cliente, 
+            texto="Entendemos perfeitamente! Foi um prazer ter você testando a OpenChatz. Se mudar de ideia no futuro, estaremos aqui de portas abertas. Sucesso! 💙", 
+            phone_number_id=meta_phone_id, token=meta_token
+        )
+    else:
+        enviar_mensagem_whatsapp(
+            numero_destino=telefone_cliente, 
+            texto="Olá! Não entendi a sua resposta. Por favor, responda com *SIM* se deseja continuar ou *NÃO* caso não queira no momento.", 
+            phone_number_id=meta_phone_id, token=meta_token
+        )
+        
+    return JSONResponse(content={"status": "processado_master"}, status_code=200)
+
+# =========================================================
 # DEDUPLICAÇÃO DE MENSAGENS (evita loop por retries da Meta)
 # Nota: em memória — sobrevive apenas enquanto o processo está vivo.
 # Para multi-worker/produção, migrar para Redis.
@@ -201,6 +294,12 @@ async def receive_message(request: Request, db: Session = Depends(get_public_db)
             if todas_variacoes:
                 lojista = db.query(Merchant).filter(Merchant.numero_whatsapp.in_(todas_variacoes)).first()
             
+            # INTERCEPTAÇÃO: Número Master da OpenChatz
+            import os
+            META_PHONE_ID = os.getenv("META_PHONE_ID")
+            if phone_id_limpo == META_PHONE_ID or display_limpo == META_PHONE_ID:
+                return await processar_resposta_master(mensagem, telefone_cliente, db, META_PHONE_ID, os.getenv("META_ACCESS_TOKEN"))
+
             if not lojista:
                 logger.warning("Mensagem recebida para número/ID não registrado: %s / %s", display_limpo, phone_id_limpo)
                 # Responde 200 para que a Meta não fique retentando indefinidamente

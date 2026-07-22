@@ -4,8 +4,9 @@ echo ===================================================
 echo   ATUALIZANDO BACKEND (CENTRAL IA) NA VPS
 echo ===================================================
 echo.
-echo [1/3] Enviando a pasta 'app' e o '.env' para a nuvem...
+echo [1/3] Enviando a pasta 'app', 'scripts' e o '.env' para a nuvem...
 scp -r app root@184.107.88.20:/var/www/central_ai/
+scp -r scripts root@184.107.88.20:/var/www/central_ai/
 scp .env root@184.107.88.20:/var/www/central_ai/.env
 if %ERRORLEVEL% NEQ 0 (
     echo [ERRO] Falha ao enviar arquivos.

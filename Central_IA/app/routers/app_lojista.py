@@ -177,7 +177,7 @@ def obter_status_assinatura(
     merchant: Merchant = Depends(get_lojista_atual),
 ):
     """Retorna o status da assinatura e, se pendente, o QR Code do PIX."""
-    if merchant.status_assinatura == 'ativo':
+    if merchant.status_assinatura in ['ativo', 'trial']:
         return {"status": "ativo"}
         
     if not merchant.asaas_subscription_id:

@@ -1,25 +1,25 @@
 import logging
-from typing import List
-
-from fastapi import APIRouter, Depends, HTTPException
+from fastapi import APIRouter, Depends, HTTPException, status
+from sqlalchemy.orm import Session
+from sqlalchemy import text
 from pydantic import BaseModel
-
-from app.models import Merchant
+from typing import Optional, List
+from app.database import get_public_db
+from app.models.merchant import Merchant
+from app.models.lead import Lead
 from app.services.auth_service import get_lojista_atual
 from app.services.schema_service import criar_novo_estabelecimento
 
 logger = logging.getLogger(__name__)
 
 router = APIRouter(
-    prefix="/admin",
+    prefix="/api/admin",
     tags=["Admin"],
 )
 
-
 class NovoEstabelecimentoRequest(BaseModel):
     schema_nome: str
-    tabelas: List[str] = ["appointments", "customers", "services"]  # tabelas padrão de preferências
-
+    tabelas: List[str] = ["appointments", "customers", "services"]
 
 @router.post("/estabelecimento")
 def criar_estabelecimento(
@@ -41,3 +41,84 @@ def criar_estabelecimento(
     except Exception as e:
         logger.error("Erro ao criar estabelecimento: %s", e)
         raise HTTPException(status_code=500, detail=str(e))
+
+class AdminMerchantUpdate(BaseModel):
+    status_assinatura: Optional[str] = None
+    tem_dashboard: Optional[bool] = None
+
+@router.get("/merchants")
+def get_merchants_admin(db: Session = Depends(get_public_db)):
+    lojas = db.query(Merchant).filter(Merchant.loja_pai_id.is_(None)).order_by(Merchant.id.desc()).all()
+    merchants_data = []
+
+    for l in lojas:
+        setup_concluido = l.horario_abertura is not None
+        merchants_data.append({
+            "id": l.id,
+            "nome_loja": l.nome_loja,
+            "email": l.email,
+            "telefone": l.telefone_contato,
+            "nicho": l.area_atuacao or "Geral",
+            "status_assinatura": l.status_assinatura,
+            "asaas_subscription_id": l.asaas_subscription_id,
+            "setup_concluido": setup_concluido,
+            "criado_em": l.criado_em.strftime("%Y-%m-%d %H:%M:%S") if l.criado_em else None,
+            "tem_dashboard": l.tem_dashboard
+        })
+    return {"merchants": merchants_data}
+
+@router.put("/merchants/{merchant_id}")
+def update_merchant_admin(merchant_id: int, body: AdminMerchantUpdate, db: Session = Depends(get_public_db)):
+    merchant = db.query(Merchant).filter(Merchant.id == merchant_id).first()
+    if not merchant:
+        raise HTTPException(status_code=404, detail="Lojista não encontrado.")
+
+    if body.status_assinatura is not None:
+        merchant.status_assinatura = body.status_assinatura
+    if body.tem_dashboard is not None:
+        merchant.tem_dashboard = body.tem_dashboard
+
+    db.commit()
+    return {"status": "sucesso", "mensagem": "Lojista atualizado com sucesso."}
+
+@router.get("/leads")
+def get_admin_leads(db: Session = Depends(get_public_db)):
+    # Cenário A: Leads que não converteram (não chegaram a criar o schema)
+    leads = db.query(Lead).filter(Lead.convertido == 0).order_by(Lead.id.desc()).all()
+    
+    # Cenário B: Lojistas que criaram o schema mas não configuraram o setup (horario_abertura is NULL)
+    abandonos_setup = db.query(Merchant).filter(
+        Merchant.loja_pai_id.is_(None), 
+        Merchant.horario_abertura.is_(None)
+    ).order_by(Merchant.id.desc()).all()
+
+    dados_cenario_a = []
+    for l in leads:
+        dados_cenario_a.append({
+            "id": l.id,
+            "nome": l.nome,
+            "telefone": l.telefone,
+            "email": l.email,
+            "nicho": l.nicho,
+            "como_conheceu": l.como_conheceu,
+            "data": l.criado_em.strftime("%Y-%m-%d %H:%M:%S") if l.criado_em else None,
+            "tipo": "Formulário Incompleto"
+        })
+
+    dados_cenario_b = []
+    for a in abandonos_setup:
+        dados_cenario_b.append({
+            "id": a.id,
+            "nome": a.nome_loja,
+            "telefone": a.telefone_contato,
+            "email": a.email,
+            "nicho": a.area_atuacao,
+            "como_conheceu": a.como_conheceu,
+            "data": a.criado_em.strftime("%Y-%m-%d %H:%M:%S") if a.criado_em else None,
+            "tipo": "Setup Incompleto"
+        })
+
+    return {
+        "leads_incompletos": dados_cenario_a,
+        "setup_incompleto": dados_cenario_b
+    }

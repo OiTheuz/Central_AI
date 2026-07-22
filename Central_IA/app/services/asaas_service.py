@@ -37,20 +37,21 @@ def criar_cliente(nome: str, email: str, telefone: str = None, cpfCnpj: str = No
     else:
         raise Exception(f"Erro ao criar cliente no Asaas: {response.text}")
 
-def criar_assinatura_pix(customer_id: str, valor: float = 57.00):
+def criar_assinatura_pix(customer_id: str, valor: float = 57.00, dias_trial: int = 7):
     """
     Cria uma assinatura mensal no PIX e retorna os dados do QRCode da primeira fatura.
     """
     url_sub = f"{ASAAS_BASE_URL}/subscriptions"
     
     hoje = datetime.now()
-    vencimento_hoje = hoje.strftime("%Y-%m-%d") # Primeira cobrança para hoje
+    vencimento_primeira = hoje + timedelta(days=dias_trial)
+    vencimento_str = vencimento_primeira.strftime("%Y-%m-%d")
 
     payload_sub = {
         "customer": customer_id,
         "billingType": "PIX",
         "value": valor,
-        "nextDueDate": vencimento_hoje,
+        "nextDueDate": vencimento_str,
         "cycle": "MONTHLY",
         "description": "Mensalidade SaaS OpenChatz"
     }
