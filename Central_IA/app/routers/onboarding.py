@@ -240,18 +240,22 @@ def get_admin_merchants(db: Session = Depends(get_public_db)):
             "date": "Cadastrado"
         })
     
+    # Filtra lojas pagantes (que possuem asaas_subscription_id)
+    paying_lojas = sum(1 for l in lojas if l.asaas_subscription_id is not None)
+    
     return {
         "stats": {
             "total_lojas": total_lojas,
             "mensagens_processadas": total_mensagens,
             "agendamentos_hoje": total_agendamentos, # Total de agendamentos no sistema
-            "receita_mrr": f"R$ {total_lojas * 150},00" # Custo fixo da assinatura
+            "receita_mrr": f"R$ {paying_lojas * 57},00" # MRR baseado apenas em lojas com assinatura real
         },
         "merchants": merchants_data
     }
 
+from app.services.auth_service import get_lojista_atual
+
 class SetupWizardRequest(BaseModel):
-    lojista_id: int
     horario_abertura: str
     horario_fechamento: str
     horario_almoco_inicio: str = None
@@ -259,24 +263,21 @@ class SetupWizardRequest(BaseModel):
     dias_fechados: str = None
     instrucoes_ia: str = None
 
-@router.put("/setup-wizard")
-def setup_wizard(body: SetupWizardRequest, db: Session = Depends(get_public_db)):
+@router.put("/portal-setup")
+def portal_setup(body: SetupWizardRequest, db: Session = Depends(get_public_db), merchant: Merchant = Depends(get_lojista_atual)):
     """
-    Salva as configurações iniciais definidas no Setup Wizard da web.
+    Salva as configurações iniciais definidas no Onboarding Obrigatório pós-login.
     """
-    merchant = db.query(Merchant).filter(Merchant.id == body.lojista_id).first()
-    if not merchant:
-        raise HTTPException(status_code=404, detail="Lojista não encontrado.")
-
     merchant.horario_abertura = body.horario_abertura
     merchant.horario_fechamento = body.horario_fechamento
     merchant.horario_almoco_inicio = body.horario_almoco_inicio
     merchant.horario_almoco_fim = body.horario_almoco_fim
     merchant.dias_fechados = body.dias_fechados
     merchant.instrucoes_ia = body.instrucoes_ia
+    merchant.onboarding_completo = True
 
     db.commit()
-    return {"status": "sucesso", "mensagem": "Configurações salvas com sucesso!"}
+    return {"status": "sucesso", "mensagem": "Onboarding concluído com sucesso!"}
 
 @router.get("/check-payment/{lojista_id}")
 def check_payment(lojista_id: int, db: Session = Depends(get_public_db)):
