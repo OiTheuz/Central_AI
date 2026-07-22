@@ -191,6 +191,57 @@ def enviar_botoes_whatsapp(numero_destino: str, texto: str, botoes: list[dict], 
         logger.error("WhatsApp: falha ao enviar botões para %s: %s", numero_destino, e)
         return None
 
+def enviar_botao_url_whatsapp(numero_destino: str, texto: str, url_botao: str, titulo_botao: str, phone_number_id: str | None = None, token: str | None = None) -> dict | None:
+    """
+    Envia uma mensagem de texto com um botão de ação (CTA URL).
+    """
+    numero_destino = sanitizar_numero_whatsapp(numero_destino)
+    if not numero_destino:
+        return None
+
+    TOKEN_META = get_token(token)
+    PHONE_NUMBER_ID = get_phone_id(phone_number_id)
+
+    if not TOKEN_META or not PHONE_NUMBER_ID:
+        return None
+
+    url = f"https://graph.facebook.com/{GRAPH_API_VERSION}/{PHONE_NUMBER_ID}/messages"
+    headers = {
+        "Authorization": f"Bearer {TOKEN_META}",
+        "Content-Type": "application/json"
+    }
+
+    data = {
+        "messaging_product": "whatsapp",
+        "to": numero_destino,
+        "type": "interactive",
+        "interactive": {
+            "type": "cta_url",
+            "body": {
+                "text": texto
+            },
+            "action": {
+                "name": "cta_url",
+                "parameters": {
+                    "display_text": titulo_botao[:20],
+                    "url": url_botao
+                }
+            }
+        }
+    }
+
+    try:
+        response = requests.post(url, headers=headers, json=data, timeout=10)
+        logger.info("WhatsApp (CTA URL) → %s | status=%s", numero_destino, response.status_code)
+        if not response.ok:
+            logger.warning("WhatsApp API erro (CTA URL): %s", response.text)
+        else:
+            _log_message(numero_destino, "service")
+        return response.json()
+    except Exception as e:
+        logger.error("WhatsApp: falha ao enviar CTA URL para %s: %s", numero_destino, e)
+        return None
+
 def enviar_menu_lojas_whatsapp(numero_destino: str, texto: str, lojas: list, phone_number_id: str | None = None) -> dict | None:
     """
     Envia uma mensagem interativa de lista com as lojas disponíveis.

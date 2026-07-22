@@ -64,31 +64,14 @@ def criar_assinatura_pix(customer_id: str, valor: float = 57.00, dias_trial: int
     sub_data = res_sub.json()
     subscription_id = sub_data.get("id")
     
-    # 2. Como a cobrança é para hoje, o Asaas já gerou o primeiro 'Payment' (fatura).
-    # Precisamos pegar o ID desse payment para gerar o QR Code.
-    url_payments = f"{ASAAS_BASE_URL}/payments?subscription={subscription_id}"
-    res_pay = requests.get(url_payments, headers=get_headers())
-    pay_data = res_pay.json()
-    
-    if not pay_data.get("data"):
-        raise Exception("Nenhum pagamento gerado para esta assinatura.")
-        
-    primeiro_pagamento_id = pay_data["data"][0]["id"]
-    
-    # 3. Gerar o payload do PIX (QR Code e Linha Digitável)
-    url_pix = f"{ASAAS_BASE_URL}/payments/{primeiro_pagamento_id}/pixQrCode"
-    res_pix = requests.get(url_pix, headers=get_headers())
-    
-    if res_pix.status_code not in [200, 201]:
-        raise Exception(f"Erro ao gerar QR Code: {res_pix.text}")
-        
-    pix_data = res_pix.json()
+    # Como a cobrança é apenas para o final do trial, não tentamos gerar o QR Code agora.
+    # O Asaas cuidará de criar a fatura e o cliente pagará quando o período acabar.
     
     return {
         "subscription_id": subscription_id,
-        "payment_id": primeiro_pagamento_id,
-        "pix_payload": pix_data.get("payload"), # Copia e cola
-        "pix_qrcode_image": pix_data.get("encodedImage") # Base64 da imagem
+        "payment_id": None,
+        "pix_payload": None,
+        "pix_qrcode_image": None
     }
 
 def recuperar_qrcode_pix(subscription_id: str):

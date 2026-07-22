@@ -117,15 +117,19 @@ def simulate_payment(body: SimulatePaymentRequest, db: Session = Depends(get_pub
 
     # 4. Integração Real Asaas ou Cupom Grátis
     is_free = body.cupom and body.cupom.upper() == "LAUTZ100"
+    
+    from datetime import datetime, timedelta
+    vencimento_str = (datetime.now() + timedelta(days=7)).strftime("%Y-%m-%d")
 
     if is_free:
         asaas_customer_id = None
-        asaas_pix_data = {'subscription_id': None, 'pix_payload': None, 'pix_qrcode_image': None}
+        subscription_id = None
         status_final = 'ativo'
     else:
         try:
             asaas_customer_id = criar_cliente(nome=body.nome_loja, email=body.email, telefone=body.telefone, cpfCnpj=body.cpf)
-            asaas_pix_data = criar_assinatura_pix(customer_id=asaas_customer_id, valor=57.00, dias_trial=7)
+            # NÃO criamos a assinatura no Asaas ainda para não gerar fatura.
+            subscription_id = None
             status_final = 'trial'
         except Exception as e:
             # Rollback: se der erro no Asaas, deleta a tabela/schema que acabou de criar
@@ -149,8 +153,9 @@ def simulate_payment(body: SimulatePaymentRequest, db: Session = Depends(get_pub
         is_admin=False,
         tem_dashboard=True,
         asaas_customer_id=asaas_customer_id,
-        asaas_subscription_id=asaas_pix_data['subscription_id'],
-        status_assinatura=status_final # Ativo se for LAUTZ100, senão inativo
+        asaas_subscription_id=subscription_id,
+        status_assinatura=status_final,
+        data_vencimento=vencimento_str
     )
     db.add(novo_lojista)
     db.commit()
@@ -161,6 +166,35 @@ def simulate_payment(body: SimulatePaymentRequest, db: Session = Depends(get_pub
     if lead:
         lead.convertido = 1
         db.commit()
+
+    # Dispara a mensagem de boas-vindas no WhatsApp
+    numero_destino = body.telefone
+    if numero_destino:
+        from app.services.whatsapp_service import enviar_botao_url_whatsapp
+        
+        # Pega a primeira palavra do nome como primeiro nome
+        primeiro_nome = body.nome_loja.split()[0] if body.nome_loja else "Cliente"
+        
+        mensagem_boas_vindas = (
+            f"Bem-vindo(a) à *OpenChatz* 🚀\n"
+            f"Olá, {primeiro_nome}. Sua conta na OpenChatz foi criada com sucesso, e seu período de teste gratuito de 7 dias já está ativo.\n\n"
+            f"Queremos agradecer por escolher a OpenChatz para ajudar no dia a dia do seu negócio. Nosso foco é deixar o gerenciamento da sua agenda mais simples, organizado e automatizado, para que você tenha mais tempo para atender seus clientes.\n\n"
+            f"Para começar, recomendamos que você acesse o seu painel de controle e configure a sua Inteligência Artificial para deixar tudo com a sua cara.\n\n"
+            f"Qualquer dúvida ou dificuldade, pode falar com a gente por aqui mesmo. Estamos à disposição para ajudar.\n\n"
+            f"Um grande abraço,\n"
+            f"Equipe OpenChatz"
+        )
+        
+        try:
+            enviar_botao_url_whatsapp(
+                numero_destino=numero_destino, 
+                texto=mensagem_boas_vindas,
+                url_botao="https://www.openchatz.com.br/portal/login",
+                titulo_botao="Acessar Portal"
+            )
+        except Exception as e:
+            # Não falhamos o cadastro só porque o WhatsApp falhou
+            pass
 
     return {
         "status": "sucesso",
