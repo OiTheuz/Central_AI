@@ -176,15 +176,13 @@ def simulate_payment(body: SimulatePaymentRequest, db: Session = Depends(get_pub
         primeiro_nome = body.nome_loja.split()[0] if body.nome_loja else "Cliente"
         
         mensagem_boas_vindas = (
-            f"Bem-vindo(a) à *OpenChatz*! 🚀\n\n"
-            f"Olá, {primeiro_nome}! É um prazer ter você com a gente. Seu período de 7 dias gratuitos já está valendo!\n\n"
-            f"Nossa missão é transformar a maneira como você atende seus clientes. Com a nossa Inteligência Artificial, seu negócio passa a funcionar no piloto automático: respondendo dúvidas e agendando horários 24 horas por dia, sem que você precise se preocupar.\n\n"
-            f"💡 *O que fazer agora?*\n"
-            f"Acesse o seu painel clicando no botão abaixo e dê os primeiros passos para treinar o seu robô. É super rápido e fácil deixar a IA com a personalidade da sua empresa.\n\n"
-            f"Se precisar de qualquer ajuda durante a configuração, basta responder a esta mensagem. Estamos aqui para garantir que você tenha a melhor experiência possível.\n\n"
-            f"Vamos juntos revolucionar o seu atendimento!\n"
-            f"Um abraço,\n"
-            f"Equipe OpenChatz 💜"
+            f"Bem-vindo(a) à *OpenChatz* 🚀\n"
+            f"Olá, {primeiro_nome}. Sua conta na OpenChatz foi criada com sucesso, e seu período de teste gratuito de 7 dias já está ativo.\n\n"
+            f"Queremos agradecer por escolher a OpenChatz para ajudar no dia a dia do seu negócio. Nosso foco é deixar o gerenciamento da sua agenda mais simples, organizado e automatizado, para que você tenha mais tempo para atender seus clientes.\n\n"
+            f"Para começar, recomendamos que você acesse o seu painel de controle e configure a sua Inteligência Artificial para deixar tudo com a sua cara.\n\n"
+            f"Qualquer dúvida ou dificuldade, pode falar com a gente por aqui mesmo. Estamos à disposição para ajudar.\n\n"
+            f"Um grande abraço,\n"
+            f"Equipe OpenChatz"
         )
         
         try:
