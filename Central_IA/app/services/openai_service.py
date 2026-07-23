@@ -553,3 +553,63 @@ async def analisar_mensagem_app(
     except Exception as e:
         logger.error("Erro na IA do App. Conteúdo: %s | Erro: %s", conteudo, e)
         return {"intencao": "erro", "mensagem_resposta": f"Desculpe {nome_chefe}, ocorreu um erro no meu processamento."}
+
+# =========================================================
+# CHAT DO SITE (WIDGET FLUTUANTE)
+# =========================================================
+async def responder_chat_site(historico: list[dict[str, str]], mensagem_usuario: str) -> dict:
+    """
+    Responde perguntas do chat flutuante do site oficial do OpenChaTz.
+    Retorna a mensagem de resposta e uma flag isLink caso precise direcionar ao humano.
+    """
+    prompt_sistema = """Você é a Lau, assistente virtual inteligente e exclusiva do site oficial do OpenChaTz.
+Seu objetivo é apresentar o sistema, tirar dúvidas dos visitantes, transmitir credibilidade e, principalmente, convencer o lojista a iniciar o TESTE GRÁTIS de 7 dias.
+
+REGRAS DE NEGÓCIO E RESPOSTAS OFICIAIS:
+1. O QUE É: O OpenChaTz é uma plataforma (SaaS) que coloca uma Inteligência Artificial no WhatsApp do Lojista (barbearia, clínica, salão, etc) para fazer agendamentos e atendimento 24h por dia, 100% no automático.
+2. DIFERENCIAL (O mais importante): O cliente final NÃO precisa baixar aplicativo nenhum! A conversa é direto no WhatsApp que a pessoa já tem. Zero fricção, zero senhas, fluxo simples. 
+3. PARA O LOJISTA: O lojista gerencia tudo através do nosso App Mobile EXCLUSIVO para lojistas, onde ele vê a agenda, os clientes, aprova e recusa horários, etc.
+4. PREÇO: Temos o Plano Essencial por apenas R$ 47,00 por mês (ou R$ 470,00 anual).
+5. INTEGRAÇÕES: Nosso sistema é "stand-alone" por enquanto, a IA gerencia a própria agenda no nosso banco e o lojista vê no nosso App. Não requer integrações complexas e demoradas com ERPs antigos no momento de ativação (apesar de estarmos abrindo API em breve).
+6. TESTE GRÁTIS: Oferecemos 7 dias grátis. Para começar, o lojista clica no botão "Começar Grátis" na página. Se ele não gostar, o plano é cancelado automaticamente sem cobranças (só cobramos se ele for pra produção pra valer usando Asaas).
+
+COMO RESPONDER:
+- Seja sempre simpática, persuasiva e direta (não escreva textos gigantes).
+- Se o cliente perguntar algo sobre preços ou planos, fale sobre o plano de R$ 47/mês e empurre pro teste grátis.
+- Se o cliente fizer uma pergunta muito complexa, técnica demais, reclamar de algum problema ou perguntar sobre algo que não está nas suas regras, você DEVE dizer que ainda está aprendendo e sugerir falar direto com um humano (use a tag secreta __FALAR_COM_HUMANO__).
+
+FORMATO DE SAÍDA: Responda APENAS com o texto da sua mensagem. Se precisar do humano, escreva sua mensagem e adicione __FALAR_COM_HUMANO__ no final do texto.
+"""
+
+    messages = [{"role": "system", "content": prompt_sistema}]
+    for msg in historico:
+        # converter o formato do db {remetente, mensagem} para o formato openai {role, content}
+        role = "user" if msg.get("remetente") == "user" else "assistant"
+        messages.append({"role": role, "content": msg.get("mensagem") or ""})
+        
+    messages.append({"role": "user", "content": mensagem_usuario})
+
+    try:
+        response = cast(
+            ChatCompletion,
+            await client_ai.chat.completions.create(
+                model="gpt-4o-mini",
+                messages=messages,
+                temperature=0.7,
+                stream=False
+            )
+        )
+        conteudo = response.choices[0].message.content or ""
+        
+        is_link = False
+        if "__FALAR_COM_HUMANO__" in conteudo:
+            is_link = True
+            conteudo = conteudo.replace("__FALAR_COM_HUMANO__", "").strip()
+            
+        return {"mensagem": conteudo, "isLink": is_link}
+    except Exception as e:
+        logger.error("Erro na IA do Site. Erro: %s", e)
+        return {
+            "mensagem": "Ops! Minhas engrenagens deram uma travada aqui. Enquanto eu me recupero, você pode falar direto com nossa equipe no botão abaixo!", 
+            "isLink": True
+        }
