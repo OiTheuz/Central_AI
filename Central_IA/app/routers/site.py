@@ -2,10 +2,10 @@ import logging
 from fastapi import APIRouter, Depends, HTTPException
 from sqlalchemy.orm import Session
 from pydantic import BaseModel
-from typing import List
 
 from app.database import get_public_db
 from app.models.site_chat_log import SiteChatLog
+from app.services.openai_service import responder_chat_site
 
 logger = logging.getLogger(__name__)
 
@@ -18,8 +18,6 @@ class SiteChatMessage(BaseModel):
     session_id: str
     remetente: str
     mensagem: str
-
-from app.services.openai_service import responder_chat_site
 
 @router.post("/chat")
 async def process_chat_message(msg: SiteChatMessage, db: Session = Depends(get_public_db)):
@@ -43,14 +41,28 @@ async def process_chat_message(msg: SiteChatMessage, db: Session = Depends(get_p
         
         historico_para_ia = [
             {"remetente": h.remetente, "mensagem": h.mensagem}
-            for h in historico_db if h.id != log_user.id # exclui a mensagem atual para não duplicar, ou não, melhor excluir e passar só o history antigo. Na verdade, a função OpenAI já recebe a mensagem_usuario em separado.
+            for h in historico_db if h.id != log_user.id
         ]
         
-        # Filtra a última mensagem (que acabamos de salvar) do histórico
+        # Filtra a última mensagem do histórico
         historico_limpo = historico_para_ia[:-1] if len(historico_para_ia) > 0 and historico_para_ia[-1]["mensagem"] == msg.mensagem else historico_para_ia
 
-        # 3. Chama a IA
-        resposta_ia = await responder_chat_site(historico_limpo, msg.mensagem)
+        # 3. Verifica se a mensagem bate com scripts locais para economizar tokens
+        mensagem_lower = msg.mensagem.lower().strip()
+        
+        if mensagem_lower in ["oi", "oie", "olá", "ola", "bom dia", "boa tarde", "boa noite", "tudo bem", "tudo bem?", "oi!"]:
+            resposta_ia = {
+                "mensagem": "Olá! Eu sou a Lau, assistente inteligente do OpenChaTz. 🤖✨\n\nEstou aqui para tirar todas as suas dúvidas sobre como automatizar seus agendamentos pelo WhatsApp. Como posso te ajudar hoje?",
+                "isLink": False
+            }
+        elif mensagem_lower in ["preço", "preco", "qual o valor", "qual o valor?", "quanto custa", "quanto custa?", "valores", "planos"]:
+            resposta_ia = {
+                "mensagem": "Atualmente estamos com uma **promoção de lançamento por apenas R$ 57,00/mês!** (O preço oficial é R$ 87,00/mês).\n\nE o melhor: você pode testar o sistema **DE GRAÇA por 7 dias**, sem precisar cadastrar cartão de crédito!\n\nQuer saber como funciona o teste grátis?",
+                "isLink": False
+            }
+        else:
+            # Chama a IA de verdade
+            resposta_ia = await responder_chat_site(historico_limpo, msg.mensagem)
         
         # 4. Salva a resposta da IA no banco
         log_bot = SiteChatLog(
