@@ -158,3 +158,26 @@ def get_admin_leads(db: Session = Depends(get_public_db)):
         "leads_incompletos": dados_cenario_a,
         "setup_incompleto": dados_cenario_b
     }
+
+from app.models.site_chat_log import SiteChatLog
+
+@router.get("/site-chats")
+def get_site_chats(db: Session = Depends(get_public_db)):
+    """Retorna todas as conversas do site agrupadas por sessão."""
+    logs = db.query(SiteChatLog).order_by(SiteChatLog.criado_em.asc()).all()
+    
+    sessoes = {}
+    for log in logs:
+        if log.session_id not in sessoes:
+            sessoes[log.session_id] = {
+                "session_id": log.session_id,
+                "data_inicio": log.criado_em.strftime("%Y-%m-%d %H:%M:%S") if log.criado_em else None,
+                "mensagens": []
+            }
+        sessoes[log.session_id]["mensagens"].append({
+            "remetente": log.remetente,
+            "mensagem": log.mensagem,
+            "data": log.criado_em.strftime("%Y-%m-%d %H:%M:%S") if log.criado_em else None
+        })
+        
+    return {"sessoes": list(sessoes.values())}

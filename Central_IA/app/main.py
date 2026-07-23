@@ -7,7 +7,7 @@ from datetime import datetime, timedelta
 from fastapi import FastAPI, WebSocket, WebSocketDisconnect, Query
 from fastapi.responses import HTMLResponse
 from fastapi.middleware.cors import CORSMiddleware
-from app.routers import app_lojista, auth, admin, dashboards
+from app.routers import app_lojista, auth, admin, dashboards, site
 from app.services.websocket_manager import manager
 from app.services.auth_service import decodificar_token_jwt
 
@@ -345,6 +345,7 @@ app.include_router(agendamentos_router)
 app.include_router(admin.router)       # /admin/estabelecimento (requer JWT admin)
 app.include_router(dashboards.router)  # /api/dashboards/...
 app.include_router(custos.router)
+app.include_router(site.router)
 app.include_router(chat_router)
 app.include_router(ws_chat_router)
 app.include_router(onboarding.router)
