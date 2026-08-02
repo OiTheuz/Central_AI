@@ -13,4 +13,6 @@ class ActiveSession(Base):
     loja_atual = Column(String, nullable=False)
     dados_sessao = Column(JSON, nullable=True)
     ativo = Column(Boolean, default=True)
+    bot_status = Column(String, default="active", server_default="active", nullable=False)
+    paused_at = Column(DateTime, nullable=True)
     ultima_interacao = Column(DateTime, server_default=func.now(), onupdate=func.now())

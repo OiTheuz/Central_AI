@@ -697,7 +697,7 @@ async def receive_message(request: Request, db: Session = Depends(get_public_db)
             if chat_state and chat_state.is_human_service:
                 ultima = chat_state.human_service_started_at
                 agora = datetime.now(timezone.utc)
-                if ultima and (agora - ultima) > timedelta(hours=2):
+                if ultima and (agora - ultima) > timedelta(hours=12):
                     chat_state.is_human_service = False
                     db.commit()
                     enviar_mensagem_whatsapp(

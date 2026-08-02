@@ -196,18 +196,12 @@ async def analisar_mensagem_com_ia(
     }
 
     try:
-        # cast() é necessário pois o Pylance não resolve o overload de create()
-        # corretamente a partir dos type stubs do SDK — em runtime, stream=False
-        # garante que o retorno é sempre ChatCompletion.
-        response = cast(
-            ChatCompletion,
-            await client_ai.chat.completions.create(
-                model="gpt-4o-mini",
-                messages=messages_payload,
-                response_format={"type": "json_object"},
-                temperature=0.1,
-                stream=False,
-            )
+        response = await client_ai.chat.completions.create(
+            model="gpt-4o-mini",
+            messages=messages_payload,
+            response_format={"type": "json_object"},
+            temperature=0.1,
+            stream=False,
         )
         
         conteudo_texto = response.choices[0].message.content
@@ -282,23 +276,20 @@ async def extrair_data_hora_com_ia(texto_cliente: str, nome_loja: str) -> dict:
     Retorne APENAS o JSON, sem markdown.
     """
 
-    messages_payload = cast(list[ChatCompletionMessageParam], [
+    messages_payload: list[ChatCompletionMessageParam] = [
         {"role": "system", "content": prompt_sistema},
         {"role": "user", "content": texto_cliente}
-    ])
+    ]
 
     fallback = {"data": None, "hora": None}
 
     try:
-        response = cast(
-            ChatCompletion,
-            await client_ai.chat.completions.create(
-                model="gpt-4o-mini",
-                messages=messages_payload,
-                response_format={"type": "json_object"},
-                temperature=0.1,
-                stream=False,
-            )
+        response = await client_ai.chat.completions.create(
+            model="gpt-4o-mini",
+            messages=messages_payload,
+            response_format={"type": "json_object"},
+            temperature=0.1,
+            stream=False,
         )
         conteudo = response.choices[0].message.content
         if not conteudo: return fallback
@@ -409,22 +400,19 @@ async def analisar_mensagem_chefe(
     IMPORTANTE: Nunca se refira a ele como "chefe", "o chefe" ou "patrão". Sempre o chame pelo nome: {nome_chefe}.
     """
 
-    messages = [{"role": "system", "content": prompt_sistema}]
+    messages: list[ChatCompletionMessageParam] = [{"role": "system", "content": prompt_sistema}]
     # Limitar histórico para não estourar tokens
     for msg in historico[-10:]:
-        messages.append(msg)
+        messages.append(cast(ChatCompletionMessageParam, msg))
 
     conteudo = None
     try:
-        response = cast(
-            ChatCompletion,
-            await client_ai.chat.completions.create(
-                model="gpt-4o-mini",
-                messages=messages,
-                temperature=0.2,
-                stream=False,
-                response_format={"type": "json_object"},
-            )
+        response = await client_ai.chat.completions.create(
+            model="gpt-4o-mini",
+            messages=messages,
+            temperature=0.2,
+            stream=False,
+            response_format={"type": "json_object"},
         )
         conteudo = response.choices[0].message.content or "{}"
         
@@ -525,21 +513,18 @@ async def analisar_mensagem_app(
     Atenção: Apenas preencha 'agendamentos', 'cadastro' ou 'bloqueio' se tiver os dados. Se for apenas conversa, preencha apenas 'mensagem_resposta' e use a intenção 'responder'.
     """
 
-    messages = [{"role": "system", "content": prompt_sistema}]
+    messages: list[ChatCompletionMessageParam] = [{"role": "system", "content": prompt_sistema}]
     for msg in historico[-10:]:
-        messages.append(msg)
+        messages.append(cast(ChatCompletionMessageParam, msg))
 
     conteudo = None
     try:
-        response = cast(
-            ChatCompletion,
-            await client_ai.chat.completions.create(
-                model="gpt-4o-mini",
-                messages=messages,
-                temperature=0.2,
-                stream=False,
-                response_format={"type": "json_object"},
-            )
+        response = await client_ai.chat.completions.create(
+            model="gpt-4o-mini",
+            messages=messages,
+            temperature=0.2,
+            stream=False,
+            response_format={"type": "json_object"},
         )
         conteudo = response.choices[0].message.content or "{}"
         
@@ -584,23 +569,20 @@ COMO RESPONDER:
 FORMATO DE SAÍDA: Responda APENAS com o texto da sua mensagem. Se precisar do humano, escreva sua mensagem e adicione __FALAR_COM_HUMANO__ no final do texto.
 """
 
-    messages = [{"role": "system", "content": prompt_sistema}]
+    messages: list[ChatCompletionMessageParam] = [{"role": "system", "content": prompt_sistema}]
     for msg in historico:
         # converter o formato do db {remetente, mensagem} para o formato openai {role, content}
         role = "user" if msg.get("remetente") == "user" else "assistant"
-        messages.append({"role": role, "content": msg.get("mensagem") or ""})
+        messages.append(cast(ChatCompletionMessageParam, {"role": role, "content": msg.get("mensagem") or ""}))
         
-    messages.append({"role": "user", "content": mensagem_usuario})
+    messages.append(cast(ChatCompletionMessageParam, {"role": "user", "content": mensagem_usuario}))
 
     try:
-        response = cast(
-            ChatCompletion,
-            await client_ai.chat.completions.create(
-                model="gpt-4o-mini",
-                messages=messages,
-                temperature=0.7,
-                stream=False
-            )
+        response = await client_ai.chat.completions.create(
+            model="gpt-4o-mini",
+            messages=messages,
+            temperature=0.7,
+            stream=False
         )
         conteudo = response.choices[0].message.content or ""
         

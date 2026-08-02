@@ -129,6 +129,18 @@ async def send_chat_message(
         sender="merchant"
     )
     db.add(msg)
+    
+    # 2. Atualizar estado de atendimento humano (Pausa o Bot)
+    from datetime import datetime, timezone
+    state = db.query(ClientChatState).filter(
+        ClientChatState.merchant_id == merchant_id,
+        ClientChatState.client_phone == req.client_phone
+    ).first()
+    
+    if state:
+        state.is_human_service = True
+        state.human_service_started_at = datetime.now(timezone.utc)
+    
     db.commit()
     db.refresh(msg)
     
