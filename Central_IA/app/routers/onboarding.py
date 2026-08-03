@@ -258,27 +258,76 @@ def get_admin_merchants(db: Session = Depends(get_public_db)):
 
 from app.services.auth_service import get_lojista_atual
 
-class SetupWizardRequest(BaseModel):
-    horario_abertura: str
-    horario_fechamento: str
-    horario_almoco_inicio: str = None
-    horario_almoco_fim: str = None
-    dias_fechados: str = None
-    instrucoes_ia: str = None
+from typing import List
 
-@router.put("/portal-setup")
-def portal_setup(body: SetupWizardRequest, db: Session = Depends(get_public_db), merchant: Merchant = Depends(get_lojista_atual)):
-    """
-    Salva as configurações iniciais definidas no Onboarding Obrigatório pós-login.
-    """
-    merchant.horario_abertura = body.horario_abertura
-    merchant.horario_fechamento = body.horario_fechamento
-    merchant.horario_almoco_inicio = body.horario_almoco_inicio
-    merchant.horario_almoco_fim = body.horario_almoco_fim
-    merchant.dias_fechados = body.dias_fechados
+class Step1Request(BaseModel):
+    tem_multiplos_profissionais: bool
+    ia_pergunta_profissional: bool
+    agenda_separada_por_profissional: bool
+    nomes_profissionais: List[str] = []
+
+@router.put("/step/1")
+def onboarding_step_1(body: Step1Request, db: Session = Depends(get_public_db), merchant: Merchant = Depends(get_lojista_atual)):
+    merchant.tem_multiplos_profissionais = body.tem_multiplos_profissionais
+    merchant.ia_pergunta_profissional = body.ia_pergunta_profissional
+    merchant.agenda_separada_por_profissional = body.agenda_separada_por_profissional
+    merchant.onboarding_step = 2
+    
+    profissionais_retorno = []
+    
+    if body.tem_multiplos_profissionais and body.nomes_profissionais:
+        from app.models.professional import Professional
+        # Switch to tenant schema
+        db.execute(text(f"SET search_path TO {merchant.nome_do_schema}"))
+        
+        # Limpa antigos se existirem (para evitar duplicidade em re-submissões)
+        db.execute(text(f"TRUNCATE {merchant.nome_do_schema}.professionals CASCADE"))
+        
+        for nome in body.nomes_profissionais:
+            prof = Professional(nome=nome)
+            db.add(prof)
+        db.commit()
+        
+        # Fetch inserted to get IDs
+        profs = db.query(Professional).all()
+        for p in profs:
+            profissionais_retorno.append({"id": p.id, "nome": p.nome})
+            
+        # Switch back to public
+        db.execute(text("SET search_path TO public"))
+    else:
+        db.commit()
+
+    return {"status": "sucesso", "profissionais": profissionais_retorno}
+
+@router.put("/step/2")
+def onboarding_step_2(db: Session = Depends(get_public_db), merchant: Merchant = Depends(get_lojista_atual)):
+    merchant.onboarding_step = 3
+    db.commit()
+    return {"status": "sucesso"}
+
+@router.put("/step/3")
+def onboarding_step_3(db: Session = Depends(get_public_db), merchant: Merchant = Depends(get_lojista_atual)):
+    merchant.onboarding_step = 4
+    db.commit()
+    return {"status": "sucesso"}
+
+class Step4Request(BaseModel):
+    ia_persona: str
+    instrucoes_ia: str
+
+@router.put("/step/4")
+def onboarding_step_4(body: Step4Request, db: Session = Depends(get_public_db), merchant: Merchant = Depends(get_lojista_atual)):
+    merchant.ia_persona = body.ia_persona
     merchant.instrucoes_ia = body.instrucoes_ia
-    merchant.onboarding_completo = True
+    merchant.onboarding_step = 5
+    db.commit()
+    return {"status": "sucesso"}
 
+@router.put("/step/5")
+def onboarding_step_5(db: Session = Depends(get_public_db), merchant: Merchant = Depends(get_lojista_atual)):
+    merchant.onboarding_completo = True
+    merchant.onboarding_step = 6
     db.commit()
     return {"status": "sucesso", "mensagem": "Onboarding concluído com sucesso!"}
 

@@ -25,6 +25,12 @@ class Merchant(Base):
     # Marketing e Onboarding
     cupom_usado = Column(String(50), nullable=True)
     como_conheceu = Column(String(100), nullable=True)
+    onboarding_completo = Column(Boolean, default=False, nullable=False, server_default="false")
+    onboarding_step = Column(Integer, default=1, nullable=False, server_default="1")
+    ia_persona = Column(String(50), default="profissional", nullable=False, server_default="profissional")
+    tem_multiplos_profissionais = Column(Boolean, default=False, nullable=False, server_default="false")
+    ia_pergunta_profissional = Column(Boolean, default=False, nullable=False, server_default="false")
+    agenda_separada_por_profissional = Column(Boolean, default=False, nullable=False, server_default="false")
 
     # Assinatura SaaS (Asaas)
     asaas_customer_id = Column(String(255), nullable=True)

@@ -110,6 +110,13 @@ def login(body: LoginRequest, db: Session = Depends(get_public_db)):
             "politica_aceita": getattr(merchant, 'politica_aceita', False),
             "loja_pai_id": merchant.loja_pai_id,
             "foto_perfil": getattr(merchant, 'foto_perfil', None),
+            "onboarding_completo": getattr(merchant, 'onboarding_completo', False),
+            "onboarding_step": getattr(merchant, 'onboarding_step', 1),
+            "ia_persona": getattr(merchant, 'ia_persona', 'profissional'),
+            "instrucoes_ia": getattr(merchant, 'instrucoes_ia', ''),
+            "tem_multiplos_profissionais": getattr(merchant, 'tem_multiplos_profissionais', False),
+            "ia_pergunta_profissional": getattr(merchant, 'ia_pergunta_profissional', False),
+            "agenda_separada_por_profissional": getattr(merchant, 'agenda_separada_por_profissional', False),
         },
         "must_change_password": getattr(merchant, 'deve_trocar_senha', False)
     }
@@ -145,6 +152,13 @@ def me(
         "notificacoes_novos": getattr(merchant, 'notificacoes_novos', True),
         "notificacoes_cancelamentos": getattr(merchant, 'notificacoes_cancelamentos', True),
         "notificacoes_lembretes": getattr(merchant, 'notificacoes_lembretes', True),
+        "onboarding_completo": getattr(merchant, 'onboarding_completo', False),
+        "onboarding_step": getattr(merchant, 'onboarding_step', 1),
+        "ia_persona": getattr(merchant, 'ia_persona', 'profissional'),
+        "instrucoes_ia": getattr(merchant, 'instrucoes_ia', ''),
+        "tem_multiplos_profissionais": getattr(merchant, 'tem_multiplos_profissionais', False),
+        "ia_pergunta_profissional": getattr(merchant, 'ia_pergunta_profissional', False),
+        "agenda_separada_por_profissional": getattr(merchant, 'agenda_separada_por_profissional', False),
     }
 
 

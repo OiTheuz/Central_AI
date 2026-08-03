@@ -56,6 +56,24 @@ def criar_novo_estabelecimento(schema_nome: str, tabelas: List[str], nicho: str 
                 else:
                     conn.execute(text(f"TRUNCATE {schema}.{tabela}"))
             
+            # 3.5 Cria tabelas de profissionais explicitamente (já que não estão no moura_schema)
+            conn.execute(text(f"""
+                CREATE TABLE IF NOT EXISTS {schema}.professionals (
+                    id SERIAL PRIMARY KEY,
+                    nome VARCHAR(255) NOT NULL
+                )
+            """))
+            conn.execute(text(f"""
+                CREATE TABLE IF NOT EXISTS {schema}.professional_shifts (
+                    id SERIAL PRIMARY KEY,
+                    professional_id INTEGER NOT NULL REFERENCES {schema}.professionals(id) ON DELETE CASCADE,
+                    dia_semana INTEGER NOT NULL,
+                    turno_inicio VARCHAR(5),
+                    turno_fim VARCHAR(5),
+                    dia_fechado BOOLEAN NOT NULL DEFAULT FALSE
+                )
+            """))
+            
             # 4. Insere os serviços mapeados para o nicho (se houver)
             if nicho:
                 servicos = get_services_for_niche(nicho)
